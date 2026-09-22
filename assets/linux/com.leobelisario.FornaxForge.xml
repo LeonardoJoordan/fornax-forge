@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-fornax-template">
+    <comment>FORNAX Forge template</comment>
+    <comment xml:lang="pt_BR">Modelo FORNAX Forge</comment>
+    <comment xml:lang="es">Plantilla FORNAX Forge</comment>
+    <sub-class-of type="application/zip"/>
+    <icon name="com.leobelisario.FornaxForge"/>
+    <generic-icon name="com.leobelisario.FornaxForge"/>
+    <glob pattern="*.fornax" weight="80"/>
+  </mime-type>
+</mime-info>

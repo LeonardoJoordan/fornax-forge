@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "name": "FORNAX Rosê",
+  "colors": {
+    "window": "#d6c5bb", "surface": "#e5d6cc", "panel": "#eee2d8",
+    "field": "#fcf5e9", "alternate": "#f1e5da", "header": "#e5d3c8",
+    "button": "#e5d0c6", "hover": "#d7b9af", "selection": "#dfbbb9",
+    "border": "#aa8e80", "border_strong": "#806557", "grid": "#c6ada0",
+    "text": "#392c29", "muted": "#66504a", "disabled": "#927970",
+    "icon": "#624940", "accent": "#874f60", "accent_hover": "#744252",
+    "on_accent": "#fff8ed", "danger": "#942f38", "success": "#3f674c",
+    "warning": "#80541c", "scroll_track": "#e0cec1", "scroll_handle": "#96796b",
+    "scroll_hover": "#705448", "canvas": "#c3aea2", "canvas_selection": "#874f60",
+    "canvas_outline": "#89746a", "handle": "#55725c", "guide": "#537b7d"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "name": "FORNAX Carbono",
+  "colors": {
+    "window": "#08090b", "surface": "#151618", "panel": "#101113",
+    "field": "#0b0c0e", "alternate": "#191a1d", "header": "#202125",
+    "button": "#25262b", "hover": "#34363d", "selection": "#343c4c",
+    "border": "#393b42", "border_strong": "#858a96", "grid": "#303238",
+    "text": "#f5f6f8", "muted": "#b4b8c1", "disabled": "#777c87",
+    "icon": "#cbd0da", "accent": "#536998", "accent_hover": "#6078a8",
+    "on_accent": "#ffffff", "danger": "#ef9298", "success": "#77c59c",
+    "warning": "#dfb77d", "scroll_track": "#1b1d21", "scroll_handle": "#686d78",
+    "scroll_hover": "#9198a6", "canvas": "#202226", "canvas_selection": "#397cc8",
+    "canvas_outline": "#808080", "handle": "#438a70", "guide": "#16899a"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "name": "FORNAX Marinho",
+  "colors": {
+    "window": "#0d1420", "surface": "#192536", "panel": "#141f2e",
+    "field": "#101a29", "alternate": "#1c293b", "header": "#223147",
+    "button": "#26354a", "hover": "#334761", "selection": "#364667",
+    "border": "#42536b", "border_strong": "#8a9db8", "grid": "#33445b",
+    "text": "#f3f5f8", "muted": "#a8abb5", "disabled": "#777b87",
+    "icon": "#c7d4e8", "accent": "#605bc4", "accent_hover": "#6d67d2",
+    "on_accent": "#ffffff", "danger": "#f19a9f", "danger_background": "#8b3443", "on_danger": "#ffffff", "success": "#81cba9",
+    "warning": "#e6bf87", "scroll_track": "#223044", "scroll_handle": "#7587a2",
+    "scroll_hover": "#a0b2ce", "canvas": "#28364a", "canvas_selection": "#436db2", "canvas_outline": "#808080", "handle": "#348365", "guide": "#14899c"
+  }
+}

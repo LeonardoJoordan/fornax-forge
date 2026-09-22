@@ -1,0 +1,19 @@
+FORNAX Forge
+Copyright (C) 2026 Leonardo Joordan Belisário Lima da Silva
+
+O código e a documentação próprios deste projeto são software livre:
+você pode redistribuí-los e/ou modificá-los sob os termos da GNU General
+Public License publicada pela Free Software Foundation, versão 3
+exclusivamente (SPDX-License-Identifier: GPL-3.0-only).
+
+O FORNAX Forge é distribuído na expectativa de que seja útil, mas SEM
+QUALQUER GARANTIA, inclusive sem garantia implícita de COMERCIALIZAÇÃO ou
+ADEQUAÇÃO A UMA FINALIDADE ESPECÍFICA. Consulte o arquivo LICENSE.
+
+Componentes e recursos de terceiros permanecem sujeitos às respectivas
+licenças. Consulte docs/THIRD_PARTY_LICENSES.md e
+docs/ASSET_PROVENANCE.md.
+
+O nome FORNAX Forge e o logotipo identificam o projeto oficial. A GPL não
+concede autorização para sugerir que uma versão modificada ou redistribuída
+é oficial, aprovada ou apoiada pelo autor. Consulte TRADEMARKS.md.

@@ -1,0 +1,47 @@
+# Ambientes Virtuais e Variáveis
+venv/
+env/
+.venv/
+.venv-windows/
+.env
+
+# Compilados e Cache Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.flatpak
+
+# Artefatos do Projeto ComSoc
+output/
+models/*
+!models/.gitkeep
+.validation/
+
+# Compilação e Nuitka
+build/
+dist/
+*.build/
+*.dist/
+*.bin
+.flatpak-builder/
+build-dir/
+repo/
+*.dmg
+
+
+# Sistema Operacional / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# AppImage e Relatórios de Crash
+appimagetool
+COMSOC-x86_64.AppImage
+nuitka-crash-report.xml
+COMSOC.AppDir
+Projeto_ComSoc.AppImage
+ProjetoComSoc.flatpak
+FORNAX_Forge.AppImage
+FORNAX_Forge.AppDir/

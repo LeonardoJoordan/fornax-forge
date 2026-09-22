@@ -1,0 +1,80 @@
+app-id: com.leobelisario.FornaxForge
+runtime: org.gnome.Platform
+runtime-version: '50'
+sdk: org.gnome.Sdk
+command: fornax-forge
+
+finish-args:
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+  - --filesystem=xdg-documents/FORNAX_Forge_Saida:create
+  - --socket=cups
+
+modules:
+  - name: dependencias
+    buildsystem: simple
+    build-commands:
+      - pip3 install --prefix=/app --no-index --find-links=wheels --require-hashes -r wheels/requirements.lock
+    sources:
+      - type: dir
+        path: build/flatpak-wheels
+        dest: wheels
+    
+  - name: fornax-forge
+    buildsystem: simple
+    build-commands:
+      # Prepara os diretórios padrão do Linux
+      - mkdir -p /app/share/fornax-forge
+      - mkdir -p /app/bin
+      - mkdir -p /app/share/applications
+      - mkdir -p /app/share/mime/packages
+      - mkdir -p /app/share/doc/fornax-forge
+      - mkdir -p /app/share/icons/hicolor/32x32/apps /app/share/icons/hicolor/48x48/apps /app/share/icons/hicolor/64x64/apps /app/share/icons/hicolor/128x128/apps /app/share/icons/hicolor/256x256/apps /app/share/icons/hicolor/512x512/apps
+      
+      # A mesma seleção explícita usada na preparação do standalone.
+      - python3 scripts/release_tools.py stage --output /app/share/fornax-forge
+      - cp LICENSE NOTICE AUTHORS.md TRADEMARKS.md SECURITY.md /app/share/doc/fornax-forge/
+      - cp -r /app/share/fornax-forge/docs/. /app/share/doc/fornax-forge/
+      - cp assets/icons/fornax-forge_32.png /app/share/icons/hicolor/32x32/apps/com.leobelisario.FornaxForge.png
+      - cp assets/icons/fornax-forge_48.png /app/share/icons/hicolor/48x48/apps/com.leobelisario.FornaxForge.png
+      - cp assets/icons/fornax-forge_64.png /app/share/icons/hicolor/64x64/apps/com.leobelisario.FornaxForge.png
+      - cp assets/icons/fornax-forge_128.png /app/share/icons/hicolor/128x128/apps/com.leobelisario.FornaxForge.png
+      - cp assets/icons/fornax-forge_256.png /app/share/icons/hicolor/256x256/apps/com.leobelisario.FornaxForge.png
+      - cp assets/icons/fornax-forge_512.png /app/share/icons/hicolor/512x512/apps/com.leobelisario.FornaxForge.png
+      
+      # Cria o executável
+      - |
+        cat << 'EOF' > /app/bin/fornax-forge
+        #!/bin/sh
+        export PYTHONPATH="/app/share/fornax-forge:$PYTHONPATH"
+        exec python3 /app/share/fornax-forge/main.py "$@"
+        EOF
+      - chmod +x /app/bin/fornax-forge
+      
+      # CRIA O ATALHO DO MENU INICIAR
+      - |
+        cat << 'EOF' > /app/share/applications/com.leobelisario.FornaxForge.desktop
+        [Desktop Entry]
+        Name=FORNAX Forge
+        Comment=Geração de material personalizado em lote
+        Exec=fornax-forge %F
+        Icon=com.leobelisario.FornaxForge
+        Terminal=false
+        Type=Application
+        Categories=Office;Utility;Graphics;
+        MimeType=application/x-fornax-template;
+        EOF
+      - cp assets/linux/com.leobelisario.FornaxForge.xml /app/share/mime/packages/com.leobelisario.FornaxForge.xml
+      - update-mime-database /app/share/mime
+
+    sources:
+      - type: dir
+        path: .
+
+# Assim que a instalação terminar, você pode retomar a sequência de compilação normalmente:
+#    flatpak-builder --repo=repo --force-clean build-dir com.leobelisario.FornaxForge.yaml
+#    flatpak build-bundle repo FORNAX_Forge.flatpak com.leobelisario.FornaxForge
+#    flatpak install --reinstall FORNAX_Forge.flatpak
+
+#    flatpak-builder --repo=repo --force-clean build-dir com.leobelisario.FornaxForge.yaml && flatpak build-bundle repo FORNAX_Forge.flatpak com.leobelisario.FornaxForge && flatpak install --reinstall FORNAX_Forge.flatpak

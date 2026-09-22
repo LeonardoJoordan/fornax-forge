@@ -1,0 +1,5 @@
+# Runtime: o metapacote PySide6/Addons não é necessário aos módulos usados.
+PySide6_Essentials==6.11.0
+pypdf==6.16.1
+cryptography==50.0.1
+defusedxml==0.7.1

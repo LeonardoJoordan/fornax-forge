@@ -1,0 +1,38 @@
+[
+  {
+    "artifact": "libbz2.so.1.0",
+    "package": "libbz2-1.0:amd64",
+    "version": "1.0.8-5.1ubuntu0.1",
+    "notice": "libbz2-1.0-copyright.txt"
+  },
+  {
+    "artifact": "libcrypto.so.3",
+    "package": "libssl3t64:amd64",
+    "version": "3.0.13-0ubuntu3.15",
+    "notice": "libssl3t64-copyright.txt"
+  },
+  {
+    "artifact": "libssl.so.3",
+    "package": "libssl3t64:amd64",
+    "version": "3.0.13-0ubuntu3.15",
+    "notice": "libssl3t64-copyright.txt"
+  },
+  {
+    "artifact": "liblzma.so.5",
+    "package": "liblzma5:amd64",
+    "version": "5.6.1+really5.4.5-1ubuntu0.3",
+    "notice": "liblzma5-copyright.txt"
+  },
+  {
+    "artifact": "libsqlite3.so.0",
+    "package": "libsqlite3-0:amd64",
+    "version": "3.45.1-1ubuntu2.8",
+    "notice": "libsqlite3-0-copyright.txt"
+  },
+  {
+    "artifact": "libuuid.so.1",
+    "package": "libuuid1:amd64",
+    "version": "2.39.3-9ubuntu6.6",
+    "notice": "libuuid1-copyright.txt"
+  }
+]

@@ -1,0 +1,11 @@
+O FORNAX Forge é software livre licenciado sob a GNU General Public License versão 3 exclusivamente (GPL-3.0-only). O texto da licença está no arquivo LICENSE, e os avisos dos componentes externos estão na pasta “docs/licenses”.
+
+Copyright © 2026 Leonardo Joordan Belisário Lima da Silva.
+
+O nome FORNAX Forge e o logotipo identificam o projeto oficial. A licença do programa não autoriza apresentar versões modificadas como oficiais ou sugerir endosso do autor. Consulte TRADEMARKS.md.
+
+Antes de redistribuir este instalador, o distribuidor deve conferir o inventário do pacote final e executar novamente a compilação pelo script_nuitka.py. O uso de PySide6/Qt obtido pelo PyPI pressupõe cumprimento da modalidade comunitária LGPL/GPL; uma licença comercial Qt exige artefatos obtidos pelos canais comerciais correspondentes.
+
+Ao distribuir o programa, preserve a licença, os avisos de autoria e os direitos concedidos pela GPL. Disponibilize o código-fonte correspondente da versão distribuída pelo meio exigido pela licença.
+
+Este texto é uma orientação técnica de conformidade e não substitui aconselhamento jurídico para um caso concreto.

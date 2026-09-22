@@ -1,0 +1,73 @@
+[
+  {
+    "name": "PySide6_Essentials",
+    "version": "6.11.0",
+    "notices": [],
+    "complete_native_license_inventory": false
+  },
+  {
+    "name": "shiboken6",
+    "version": "6.11.0",
+    "notices": [],
+    "complete_native_license_inventory": false
+  },
+  {
+    "name": "pypdf",
+    "version": "6.16.1",
+    "notices": [
+      "pypdf-6.16.1/LICENSE"
+    ],
+    "complete_native_license_inventory": false
+  },
+  {
+    "name": "cryptography",
+    "version": "50.0.1",
+    "notices": [
+      "cryptography-50.0.1/LICENSE",
+      "cryptography-50.0.1/LICENSE.APACHE",
+      "cryptography-50.0.1/LICENSE.BSD"
+    ],
+    "complete_native_license_inventory": false
+  },
+  {
+    "name": "cffi",
+    "version": "2.1.1",
+    "notices": [
+      "cffi-2.1.1/LICENSE"
+    ],
+    "complete_native_license_inventory": false
+  },
+  {
+    "name": "pycparser",
+    "version": "3.0",
+    "notices": [
+      "pycparser-3.0/LICENSE"
+    ],
+    "complete_native_license_inventory": false
+  },
+  {
+    "name": "defusedxml",
+    "version": "0.7.1",
+    "notices": [
+      "defusedxml-0.7.1/LICENSE"
+    ],
+    "complete_native_license_inventory": false
+  },
+  {
+    "name": "Nuitka",
+    "version": "4.0.7",
+    "notices": [
+      "Nuitka-4.0.7/LICENSE-RUNTIME.txt",
+      "Nuitka-4.0.7/LICENSE.txt"
+    ],
+    "complete_native_license_inventory": false
+  },
+  {
+    "name": "zstandard",
+    "version": "0.25.0",
+    "notices": [
+      "zstandard-0.25.0/LICENSE"
+    ],
+    "complete_native_license_inventory": false
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "name": "FORNAX Pérola",
+  "colors": {
+    "window": "#e9ebf0", "surface": "#f4f5f7", "panel": "#ffffff",
+    "field": "#ffffff", "alternate": "#f7f8fa", "header": "#eef0f4",
+    "button": "#eef0f4", "hover": "#e2e5ea", "selection": "#ddd9ff",
+    "border": "#a1a8b4", "border_strong": "#707a8c", "grid": "#cdd2dc",
+    "text": "#20222a", "muted": "#666b75", "disabled": "#777c86",
+    "icon": "#4d515b", "accent": "#675de6", "accent_hover": "#756bea",
+    "on_accent": "#ffffff", "danger": "#b92c28", "success": "#218344",
+    "warning": "#975300", "scroll_track": "#eceef2", "scroll_handle": "#858e9c",
+    "scroll_hover": "#677386", "canvas": "#d7d9df", "canvas_selection": "#405fb5", "canvas_outline": "#808080", "handle": "#218344", "guide": "#007b91"
+  }
+}
