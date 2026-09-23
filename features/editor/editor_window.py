@@ -326,23 +326,30 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
         self.refresh_layer_list()
 
 
+    def setVisible(self, visible):
+        workspace = self._workspace_window
+        starting_session = visible and workspace is not None and not self._workspace_session_active
+        if starting_session:
+            from core.window_geometry import transfer_window_geometry
+
+            self._workspace_session_active = True
+            transfer_window_geometry(workspace, self)
+        super().setVisible(visible)
+        if starting_session:
+            workspace.hide()
+
     def showEvent(self, event):
         super().showEvent(event)
-        workspace = self._workspace_window
-        if workspace is not None and not self._workspace_session_active:
-            self._workspace_session_active = True
-            self.setGeometry(workspace.normalGeometry() if workspace.isMaximized() or workspace.isFullScreen() else workspace.geometry())
-            self.setWindowState(workspace.windowState() & ~Qt.WindowState.WindowMinimized)
-            workspace.hide()
         self._zoom_to_fit()
 
     def _release_workspace_window(self):
         workspace = self._workspace_window
         if workspace is None or not self._workspace_session_active:
             return
+        from core.window_geometry import transfer_window_geometry
+
         self._workspace_session_active = False
-        workspace.setGeometry(self.normalGeometry() if self.isMaximized() or self.isFullScreen() or self.isMinimized() else self.geometry())
-        workspace.setWindowState(self.windowState() & ~Qt.WindowState.WindowMinimized)
+        transfer_window_geometry(self, workspace)
         workspace.show()
         workspace.raise_()
         workspace.activateWindow()

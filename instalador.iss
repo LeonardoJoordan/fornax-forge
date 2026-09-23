@@ -1,6 +1,6 @@
 #define AppName "FORNAX Forge"
 #define AppDescription "Geração de material personalizado em lote"
-#define AppVersion "1.0.0"
+#define AppVersion "1.0.1"
 #define AppExeName "FORNAX_Forge.exe"
 #define AppPublisher "Leonardo Joordan Belisário Lima da Silva"
 
