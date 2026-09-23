@@ -84,3 +84,38 @@ verificação, ou informar expressamente que o release não está assinado.
 Antes de enviar código, executar uma varredura de segredos. Resultados não devem
 expor os segredos encontrados. Se houver credencial real, revogar/rotacionar antes
 de limpar o histórico. Não reescrever o histórico automaticamente.
+
+## AppImage Linux — preparação local
+
+O AppImage usa o standalone Nuitka; não usa o SDK ou wheelhouse do Flatpak.
+Criar um ambiente separado evita incluir PySide6/Addons do ambiente de edição:
+
+```bash
+python3 -m venv .venv-appimage
+.venv-appimage/bin/python -m pip install --require-hashes -r requirements/linux-py313-build.lock
+.venv-appimage/bin/python -m pip check
+.venv-appimage/bin/python script_nuitka.py
+```
+
+Esse lock foi validado em Linux x86_64/Python 3.13. Em outra combinação, gerar
+um lock correspondente. Compilação exige compilador e ferramentas do Nuitka.
+
+Colocar `appimagetool` executável na raiz, obtido do repositório oficial
+`AppImage/appimagetool`, verificando o hash. Para usar um runtime previamente
+baixado e verificado de `AppImage/type2-runtime`:
+
+```bash
+FORNAX_APPIMAGE_RUNTIME="$PWD/build/appimage-tools/runtime-x86_64" bash script_appimage.sh
+./FORNAX_Forge.AppImage
+sha256sum FORNAX_Forge.AppImage
+```
+
+O script reconstrói `FORNAX_Forge.AppDir` e gera `FORNAX_Forge.AppImage` na raiz.
+Sem `FORNAX_APPIMAGE_RUNTIME`, o appimagetool pode baixar seu runtime ao empacotar.
+Preservar versões, URLs e hashes: o rótulo upstream `continuous` é mutável.
+A preparação usa rede; isso não adiciona atualização automática ao aplicativo.
+
+Antes de distribuir, testar o AppImage em outro computador/distribuição alvo,
+sem Python/venv do projeto. Bibliotecas do host podem impor requisitos mínimos;
+gerar AppImage não garante compatibilidade com toda distribuição antiga.
+Validar interface, geração, importação/exportação e associação separadamente.

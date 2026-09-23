@@ -62,7 +62,12 @@ echo "📊 Tamanho do AppDir: $(du -sh "$APP_DIR" | cut -f1)"
 # Gera o AppImage
 echo ""
 echo "📦 Gerando AppImage..."
-ARCH="${ARCH:-$(uname -m)}" ./appimagetool "$APP_DIR" FORNAX_Forge.AppImage
+runtime_args=()
+if [[ -n "${FORNAX_APPIMAGE_RUNTIME:-}" ]]; then
+    [[ -f "$FORNAX_APPIMAGE_RUNTIME" ]] || { echo "Runtime não encontrado: $FORNAX_APPIMAGE_RUNTIME" >&2; exit 1; }
+    runtime_args=(--runtime-file "$FORNAX_APPIMAGE_RUNTIME")
+fi
+ARCH="${ARCH:-$(uname -m)}" ./appimagetool "${runtime_args[@]}" "$APP_DIR" FORNAX_Forge.AppImage
 
 echo ""
 echo "✅ FORNAX_Forge.AppImage gerado com sucesso!"

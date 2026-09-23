@@ -3,6 +3,7 @@ venv/
 env/
 .venv/
 .venv-windows/
+.venv-appimage/
 .env
 
 # Compilados e Cache Python
@@ -45,3 +46,9 @@ Projeto_ComSoc.AppImage
 ProjetoComSoc.flatpak
 FORNAX_Forge.AppImage
 FORNAX_Forge.AppDir/
+
+FORNAX_Forge.AppImage.sha256
+
+# Rascunhos de release e registros locais de validação
+/RELEASE_v*.md
+/docs/VALIDACAO_APPIMAGE_LINUX.md
