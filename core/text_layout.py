@@ -145,9 +145,10 @@ def build_document(box, content):
     outline.setTextOutline(outline_pen(box))
     cursor.mergeCharFormat(outline)
     frame = doc.rootFrame()
-    fmt = frame.frameFormat()
-    fmt.setMargin(0)
-    frame.setFrameFormat(fmt)
+    if frame is not None:
+        fmt = frame.frameFormat()
+        fmt.setMargin(0)
+        frame.setFrameFormat(fmt)
     doc.setTextWidth(box.get("w", 300))
     return doc
 

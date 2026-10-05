@@ -5,9 +5,10 @@ from __future__ import annotations
 from datetime import datetime
 from html import unescape
 from pathlib import Path
+import os
 import re
 
-from core.paths import get_logs_dir
+from core.paths import get_fallback_logs_dir, get_logs_dir
 
 
 MAX_LOG_BYTES = 1024 * 1024
@@ -49,17 +50,53 @@ def append_diagnostic_log(
     sanitize: bool = True,
     max_bytes: int = MAX_LOG_BYTES,
     backups: int = LOG_BACKUPS,
+    durable: bool = False,
 ) -> Path:
     if Path(filename).name != filename or not filename:
         raise ValueError("Nome de log inválido.")
     path = get_logs_dir() / filename
     content = sanitize_log_message(message) if sanitize else str(message)
+    return _append_log(path, content, max_bytes=max_bytes, backups=backups, durable=durable)
+
+
+def _append_log(path, content, *, max_bytes, backups, durable=False):
     line = f"[{datetime.now():%Y-%m-%d %H:%M:%S}] {content}\n"
     encoded = line.encode("utf-8")
     _rotate(path, len(encoded), max_bytes=max_bytes, backups=backups)
     with path.open("a", encoding="utf-8") as stream:
         stream.write(line)
+        if durable:
+            stream.flush()
+            os.fsync(stream.fileno())
     return path
+
+
+class CrashLogWriteError(OSError):
+    """Ambos os destinos de diagnóstico falharam; o aviso deve informar isso."""
+
+    def __init__(self, primary_error, fallback_error):
+        self.primary_error = primary_error
+        self.fallback_error = fallback_error
+        super().__init__(
+            f"Destino principal: {primary_error}; destino alternativo: {fallback_error}"
+        )
+
+
+def save_crash_report(exc_type, exc_traceback) -> Path:
+    """Persiste a falha antes do diálogo e retorna somente um destino confirmado."""
+    summary = crash_summary(exc_type, exc_traceback)
+    try:
+        return append_diagnostic_log(
+            "crash_log.txt", summary, sanitize=False, durable=True,
+        )
+    except Exception as primary_error:
+        try:
+            path = get_fallback_logs_dir() / "crash_log.txt"
+            return _append_log(
+                path, summary, max_bytes=MAX_LOG_BYTES, backups=LOG_BACKUPS, durable=True,
+            )
+        except Exception as fallback_error:
+            raise CrashLogWriteError(primary_error, fallback_error) from fallback_error
 
 
 def clear_diagnostic_log(filename: str, *, backups: int = LOG_BACKUPS) -> None:

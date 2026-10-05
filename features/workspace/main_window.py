@@ -1957,10 +1957,8 @@ class MainWindow(QMainWindow):
         self._configure_dynamic_images_for_model(document)
         self.preview_panel.set_page_navigation(len(document["pages"]), 0)
         self._refresh_imposition_presets()
-        self._preview_renderers = renderers_for_document(
-            document, asset_provider=asset_provider,
-        )
-        self.preview_renderer = self._preview_renderers[0]
+        # A inicialização dos presets pode salvar uma nova revisão do pacote.
+        self._rebuild_preview_renderers()
         self.preview_panel.set_preview_pixmap(
             self.preview_renderer.render_to_pixmap(row_rich=None, max_side=1600)
         )
@@ -1969,6 +1967,14 @@ class MainWindow(QMainWindow):
             self.log_panel.append(status.notice)
         if hasattr(self, "btn_config_model"):
             self.btn_config_model.setEnabled(True)
+
+    def _rebuild_preview_renderers(self):
+        """Mantém as referências dos assets alinhadas à revisão atual da sessão."""
+        self._preview_renderers = renderers_for_document(
+            self.cached_model_document, asset_provider=self._fornax_asset_provider,
+        )
+        self._preview_page_index = min(self._preview_page_index, len(self._preview_renderers) - 1)
+        self.preview_renderer = self._preview_renderers[self._preview_page_index]
 
     # --- LEGO: Recebimento do Preview e Descarte Inteligente ---
     def _on_preview_ready(self, worker_model_name: str, thumb_path: str):
@@ -2641,9 +2647,15 @@ class MainWindow(QMainWindow):
                 self._active_library_model = updated
                 self._library_models_by_key[updated.key] = updated
                 self.cached_model_document = self._fornax_sessions.document(library_model.path)
+                if "__dynamic_image_dir" in document:
+                    self.cached_model_document["__dynamic_image_dir"] = document["__dynamic_image_dir"]
                 self.cached_model_data = adapt_model_page(
                     self.cached_model_document, self._active_page_id if hasattr(self, "_active_page_id") else "front"
                 )
+                # Salvar .fornax recria os caminhos internos das imagens. Um
+                # renderer antigo só funciona enquanto seus pixels estão no cache.
+                self._rebuild_preview_renderers()
+                self._on_preview_data_changed()
             except Exception as error:
                 QMessageBox.warning(
                     self, tr("Erro"),

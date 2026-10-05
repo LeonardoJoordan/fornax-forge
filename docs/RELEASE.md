@@ -70,6 +70,26 @@ O build instala sem rede (`--no-index --require-hashes`); não reutilizar wheels
 nativos do Python do host sem conferir a ABI. Preparar wheels com `pip download
 --require-hashes -r <lock> --dest build/flatpak-wheels` e copiar o lock para
 `build/flatpak-wheels/requirements.lock`. Testar o pacote dentro da sandbox.
+
+Para preparar as dependências na raiz do projeto, com o SDK 50 usando Python
+3.13 e arquitetura x86_64:
+
+```bash
+flatpak install flathub org.gnome.Platform//50 org.gnome.Sdk//50
+flatpak run --command=python3 org.gnome.Sdk//50 --version
+mkdir -p build/flatpak-wheels
+flatpak run --share=network --filesystem="$PWD" --command=python3 org.gnome.Sdk//50 \
+  -m pip --isolated download --index-url=https://pypi.org/simple --no-cache-dir \
+  --only-binary=:all: --require-hashes \
+  -r "$PWD/requirements/linux-py313-runtime.lock" \
+  --dest "$PWD/build/flatpak-wheels"
+cp requirements/linux-py313-runtime.lock build/flatpak-wheels/requirements.lock
+```
+
+Se o SDK usar outra versão de Python ou arquitetura, preparar um lock
+correspondente antes de baixar. As dependências instaladas na `.venv` do host
+não substituem essa pasta. Refazer a preparação quando as versões mudarem.
+
 Verificar novamente suporte da base antes de publicar:
 https://release.gnome.org/calendar/
 

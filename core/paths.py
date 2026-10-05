@@ -29,6 +29,7 @@ def get_legacy_app_data_dir() -> Path:
 
 
 MIGRATION_FILE = ".comsoc-migration.json"
+LEGACY_LOGS_SUBDIR = Path("legacy_logs") / "ProjetoComSoc"
 
 
 def _verified_copy(source, target):
@@ -47,11 +48,67 @@ def _save_migration(path, state):
     temporary.replace(path)
 
 
+def _copy_migration_entry(original, target, destination):
+    if target.exists() or target.is_symlink():
+        return
+    target.parent.mkdir(parents=True, exist_ok=True)
+    # Publicar somente a unidade completamente copiada e verificada.
+    with tempfile.TemporaryDirectory(prefix=".migration-", dir=destination) as temporary:
+        staged = Path(temporary) / "entry"
+        if original.is_dir():
+            shutil.copytree(original, staged, copy_function=_verified_copy)
+        else:
+            _verified_copy(original, staged)
+        staged.rename(target)
+
+
+def _separate_legacy_logs(source, destination):
+    """Arquiva o histórico antigo antes de retirar cópias dos logs ativos.
+
+    Migrações anteriores copiaram logs para ``logs/``. Só retiramos bytes
+    quando o arquivo ativo começa com o conteúdo exato do histórico arquivado;
+    o restante, escrito pelo FORNAX, permanece no arquivo ativo.
+    """
+    original = source / "logs"
+    archive = destination / LEGACY_LOGS_SUBDIR
+    if original.is_dir():
+        _copy_migration_entry(original, archive, destination)
+    active_dir = destination / "logs"
+    if not archive.is_dir() or archive.is_symlink() or active_dir.is_symlink():
+        return
+    for old_log in sorted(archive.iterdir()):
+        active = active_dir / old_log.name
+        if not old_log.is_file() or not active.is_file() or active.is_symlink():
+            continue
+        old_bytes = old_log.read_bytes()
+        current_bytes = active.read_bytes()
+        if not old_bytes or not current_bytes.startswith(old_bytes):
+            continue
+        remaining = current_bytes[len(old_bytes):]
+        if not remaining:
+            active.unlink()
+            continue
+        staged = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="wb", prefix=".migration-log-", dir=active_dir, delete=False,
+            ) as stream:
+                staged = Path(stream.name)
+                stream.write(remaining)
+                stream.flush()
+                os.fsync(stream.fileno())
+            shutil.copymode(active, staged)
+            staged.replace(active)
+        finally:
+            if staged is not None:
+                staged.unlink(missing_ok=True)
+
+
 def _migrate_data(source, destination):
     marker = destination / MIGRATION_FILE
     if marker.exists():
         state = json.loads(marker.read_text(encoding="utf-8"))
-        if state["complete"]:
+        if state["complete"] and state.get("legacy_logs_separated"):
             return
     else:
         # Cada modelo é uma unidade: nunca misturar assets de versões distintas.
@@ -66,20 +123,14 @@ def _migrate_data(source, destination):
         _save_migration(marker, state)
     while state["pending"]:
         relative = state["pending"][0]
-        original, target = source / relative, destination / relative
-        if not target.exists() and not target.is_symlink():
-            target.parent.mkdir(parents=True, exist_ok=True)
-            # Publicar somente a unidade completamente copiada e verificada.
-            with tempfile.TemporaryDirectory(prefix=".migration-", dir=destination) as temporary:
-                staged = Path(temporary) / "entry"
-                if original.is_dir():
-                    shutil.copytree(original, staged, copy_function=_verified_copy)
-                else:
-                    _verified_copy(original, staged)
-                staged.rename(target)
+        original = source / relative
+        target = destination / (LEGACY_LOGS_SUBDIR if relative == "logs" else relative)
+        _copy_migration_entry(original, target, destination)
         state["pending"].pop(0)
         _save_migration(marker, state)
+    _separate_legacy_logs(source, destination)
     state["complete"] = True
+    state["legacy_logs_separated"] = True
     _save_migration(marker, state)
 
 
@@ -93,6 +144,20 @@ def get_app_data_dir() -> Path:
 
 def get_logs_dir() -> Path:
     logs_dir = get_app_data_dir() / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    return logs_dir
+
+def get_fallback_logs_dir() -> Path:
+    """Destino persistente de emergência, independente da migração de dados."""
+    system = platform.system()
+    if system == "Windows":
+        root = Path(os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or Path.home())
+        logs_dir = root / WINDOWS_APP_DIR / "diagnostics"
+    elif system == "Darwin":
+        logs_dir = Path.home() / "Library" / "Logs" / APP_ID
+    else:
+        root = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local" / "state")
+        logs_dir = root / APP_ID / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
     return logs_dir
 

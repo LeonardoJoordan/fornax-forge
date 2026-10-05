@@ -14,14 +14,14 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 from core.app_instance import ApplicationInstance
 from core.custom_tooltip import CustomTooltipManager
-from core.paths import APP_ID, get_logs_dir
+from core.paths import APP_ID
 from core.settings import SETTINGS_APPLICATION, SETTINGS_ORGANIZATION
 from core.resources import app_icon_path
 from core.ui_font import install_ui_font
 from core.wheel_focus import install_wheel_focus_guard
 from core.i18n import initialize_i18n, tr
 from core.dialog_buttons import install_dialog_button_style
-from core.diagnostic_logs import append_diagnostic_log, crash_summary
+from core.diagnostic_logs import save_crash_report
 from core.temp_storage import cleanup_stale_workspaces
 from features.workspace.main_window import MainWindow
 
@@ -55,24 +55,28 @@ def global_exception_handler(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
-    log_file = get_logs_dir() / 'crash_log.txt'
+    details = ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
     try:
-        append_diagnostic_log(
-            "crash_log.txt", crash_summary(exc_type, exc_traceback), sanitize=False,
+        log_file = save_crash_report(exc_type, exc_traceback)
+        information = tr('Os detalhes técnicos foram salvos em:\n{arquivo}').format(arquivo=log_file)
+    except Exception as log_error:
+        information = tr(
+            'Não foi possível salvar o relatório de erro. '
+            'Abra os detalhes e copie o conteúdo antes de fechar esta janela.'
         )
-    except OSError:
-        pass
+        details += '\n\n' + tr('Falha ao salvar o relatório: {erro}').format(erro=log_error)
     message = QMessageBox()
     message.setIcon(QMessageBox.Icon.Critical)
     message.setWindowTitle(tr('Erro fatal'))
     message.setText(tr('Ocorreu um erro inesperado e o sistema precisa ser encerrado.'))
-    message.setInformativeText(tr('Os detalhes técnicos foram salvos em:\n{arquivo}').format(arquivo=log_file))
-    message.setDetailedText(''.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
+    message.setInformativeText(information)
+    message.setDetailedText(details)
     message.exec()
 
 
 def main():
     app = FornaxApplication(sys.argv)
+    sys.excepthook = global_exception_handler
     app.setOrganizationName(SETTINGS_ORGANIZATION)
     app.setApplicationName(SETTINGS_APPLICATION)
     app.setApplicationDisplayName('FORNAX Forge')
@@ -87,7 +91,6 @@ def main():
     initialize_i18n(app, settings)
     theme_manager().initialize(settings)
     install_dialog_button_style(app)
-    sys.excepthook = global_exception_handler
     CustomTooltipManager.install(delay_ms=1500)
     external_paths = _external_arguments(sys.argv)
     instance = ApplicationInstance(app)

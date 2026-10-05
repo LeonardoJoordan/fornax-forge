@@ -1349,7 +1349,17 @@ Links work only in PDF. Do you want to continue and generate images without link
       <translation>Text opacity</translation>
     </message>
     <message>
-      <location filename="../../features/workspace/main.py" line="41" />
+      <location filename="../../features/workspace/main.py" line="64" />
+      <source>Não foi possível salvar o relatório de erro. Abra os detalhes e copie o conteúdo antes de fechar esta janela.</source>
+      <translation>The error report could not be saved. Open the details and copy the contents before closing this window.</translation>
+    </message>
+    <message>
+      <location filename="../../features/workspace/main.py" line="67" />
+      <source>Falha ao salvar o relatório: {erro}</source>
+      <translation>Failed to save the report: {erro}</translation>
+    </message>
+    <message>
+      <location filename="../../features/workspace/main.py" line="61" />
       <source>Os detalhes técnicos foram salvos em:
 {arquivo}</source>
       <translation>Technical details were saved to:

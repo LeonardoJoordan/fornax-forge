@@ -14,6 +14,7 @@ Essa característica não significa ausência de armazenamento. Todo o trabalho 
 | Backups e recuperação de edição | Ao lado do modelo correspondente | Substituídos ou removidos pelo fluxo de salvamento/recuperação |
 | Miniaturas e proxies de modelos legados | `.render_cache` dentro da antiga pasta do modelo | Cache reconstruível; modelos `.fornax` protegidos não usam esse cache em disco |
 | Logs operacionais | Pasta de dados do FORNAX, em `logs/` | Rotação automática: arquivo atual e até três versões de 1 MiB |
+| Logs históricos do Projeto ComSoc | Pasta de dados do FORNAX, em `legacy_logs/ProjetoComSoc/` | Até o usuário excluir o histórico |
 | Arquivos temporários do FORNAX | Pasta de dados do FORNAX, em `temporary/`; se ela não estiver disponível, pasta temporária do sistema com nome exclusivo do aplicativo e usuário | Removidos ao concluir a operação e novamente na próxima inicialização após falha |
 | PNGs e PDFs gerados | Pasta escolhida pelo usuário, dentro da pasta de cada forja | Até o usuário removê-los |
 
@@ -33,7 +34,13 @@ Backups e arquivos de recuperação seguem o modo de proteção do modelo. Expor
 
 O painel pode mostrar detalhes úteis durante a sessão. A versão persistida do log remove caminhos absolutos, nomes dos arquivos gerados e detalhes multilinha. O registro de falha guarda o tipo da exceção e as posições técnicas usando apenas o nome de cada arquivo de código; não grava valores da exceção nem linhas de conteúdo.
 
+O relatório de falha é gravado e enviado ao disco antes de aparecer a caixa de erro. Se a pasta principal estiver indisponível, o FORNAX tenta um destino persistente alternativo, independente da migração: no Linux, `$XDG_STATE_HOME/com.leobelisario.FornaxForge/logs` ou `~/.local/state/com.leobelisario.FornaxForge/logs`; no Windows, `%LOCALAPPDATA%\FornaxForge\diagnostics` (com `%APPDATA%` como alternativa); no macOS, `~/Library/Logs/com.leobelisario.FornaxForge`. A caixa informa o caminho realmente utilizado. Se ambos os destinos falharem, ela informa que o relatório não foi salvo e mantém os detalhes disponíveis para cópia. O destino alternativo não participa da limpeza de arquivos temporários e também usa rotação de logs.
+
+Instalações nativas/AppImage e Flatpak podem ter pastas de dados distintas. No Flatpak Linux, a pasta padrão de logs é `~/.var/app/com.leobelisario.FornaxForge/data/com.leobelisario.FornaxForge/logs/`. Para localizar um relatório, use o caminho indicado na caixa de erro da instalação em execução.
+
 Ao usar a ação de limpar o log, o FORNAX limpa o painel e também os arquivos rotacionados do log operacional. O log de falhas é independente para preservar diagnóstico de encerramentos inesperados.
+
+A migração do Projeto ComSoc guarda os logs antigos em `legacy_logs/ProjetoComSoc/`, separados dos registros atuais em `logs/`. Instalações que já copiaram esse histórico para a pasta de logs ativos são corrigidas na próxima execução: a cópia antiga é arquivada e somente o conteúdo que corresponde exatamente a ela é retirado do início dos arquivos ativos. Registros novos do FORNAX e arquivos cuja origem não pode ser confirmada são preservados. Os arquivos na pasta original do Projeto ComSoc também permanecem intactos.
 
 ## Arquivos temporários e encerramento inesperado
 
