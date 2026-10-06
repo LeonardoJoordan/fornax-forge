@@ -218,13 +218,15 @@ class PreviewPanel(QWidget):
     def _emit_mode(self):
         self.modeChanged.emit(self.cbo_preview_mode.currentData() or "item")
 
-    def set_navigation(self, mode: str, index: int, total: int, *, sheet_available: bool):
-        current_mode = self.cbo_preview_mode.currentData()
+    def set_navigation(self, mode: str, index: int, total: int, *, sheet_available: bool,
+                       organogram: bool = False):
         with QSignalBlocker(self.cbo_preview_mode):
             self.cbo_preview_mode.clear()
             self.cbo_preview_mode.addItem(tr("Item"), "item")
             if sheet_available:
-                self.cbo_preview_mode.addItem(tr("Folha de impressão"), "sheet")
+                self.cbo_preview_mode.addItem(
+                    tr("Organograma") if organogram else tr("Folha de impressão"), "sheet"
+                )
             wanted = mode if mode == "item" or sheet_available else "item"
             selected = self.cbo_preview_mode.findData(wanted)
             self.cbo_preview_mode.setCurrentIndex(max(0, selected))
@@ -234,20 +236,23 @@ class PreviewPanel(QWidget):
         with QSignalBlocker(self.spin_navigation):
             self.spin_navigation.setRange(1, max(1, total))
             self.spin_navigation.setValue(index + 1)
-        self.lbl_navigation_kind.setText(tr("Folha") if wanted == "sheet" else tr("Item"))
+        self.lbl_navigation_kind.setText(
+            (tr("Quadro") if organogram else tr("Folha")) if wanted == "sheet" else tr("Item")
+        )
         self.lbl_navigation_total.setText(tr("de {total}").format(total=total))
         self.spin_navigation.setToolTip(
-            tr("Número da folha física") if wanted == "sheet" else
-            tr("Cada cópia é contada como um item")
+            (tr("Organograma completo") if organogram else tr("Número da folha física"))
+            if wanted == "sheet" else
+            (tr("Cada linha corresponde a um cartão") if organogram else tr("Cada cópia é contada como um item"))
         )
         enabled = total > 0
         self.spin_navigation.setEnabled(enabled)
         self.btn_previous.setEnabled(enabled and index > 0)
         self.btn_next.setEnabled(enabled and index + 1 < total)
-        if current_mode != wanted:
-            self.cbo_preview_mode.setToolTip(
-                tr("Visualize um item ou a folha final conforme a predefinição de impressão.")
-            )
+        self.cbo_preview_mode.setToolTip(
+            tr("Visualize o cartão da Página 1 ou o organograma completo.") if organogram else
+            tr("Visualize um item ou a folha final conforme a predefinição de impressão.")
+        )
 
     def set_page_navigation(self, page_count: int, current_page: int):
         visible = page_count > 1

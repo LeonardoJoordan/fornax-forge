@@ -97,6 +97,10 @@ class DocumentSessionMixin:
             self._synchronize_document_backgrounds(document)
             if dimensions_changed else document
         )
+        if dimensions_changed and self._model_document.get("organogram") is not None:
+            canvas = self._model_document["canvas_size"]
+            for group in self._model_document["organogram"]["groups"]:
+                group["card_h"] = group["card_w"] * canvas["h"] / canvas["w"]
         self._active_scene_baseline = copy.deepcopy(page_data)
         return {
             "__document_history__": True,
@@ -111,6 +115,9 @@ class DocumentSessionMixin:
             refresh()
 
     def _finish_page_interaction(self):
+        self._finish_canvas_pointer_interaction(leave_pan=True)
+        if getattr(self, "_board_connection_sources", None):
+            self.cancel_board_connection()
         if self._mask_edit_session:
             self.finish_mask_edit(True)
         if getattr(self, "canvas_edit", None):
@@ -121,9 +128,10 @@ class DocumentSessionMixin:
     def switch_model_page(self, page_id: str):
         if page_id == self._active_page_id:
             return
-        if not self._model_document or page_id not in {
-            page["page_id"] for page in self._model_document["pages"]
-        }:
+        available = {page["page_id"] for page in self._model_document["pages"]} if self._model_document else set()
+        if self._model_document and self._model_document.get("organogram") is not None:
+            available.add("organogram")
+        if page_id not in available:
             return
         self._finish_page_interaction()
         self.save_snapshot()
@@ -188,7 +196,7 @@ class DocumentSessionMixin:
         self._refresh_page_controls()
 
     def remove_model_page(self, page_id: str):
-        if not self._model_document or len(self._model_document["pages"]) < 2:
+        if not self._model_document or (len(self._model_document["pages"]) < 2 and page_id != "organogram"):
             return
         answer = QMessageBox.question(
             self, tr("Remover página"),

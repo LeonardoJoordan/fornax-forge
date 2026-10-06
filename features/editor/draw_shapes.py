@@ -47,6 +47,9 @@ class ShapeDrawing(QObject):
     def eventFilter(self, source, event):
         if not self.kind:
             return False
+        if event.type() == QEvent.Type.FocusOut:
+            self.cancel()
+            return False
         if event.type() == QEvent.ShortcutOverride:
             event.accept()
             return True
@@ -67,6 +70,9 @@ class ShapeDrawing(QObject):
             self.w.scene.addItem(self.preview)
             return True
         if event.type() in (QEvent.MouseMove, QEvent.MouseButtonRelease) and self.start is not None:
+            if event.type() == QEvent.MouseMove and not event.buttons() & Qt.LeftButton:
+                self.cancel()
+                return True
             end = self.geometry(self.w.view.mapToScene(event.position().toPoint()), bool(event.modifiers() & Qt.ShiftModifier))
             rect = QRectF(self.start, end).normalized()
             path = QPainterPath()

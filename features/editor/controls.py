@@ -12,6 +12,7 @@ from core.themes import theme_color
 
 from .canvas_items import BackgroundItem, SelectionTransformFrame, mm_to_px
 from .properties import CaixaDeTextoPanel, EditorDeTextoPanel
+from .organogram_editor import BoardGraphicsView
 
 
 def initialize_editor_controls(window):
@@ -66,7 +67,7 @@ def initialize_editor_controls(window):
     window.scene = QGraphicsScene(0, 0, 1000, 1000, window)
     window._document_rect = QRectF(0, 0, 1000, 1000)
     window.scene._document_rect = QRectF(window._document_rect)
-    window.view = QGraphicsView(window.scene, window)
+    window.view = BoardGraphicsView(window.scene, window)
     window.view.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
     window.view.setRenderHint(QPainter.RenderHint.Antialiasing)
     window.view.setBackgroundBrush(QBrush(QColor(theme_color('canvas'))))

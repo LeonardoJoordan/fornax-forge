@@ -417,6 +417,7 @@ def install_frontend(w):
     tools.setContentsMargins(14, 8, 14, 8)
     tools.setSpacing(8)
     selection = QLabel(tr('SELEÇÃO') + '\n' + tr('Nenhum objeto'))
+    selection.setObjectName('selectionSummary')
     selection.setFixedWidth(138)
     themed_style(selection, 'color: @muted@; font-size: 10px;')
     tools.addWidget(selection)
@@ -569,6 +570,16 @@ def install_frontend(w):
             refresh_shape_arrow()
             _connect_theme_callback(trailing_icon, refresh_shape_arrow)
         contents.addWidget(trailing_icon)
+        if button is w.btn_add_sig:
+            w._board_caption = caption
+            w._board_button_icon = leading_icon
+            w._board_button_arrow = trailing_icon
+            w._board_tool_menu = QMenu(button)
+            w._board_tool_menu.aboutToShow.connect(lambda: w._board_tool_menu.setMinimumWidth(w.btn_add_sig.width()))
+            w._board_tool_menu.addAction(tr('Adicionar bloco'), lambda: w.add_board_group())
+            w._board_tool_menu.addAction(tr('Conectar a elemento'), w.start_board_connection)
+            w._board_tool_menu.addAction(tr('Editar bloco selecionado'), lambda: w.edit_board_group())
+            _connect_theme_callback(button, lambda: w.refresh_board_context())
         button.setIcon(QIcon())
         button.setObjectName('add' + object_name)
         # QSS mede a área de conteúdo: 36 + 12 de padding + 2 de borda = 50.
@@ -1495,6 +1506,11 @@ def install_frontend(w):
     dl.addWidget(w.lst_placeholders)
     document_section = Section(tr('Documento'), doc, True)
     il.insertWidget(0, document_section)
+    from .organogram_editor import OrganogramPanel, BoardConnectorItem
+    w.organogram_panel = OrganogramPanel(w)
+    w._organogram_section = Section(tr('Estrutura do quadro'), w.organogram_panel, True)
+    w._organogram_section.hide()
+    il.insertWidget(1, w._organogram_section)
     il.addStretch()
     right = QScrollArea()
     right.setObjectName('inspectorScroll')
@@ -1565,7 +1581,7 @@ def install_frontend(w):
         menu = QMenu(anchor)
         clear_action = menu.addAction(tr('Limpar página'))
         clear_action.triggered.connect(lambda: w.clear_model_page(page_id))
-        if w._model_document and len(w._model_document.get('pages', [])) > 1:
+        if w._model_document and (len(w._model_document.get('pages', [])) > 1 or page_id == 'organogram'):
             remove_action = menu.addAction(tr('Remover página'))
             remove_action.triggered.connect(lambda: w.remove_model_page(page_id))
         menu.exec(anchor.mapToGlobal(QPoint(0, anchor.height())))
@@ -1580,6 +1596,8 @@ def install_frontend(w):
                 old_widget.deleteLater()
         document = w._model_document
         page_ids = [page['page_id'] for page in document.get('pages', [])] if document else ['front']
+        if document and document.get('organogram') is not None:
+            page_ids.append('organogram')
         for index, page_id in enumerate(page_ids, start=1):
             group = QFrame(page_selector)
             group.setObjectName('pageButton')
@@ -1587,11 +1605,12 @@ def install_frontend(w):
             group_layout = QHBoxLayout(group)
             group_layout.setContentsMargins(0, 0, 0, 0)
             group_layout.setSpacing(0)
-            main = QPushButton(tr('Página {numero}').format(numero=index), group)
+            label = tr('Organograma') if page_id == 'organogram' else tr('Página {numero}').format(numero=index)
+            main = QPushButton(label, group)
             main.setObjectName('pageMain')
             main.setFixedHeight(34)
             main.setMinimumWidth(82)
-            main.setAccessibleName(tr('Página {numero}').format(numero=index))
+            main.setAccessibleName(label)
             main.setToolTip(tr('Exibir a página {numero} no editor').format(numero=index))
             main.clicked.connect(lambda _checked=False, target=page_id: w.switch_model_page(target))
             more = QPushButton(group)
@@ -1606,12 +1625,16 @@ def install_frontend(w):
             group_layout.addWidget(more)
             page_layout.addWidget(group)
         if len(page_ids) < 2:
-            add_page = QPushButton(tr('+ Página'), page_selector)
-            add_page.setFixedHeight(34)
-            add_page.setMinimumWidth(82)
-            add_page.setToolTip(tr('Adicionar o verso ao modelo'))
-            add_page.setAccessibleName(tr('Adicionar o verso ao modelo'))
-            add_page.clicked.connect(w.add_model_page)
+            add_page = QPushButton(page_selector)
+            add_page.setFixedSize(34, 34)
+            add_page.setIcon(themed_svg_icon(action_icon_path('plus')))
+            add_page.setIconSize(QSize(18, 18))
+            add_page.setToolTip(tr('Adicionar página ou organograma'))
+            add_page.setAccessibleName(tr('Adicionar página ou organograma'))
+            add_menu = QMenu(add_page)
+            add_menu.addAction(tr('Adicionar página'), w.add_model_page)
+            add_menu.addAction(tr('Adicionar organograma'), w.add_model_organogram)
+            add_page.setMenu(add_menu)
             page_layout.addWidget(add_page)
         page_layout.invalidate()
         page_layout.activate()
@@ -1622,6 +1645,7 @@ def install_frontend(w):
         page_selector.resize(width, height)
         if hasattr(w, '_footer_save_alignment'):
             w._footer_save_alignment.schedule()
+        w.refresh_board_context()
 
     w._update_page_controls = rebuild_page_selector
     rebuild_page_selector()
@@ -1826,12 +1850,15 @@ def install_frontend(w):
             link_heading._section_separator.setVisible(
                 is_shape or restore_visible or mask_controls.isVisible()
             )
-        selection.setText(
-            tr('SELEÇÃO') + '\n' + (
-                getattr(inspector_item, 'layer_name', '') or tr('Objeto selecionado')
-                if inspector_item is not None else tr('Nenhum objeto')
-            )
-        )
+        scene_selected = w.scene.selectedItems()
+        only_connectors = bool(scene_selected) and all(isinstance(item, BoardConnectorItem) for item in scene_selected)
+        if only_connectors:
+            description = (tr('Conector selecionado') if len(scene_selected) == 1 else
+                           tr('{numero} conectores').format(numero=len(scene_selected)))
+        else:
+            description = (getattr(inspector_item, 'layer_name', '') or tr('Objeto selecionado')
+                           if inspector_item is not None else tr('Nenhum objeto'))
+        selection.setText(tr('SELEÇÃO') + '\n' + description)
         if t.isEnabled() and len(selected) == 1:
             color_changed(getattr(selected[0].state, 'font_color', '#000000'))
             if hasattr(w, 'canvas_edit'):

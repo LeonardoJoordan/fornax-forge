@@ -405,7 +405,7 @@ def inspect_fornax(path: str | Path) -> FornaxDescriptor:
 
 def _document_asset_references(document: dict) -> list[str]:
     references = []
-    for page in document.get("pages", []):
+    for page in [*document.get("pages", []), *([document["organogram"]] if document.get("organogram") else [])]:
         background = page.get("background_path")
         if isinstance(background, str) and background:
             references.append(background)
@@ -748,7 +748,7 @@ def _rewrite_selected_assets(
         assets[internal] = data
         return internal
 
-    for page in rewritten.get("pages", []):
+    for page in [*rewritten.get("pages", []), *([rewritten["organogram"]] if rewritten.get("organogram") else [])]:
         background = page.get("background_path")
         if isinstance(background, str) and background:
             page["background_path"] = replace(background)

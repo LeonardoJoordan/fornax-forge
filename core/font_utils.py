@@ -47,8 +47,9 @@ def template_font_families(template_data: dict) -> list[str]:
     fonts = []
     seen = set()
 
-    if template_data.get("schema_version") == 4 and isinstance(template_data.get("pages"), list):
-        boxes = [box for page in template_data["pages"] for box in page.get("boxes", [])]
+    if isinstance(template_data.get("pages"), list):
+        pages = [*template_data["pages"], *([template_data["organogram"]] if template_data.get("organogram") else [])]
+        boxes = [box for page in pages for box in page.get("boxes", [])]
     else:
         boxes = template_data.get("boxes", [])
 

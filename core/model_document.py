@@ -16,6 +16,7 @@ from core.html_utils import text_html_has_unsupported_resources
 
 
 SCHEMA_VERSION = 4
+ORGANOGRAM_SCHEMA_VERSION = 5
 LEGACY_SCHEMA_VERSION = 3
 V4_FILENAME = "template_v4.json"
 V4_BACKUP_FILENAME = "template_v4.json.bak"
@@ -39,7 +40,7 @@ PAGE_KEYS = {
     "guidelines",
     "editable_background_initialized",
 }
-DOCUMENT_ONLY_KEYS = {"schema_version", "__source_schema_version", "pages"}
+DOCUMENT_ONLY_KEYS = {"schema_version", "__source_schema_version", "pages", "organogram"}
 
 
 def new_signature_id() -> str:
@@ -200,7 +201,7 @@ def _reconcile_document_fields(document: dict, preferred_order=()) -> None:
     """Reconstrói a união global sem perder a ordem escolhida pelo usuário."""
     required = _ordered_unique(
         field_id
-        for page in document.get("pages", [])
+        for page in [*document.get("pages", []), *([document["organogram"]] if document.get("organogram") else [])]
         for field_id in [*page.get("field_ids", []), *_required_page_fields(page)]
     )
     required_set = set(required)
@@ -352,7 +353,7 @@ def _validate_page(page: Any, expected_id: str, *, legacy_source: bool) -> None:
 def validate_model_document(document: dict) -> None:
     if not isinstance(document, dict):
         raise ModelValidationError("O modelo deve ser um objeto JSON.")
-    if document.get("schema_version") != SCHEMA_VERSION:
+    if document.get("schema_version") not in (SCHEMA_VERSION, ORGANOGRAM_SCHEMA_VERSION):
         raise UnsupportedSchemaError(f"Versão de modelo não suportada: {document.get('schema_version')!r}.")
     if "protection_preferences" in document:
         preferences = document["protection_preferences"]
@@ -387,20 +388,29 @@ def validate_model_document(document: dict) -> None:
             signature_ids.append(signature_id)
     if len(signature_ids) != len(set(signature_ids)):
         raise ModelValidationError("Há signature_id repetido no documento.")
+    if document.get("organogram") is not None:
+        if document["schema_version"] != ORGANOGRAM_SCHEMA_VERSION or len(pages) != 1:
+            raise ModelValidationError("O organograma exige a versão 5 e apenas a página 1.")
+        from core.organogram import validate_organogram
+        _validate_page(document["organogram"], "organogram", legacy_source=False)
+        validate_organogram(document["organogram"])
 
 
 def normalize_model_document(source: dict) -> dict:
-    """Retorna uma cópia v4 validada, sem modificar ou gravar a origem."""
+    """Retorna uma cópia validada e atualizada, sem modificar ou gravar a origem."""
     if not isinstance(source, dict):
         raise ModelValidationError("O modelo deve ser um objeto JSON.")
     version = source.get("schema_version", LEGACY_SCHEMA_VERSION)
     if version == LEGACY_SCHEMA_VERSION:
         document = _normalize_legacy(source)
-    elif version == SCHEMA_VERSION:
+    elif version in (SCHEMA_VERSION, ORGANOGRAM_SCHEMA_VERSION):
         document = deepcopy(source)
     else:
         raise UnsupportedSchemaError(f"Versão de modelo não suportada: {version!r}.")
     _ensure_signature_ids(document)
+    if version == ORGANOGRAM_SCHEMA_VERSION:
+        from core.organogram import upgrade_legacy_block_names
+        upgrade_legacy_block_names(document.get("organogram"))
     validate_model_document(document)
     _reconcile_document_fields(document, document.get("placeholders", []))
     validate_model_document(document)
@@ -415,6 +425,9 @@ def page_ids(document: dict) -> tuple[str, ...]:
 def adapt_model_page(document: dict, page_id: str = "front") -> dict:
     """Cria uma visão plana da página para cena e renderer, sem compartilhar mutações."""
     normalized = normalize_model_document(document)
+    if page_id == "organogram" and normalized.get("organogram") is not None:
+        from core.organogram import scene_page
+        return scene_page(normalized)
     page = next((value for value in normalized["pages"] if value["page_id"] == page_id), None)
     if page is None:
         raise ModelValidationError(f"Página inexistente: {page_id!r}.")
@@ -436,6 +449,21 @@ def adapt_model_page(document: dict, page_id: str = "front") -> dict:
 def replace_model_page(document: dict, page_data: dict, page_id: str = "front") -> dict:
     """Retorna documento novo com uma página substituída e metadados comuns atualizados."""
     normalized = normalize_model_document(document)
+    if page_id == "organogram":
+        board = normalized.get("organogram")
+        if board is None:
+            raise ModelValidationError("Organograma inexistente.")
+        for key in PAGE_KEYS:
+            if key in page_data:
+                board[key] = deepcopy(page_data[key])
+        board["groups"] = deepcopy(page_data.get("__board_groups", board["groups"]))
+        board["connections"] = deepcopy(page_data.get("__board_connections", board["connections"]))
+        for key in ("margin_mm", "grid_mm"):
+            board[key] = page_data.get("__board_" + key, board[key])
+        board["connector_style"] = deepcopy(page_data.get("__board_connector_style", board.get("connector_style", {})))
+        _reconcile_document_fields(normalized, page_data.get("placeholders", []))
+        validate_model_document(normalized)
+        return normalized
     page_index = next((index for index, value in enumerate(normalized["pages"])
                        if value["page_id"] == page_id), None)
     if page_index is None:
@@ -501,6 +529,8 @@ def _blank_page(document: dict, page_id: str) -> dict:
 
 def add_blank_back_page(document: dict) -> dict:
     normalized = normalize_model_document(document)
+    if normalized.get("organogram") is not None:
+        raise ModelValidationError("Remova o organograma antes de adicionar outra página.")
     if len(normalized["pages"]) != 1:
         raise ModelValidationError("O documento já possui duas páginas.")
     normalized["pages"].append(_blank_page(normalized, "back"))
@@ -511,6 +541,10 @@ def add_blank_back_page(document: dict) -> dict:
 
 def clear_model_page(document: dict, page_id: str) -> dict:
     normalized = normalize_model_document(document)
+    if page_id == "organogram":
+        from core.organogram import blank_organogram
+        normalized["organogram"] = blank_organogram()
+        return normalized
     index = next((i for i, page in enumerate(normalized["pages"])
                   if page["page_id"] == page_id), None)
     if index is None:
@@ -524,6 +558,11 @@ def clear_model_page(document: dict, page_id: str) -> dict:
 
 def remove_model_page(document: dict, page_id: str) -> dict:
     normalized = normalize_model_document(document)
+    if page_id == "organogram":
+        normalized.pop("organogram", None)
+        normalized["schema_version"] = SCHEMA_VERSION
+        _reconcile_document_fields(normalized)
+        return normalized
     if len(normalized["pages"]) == 1:
         raise ModelValidationError("A única página do documento não pode ser removida.")
     remaining = [deepcopy(page) for page in normalized["pages"] if page["page_id"] != page_id]
@@ -585,7 +624,7 @@ def without_signatures(document: dict) -> dict:
     }
     retained_paths = {
         reference
-        for page in result["pages"]
+        for page in [*result["pages"], *([result["organogram"]] if result.get("organogram") else [])]
         for reference in (
             [page.get("background_path")]
             + [item.get("path") for item in page.get("images", [])]
@@ -723,7 +762,7 @@ def install_model_directory(source_dir: str | Path, target_dir: str | Path) -> P
 def iter_page_asset_paths(document: dict):
     """Percorre referências gráficas de todas as páginas, sem resolver caminhos."""
     normalized = normalize_model_document(document)
-    for page in normalized["pages"]:
+    for page in [*normalized["pages"], *([normalized["organogram"]] if normalized.get("organogram") else [])]:
         background = page.get("background_path")
         if background:
             yield page["page_id"], "background", background
@@ -737,7 +776,7 @@ def iter_page_asset_paths(document: dict):
 def iter_page_link_items(document: dict):
     """Percorre objetos com links ativos em todas as páginas."""
     normalized = normalize_model_document(document)
-    for page in normalized["pages"]:
+    for page in [*normalized["pages"], *([normalized["organogram"]] if normalized.get("organogram") else [])]:
         for collection in ("boxes", "images", "shapes"):
             for item in page.get(collection, []):
                 if (

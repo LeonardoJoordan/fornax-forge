@@ -273,10 +273,52 @@ def _queue_selection_frame_refresh(item):
         window._queue_selection_frame_refresh()
 
 
+def _board_item_center(item):
+    return item.mapToScene(item.rect().center())
+
+
+def _board_snap_step(scene, items):
+    return scene._board_grid / 2 if items and all(isinstance(i, DesignerBox) for i in items) else scene._board_grid
+
+
+def _snap_board_position(item, new_pos):
+    scene = item.scene()
+    if (not scene or not getattr(scene, '_board_grid', 0) or item.parentItem()
+            or getattr(scene, '_board_snap_suspended', False)):
+        return new_pos
+    if scene.views() and getattr(scene.views()[0].window(), '_loading_board', False):
+        return new_pos
+    if getattr(item, '_resizing_from_handle', False):
+        return new_pos
+    starts = getattr(scene, '_drag_start_positions', {})
+    moving = [i for i in scene.selectedItems() if i in starts and not i.parentItem() and hasattr(i, 'rect')]
+    if len(moving) > 1 and item in moving and any(getattr(i, '_is_mouse_dragging', False) for i in moving):
+        # Uma correção comum mantém as distâncias entre elementos de tamanhos diferentes.
+        raw_delta = new_pos - starts[item]
+        anchor = getattr(scene, '_board_drag_anchor', None)
+        if anchor is None:
+            bounds = QRectF()
+            for member in moving:
+                rect = member.mapRectToScene(member.rect()).translated(starts[member] - member.pos())
+                bounds = bounds.united(rect)
+            anchor = scene._board_drag_anchor = bounds.center()
+        step = _board_snap_step(scene, moving)
+        requested = anchor + raw_delta
+        delta = QPointF(round(requested.x() / step) * step, round(requested.y() / step) * step) - anchor
+        return starts[item] + delta
+    center_offset = _board_item_center(item) - item.pos()
+    step = _board_snap_step(scene, [item])
+    center = new_pos + center_offset
+    return QPointF(round(center.x() / step) * step, round(center.y() / step) * step) - center_offset
+
+
 def _snap_position_to_guides(item, new_pos, w, h):
     scene = item.scene()
     if not scene:
         return new_pos
+    grid = getattr(scene, '_board_grid', 0)
+    if grid and not item.parentItem() and not getattr(item, 'is_document_background', False):
+        return _snap_board_position(item, new_pos)
 
     sel = scene.selectedItems()
     leader = next((i for i in sel if getattr(i, '_is_mouse_dragging', False)), None)
@@ -1224,6 +1266,7 @@ class ImageItem(QGraphicsPixmapItem):
                     drag_items.append(self)
                 scene._drag_start_positions = {i: i.pos() for i in drag_items}
                 scene._group_raw_delta = None
+                scene._board_drag_anchor = None
 
     def mouseReleaseEvent(self, event):
         self._is_mouse_dragging = False
@@ -1234,6 +1277,7 @@ class ImageItem(QGraphicsPixmapItem):
             if start_pos is not None and start_pos != self.pos():
                 has_moved = True
             scene._group_raw_delta = None
+            scene._board_drag_anchor = None
         
         super().mouseReleaseEvent(event)
         
@@ -1563,6 +1607,7 @@ class SignatureItem(QGraphicsPixmapItem):
                     drag_items.append(self)
                 scene._drag_start_positions = {i: i.pos() for i in drag_items}
                 scene._group_raw_delta = None
+                scene._board_drag_anchor = None
 
     def mouseReleaseEvent(self, event):
         self._is_mouse_dragging = False
@@ -1573,6 +1618,7 @@ class SignatureItem(QGraphicsPixmapItem):
             if start_pos is not None and start_pos != self.pos():
                 has_moved = True
             scene._group_raw_delta = None
+            scene._board_drag_anchor = None
         
         super().mouseReleaseEvent(event)
         
@@ -1855,6 +1901,7 @@ class DesignerBox(QGraphicsRectItem):
                     drag_items.append(self)
                 scene._drag_start_positions = {i: i.pos() for i in drag_items}
                 scene._group_raw_delta = None
+                scene._board_drag_anchor = None
 
     def mouseReleaseEvent(self, event):
         self._is_mouse_dragging = False
@@ -1865,6 +1912,7 @@ class DesignerBox(QGraphicsRectItem):
             if start_pos is not None and start_pos != self.pos():
                 has_moved = True
             scene._group_raw_delta = None
+            scene._board_drag_anchor = None
         
         super().mouseReleaseEvent(event)
         

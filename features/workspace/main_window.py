@@ -71,12 +71,16 @@ from core.model_info import build_model_snapshot, current_model_snapshot, ensure
 from features.workspace.model_info_dialog import ModelInfoDialog
 from features.spreadsheet.headers import (
     SIGNATURE_ID_ROLE,
+    BLOCK_DESTINATION_ROLE,
+    is_block_header,
     is_quantity_header,
     is_signature_header,
     quantity_header_label,
     signature_id_from_header,
     table_column_key,
 )
+from core.organogram import (BLOCK_DESTINATION_KEY, DISABLED_ROW_KEY, block_name_key,
+                             assignment_plan, assignment_issue_text)
 
 
 
@@ -1872,7 +1876,7 @@ class MainWindow(QMainWindow):
 
                     placeholders = document.get("placeholders", [])
                     signatures = document_signatures(document)
-                    self._update_table_columns(placeholders, signatures)
+                    self._update_table_columns(placeholders, signatures, organogram=document.get("organogram"))
                     
                     self.cached_model_data = data
                     self.cached_model_document = document
@@ -1952,7 +1956,7 @@ class MainWindow(QMainWindow):
         self.cached_model_document = document
         self.cached_model_data = data
         self._update_table_columns(
-            document.get("placeholders", []), document_signatures(document)
+            document.get("placeholders", []), document_signatures(document), organogram=document.get("organogram")
         )
         self._configure_dynamic_images_for_model(document)
         self.preview_panel.set_page_navigation(len(document["pages"]), 0)
@@ -1979,7 +1983,8 @@ class MainWindow(QMainWindow):
     # --- LEGO: Recebimento do Preview e Descarte Inteligente ---
     def _on_preview_ready(self, worker_model_name: str, thumb_path: str):
         """Atualiza a UI apenas se o usuário ainda estiver aguardando este modelo específico."""
-        if (self.active_model_name == worker_model_name
+        if (self._preview_mode == "item"
+                and self.active_model_name == worker_model_name
                 and self._preview_page_index == 0
                 and self.table_panel.table.currentRow() < 0):
             self.preview_panel.set_preview_image(thumb_path)
@@ -1987,13 +1992,14 @@ class MainWindow(QMainWindow):
         # A UI ignora, mas a imagem já ficou salva no disco em background para a próxima vez.
     # --- FIM DO LEGO ---
 
-    def _update_table_columns(self, placeholders, signatures=None):
+    def _update_table_columns(self, placeholders, signatures=None, *, organogram=None):
         self.table_panel.table.clearContents()
         self.table_panel.table.setRowCount(0)
         self.table_panel.table.setColumnCount(0)
         
         signatures = list(signatures or [])
-        column_count = 1 + len(signatures) + len(placeholders)
+        has_board = organogram is not None
+        column_count = 1 + len(signatures) + int(has_board) + len(placeholders)
         self.table_panel.table.setColumnCount(column_count)
         self.table_panel.table.setHorizontalHeaderItem(0, QTableWidgetItem(quantity_header_label()))
         for offset, signature in enumerate(signatures, start=1):
@@ -2007,13 +2013,26 @@ class MainWindow(QMainWindow):
                 )
             )
             self.table_panel.table.setHorizontalHeaderItem(offset, header)
-        for offset, placeholder in enumerate(placeholders, start=1 + len(signatures)):
+        if has_board:
+            header = QTableWidgetItem(tr("Bloco"))
+            header.setData(BLOCK_DESTINATION_ROLE, True)
+            names = ", ".join(group["name"] for group in organogram["groups"])
+            header.setToolTip(tr("Destino do registro no organograma. Use o nome definido no editor.\nBlocos disponíveis: {nomes}").format(nomes=names))
+            self.table_panel.table.setHorizontalHeaderItem(1 + len(signatures), header)
+        for offset, placeholder in enumerate(placeholders, start=1 + len(signatures) + int(has_board)):
             self.table_panel.table.setHorizontalHeaderItem(offset, QTableWidgetItem(placeholder))
         
         # Ajuste de larguras iniciais
         self.table_panel.table.setColumnWidth(0, 70) # Cópias
         for column in range(1, 1 + len(signatures)):
             self.table_panel.table.setColumnWidth(column, 110)
+        if has_board:
+            self.table_panel.table.setColumnWidth(1 + len(signatures), 150)
+        status = getattr(self.table_panel, "lbl_board_status", None)
+        if status is not None:
+            status.setVisible(has_board)
+            status.setText(tr("Preencha Bloco com o nome do destino definido no editor."))
+            status.setToolTip("")
 
         self.table_panel.table.setRowCount(1)
         
@@ -2031,6 +2050,9 @@ class MainWindow(QMainWindow):
     def _on_table_selection(self):
         if not self.cached_model_data: return
         if self._preview_mode == "sheet":
+            if (self.cached_model_document or {}).get("organogram") is not None:
+                self._render_current_sheet_preview()
+                return
             table_row = self.table_panel.table.currentRow()
             rows_plain, rows_rich, source_rows = self._scrape_table_data(include_sources=True)
             if table_row >= 0 and source_rows:
@@ -2090,7 +2112,7 @@ class MainWindow(QMainWindow):
                 source = self.cached_model_document or self.cached_model_data
                 self._preview_renderers = (
                     renderers_for_document(source, asset_provider=self._fornax_asset_provider)
-                    if source.get("schema_version") == 4 else [NativeRenderer(source)]
+                    if isinstance(source.get("pages"), list) else [NativeRenderer(source)]
                 )
             self._preview_page_index = min(self._preview_page_index, len(self._preview_renderers) - 1)
             self.preview_renderer = self._preview_renderers[self._preview_page_index]
@@ -2107,6 +2129,7 @@ class MainWindow(QMainWindow):
             self.preview_panel.set_navigation(
                 "item", self._preview_item_index, len(source_rows),
                 sheet_available=self._sheet_preview_available(),
+                organogram=(self.cached_model_document or {}).get("organogram") is not None,
             )
         except Exception as e:
             print(f"Erro no Live Preview: {e}")
@@ -2118,7 +2141,8 @@ class MainWindow(QMainWindow):
     def _sheet_preview_available(self):
         return bool(
             self.cached_model_data
-            and self._resolve_imposition_settings().get("enabled")
+            and ((self.cached_model_document or {}).get("organogram") is not None
+                 or self._resolve_imposition_settings().get("enabled"))
         )
 
     def _preview_imposition_settings(self):
@@ -2140,6 +2164,10 @@ class MainWindow(QMainWindow):
     def _on_preview_mode_changed(self, mode):
         previous_mode = self._preview_mode
         self._preview_mode = mode if mode == "sheet" and self._sheet_preview_available() else "item"
+        if (self.cached_model_document or {}).get("organogram") is not None:
+            self._refresh_preview_navigation()
+            self._on_table_selection()
+            return
         if self._preview_mode == "sheet":
             if previous_mode == "item":
                 rows_plain, rows_rich = self._scrape_table_data()
@@ -2195,6 +2223,9 @@ class MainWindow(QMainWindow):
 
     def _on_preview_index_requested(self, index):
         if self._preview_mode == "sheet":
+            if (self.cached_model_document or {}).get("organogram") is not None:
+                self._render_current_sheet_preview()
+                return
             rows_plain, rows_rich = self._scrape_table_data()
             plan = build_imposition_plan(list(zip(rows_plain, rows_rich)), self._preview_imposition_settings())
             if not plan.sheets:
@@ -2222,6 +2253,13 @@ class MainWindow(QMainWindow):
         self._on_table_selection()
 
     def _refresh_preview_navigation(self):
+        if (self.cached_model_document or {}).get("organogram") is not None:
+            if self._preview_mode == "sheet":
+                self._preview_sheet_index = 0
+                self.preview_panel.set_navigation(
+                    "sheet", 0, 1, sheet_available=True, organogram=True
+                )
+                return
         sheet_available = self._sheet_preview_available()
         if self._preview_mode == "sheet" and sheet_available:
             rows_plain, rows_rich = self._scrape_table_data()
@@ -2240,7 +2278,8 @@ class MainWindow(QMainWindow):
             max(0, self._preview_item_index), max(0, len(source_rows) - 1)
         )
         self.preview_panel.set_navigation(
-            "item", self._preview_item_index, len(source_rows), sheet_available=sheet_available
+            "item", self._preview_item_index, len(source_rows), sheet_available=sheet_available,
+            organogram=(self.cached_model_document or {}).get("organogram") is not None,
         )
 
     def _on_preview_data_changed(self, _item=None):
@@ -2253,12 +2292,30 @@ class MainWindow(QMainWindow):
 
     def _refresh_preview_after_data_change(self):
         self._refresh_dynamic_image_status()
+        self._refresh_board_assignment_status()
         self._refresh_preview_navigation()
         if self._preview_mode == "sheet":
             self._render_current_sheet_preview()
         else:
             self._on_table_selection()
             self._start_sheet_preview_preload()
+
+    def _refresh_board_assignment_status(self):
+        label = getattr(self.table_panel, "lbl_board_status", None)
+        document = self.cached_model_document or {}
+        if label is None:
+            return
+        label.setVisible(document.get("organogram") is not None)
+        if document.get("organogram") is None:
+            return
+        plain, rich = self._scrape_table_data()
+        slots, issues = assignment_plan(document, plain, rich, document.get("__dynamic_image_dir"))
+        if issues:
+            label.setText(tr("{cartoes} cartão(ões) no quadro · {pendencias} registro(s) com pendências. Corrija antes de gerar.").format(cartoes=len(slots), pendencias=len(issues)))
+            label.setToolTip(assignment_issue_text(issues))
+        else:
+            label.setText(tr("{cartoes} cartão(ões) no quadro · Preencha Bloco com o nome do destino definido no editor.").format(cartoes=len(slots)))
+            label.setToolTip("")
 
     def _invalidate_sheet_previews(self):
         self._sheet_preview_revision += 1
@@ -2278,7 +2335,8 @@ class MainWindow(QMainWindow):
         self._sheet_preview_worker = None
 
     def _start_sheet_preview_preload(self, plan=None, first_page=None):
-        if not self._sheet_preview_available():
+        if (not self._sheet_preview_available()
+                or (self.cached_model_document or {}).get("organogram") is not None):
             return
         if self._sheet_preview_worker and self._sheet_preview_worker.isRunning():
             requested_page = self._preview_sheet_index if first_page is None else first_page
@@ -2365,6 +2423,10 @@ class MainWindow(QMainWindow):
             self._stale_sheet_preview_dirs.discard(directory)
 
     def _render_current_sheet_preview(self, plan=None):
+        if (self.cached_model_document or {}).get("organogram") is not None:
+            self._refresh_preview_navigation()
+            self._render_organogram_preview()
+            return
         if not self._sheet_preview_available():
             self._preview_mode = "item"
             self._on_table_selection()
@@ -2526,6 +2588,8 @@ class MainWindow(QMainWindow):
         old_name = self.preview_panel.cbo_models.currentText()
         target_name = old_name if previous_name and old_name not in (previous_name, model_name) else model_name
         current_row = table.currentRow()
+        old_blocks = {group["id"]: group["name"]
+                      for group in ((self.cached_model_document or {}).get("organogram") or {}).get("groups", [])}
         saved_rows = []
         if old_name == target_name or old_name == previous_name:
             for row in range(table.rowCount()):
@@ -2537,6 +2601,11 @@ class MainWindow(QMainWindow):
         self.log_panel.append(tr("Atualizando lista…"))
         self._reload_models_from_disk(select_name=target_name)
         if saved_rows and self.preview_panel.cbo_models.currentText() == target_name:
+            # O UUID do bloco permanece estável. Renomes atualizam os dados já
+            # colados de uma só vez, inclusive quando dois nomes são trocados.
+            renamed = {block_name_key(old_blocks[group["id"]]): group["name"]
+                       for group in ((self.cached_model_document or {}).get("organogram") or {}).get("groups", [])
+                       if group["id"] in old_blocks and group["name"] != old_blocks[group["id"]]}
             defaults = [table.item(0, col).clone() if table.item(0, col) else None for col in range(table.columnCount())]
             table.setRowCount(len(saved_rows))
             for row, values in enumerate(saved_rows):
@@ -2544,10 +2613,15 @@ class MainWindow(QMainWindow):
                     name = table_column_key(table.horizontalHeaderItem(col))
                     item = values.get(name, defaults[col])
                     if item:
-                        table.setItem(row, col, item.clone())
+                        restored = item.clone()
+                        if name == BLOCK_DESTINATION_KEY and block_name_key(restored.text()) in renamed:
+                            restored.setText(renamed[block_name_key(restored.text())])
+                            restored.setData(Qt.ItemDataRole.UserRole, None)
+                        table.setItem(row, col, restored)
             if current_row >= 0:
                 table.setCurrentCell(min(current_row, table.rowCount()-1), 0)
         del blocker
+        self._refresh_board_assignment_status()
         self._on_table_selection()
 
     def _open_config_dialog(self):
@@ -2563,6 +2637,7 @@ class MainWindow(QMainWindow):
             self.table_panel.table.horizontalHeaderItem(c).text()
             for c in range(cols)
             if not is_signature_header(self.table_panel.table.horizontalHeaderItem(c))
+            and not is_block_header(self.table_panel.table.horizontalHeaderItem(c))
         ]
         slug = slugify_model_name(self.active_model_name)
         
@@ -2735,6 +2810,12 @@ class MainWindow(QMainWindow):
                         row_r["__use_signature__"] = use_sig
                     continue
 
+                if is_block_header(header):
+                    destination = item.text().strip() if item else ""
+                    row_p[BLOCK_DESTINATION_KEY] = destination
+                    row_r[BLOCK_DESTINATION_KEY] = destination
+                    continue
+
                 # 3. Trata placeholders comuns
                 val_plain = item.text().strip() if item else ""
                 val_rich = item.data(Qt.ItemDataRole.UserRole) if item else ""
@@ -2748,7 +2829,15 @@ class MainWindow(QMainWindow):
 
             # Validação: Se a linha tiver conteúdo OU o multiplicador for > 0, 
             # nós geramos (isso permite gerar cartões sem placeholders).
-            if multiplier > 0:
+            if (self.cached_model_document or {}).get("organogram") is not None:
+                # Um registro ocupa uma posição. Cópias não duplicam pessoas;
+                # quantidade zero preserva uma posição vazia na composição.
+                if multiplier == 0:
+                    row_p[DISABLED_ROW_KEY] = row_r[DISABLED_ROW_KEY] = True
+                data_plain.append(row_p.copy())
+                data_rich.append(row_r.copy())
+                source_rows.append(r)
+            elif multiplier > 0:
                 for _ in range(multiplier):
                     data_plain.append(row_p.copy())
                     data_rich.append(row_r.copy())
@@ -2768,7 +2857,7 @@ class MainWindow(QMainWindow):
             item = table.item(row_idx, c)
 
             # Ignora a coluna de quantidade no preview técnico do cartão
-            if is_quantity_header(key):
+            if is_quantity_header(key) or is_block_header(header):
                 continue
                 
             if is_signature_header(header):
@@ -2896,6 +2985,7 @@ class MainWindow(QMainWindow):
             for column in range(table.columnCount())
             if table.horizontalHeaderItem(column)
             and not is_signature_header(table.horizontalHeaderItem(column))
+            and not is_block_header(table.horizontalHeaderItem(column))
         }
         counts = {"not_found": 0, "ambiguous": 0, "invalid": 0}
         old_blocked = table.blockSignals(True)
@@ -2978,7 +3068,7 @@ class MainWindow(QMainWindow):
             and next(iter_page_link_items(self.cached_model_document), None)
         )
 
-        if export_format == "PNG" and has_any_link:
+        if export_format == "PNG" and has_any_link and not (self.cached_model_document or {}).get("organogram"):
             resp = QMessageBox.question(
                 self, 
                 tr("Aviso: links desativados em PNG"),
@@ -3032,6 +3122,10 @@ class MainWindow(QMainWindow):
 
         if dynamic_image_fields(document):
             document["__dynamic_image_dir"] = dynamic_directory
+        if document.get("organogram") is not None:
+            self._generate_organogram(document, rows_plain, rows_rich, custom_path,
+                                      asset_provider, authorized_snapshot)
+            return
 
         imposition_cfg = self._resolve_imposition_settings()
         if model_dir is not None:
@@ -3089,6 +3183,90 @@ class MainWindow(QMainWindow):
         
         self.start_time = time.time()
         self.manager.start()
+
+    def _render_organogram_preview(self):
+        from features.generator.organogram import OrganogramRenderer
+        try:
+            plain, rich = self._scrape_table_data()
+            renderer = OrganogramRenderer(
+                self.cached_model_document, plain, rich,
+                asset_provider=self._fornax_asset_provider,
+                dynamic_image_dir=self.table_panel.txt_dynamic_image_dir.text().strip(),
+            )
+            if not renderer.slots:
+                self.preview_panel.set_preview_text(tr("Preencha os dados para visualizar o quadro. Cartões sem informações válidas ficam ocultos."))
+                return
+            self.preview_panel.set_preview_pixmap(QPixmap.fromImage(renderer.preview()))
+        except Exception as error:
+            self.preview_panel.set_preview_text(tr("Não foi possível gerar a prévia do quadro."))
+            self.log_panel.append(str(error))
+
+    def _generate_organogram(self, document, rows_plain, rows_rich, output_path,
+                             asset_provider, authorized_snapshot):
+        from PySide6.QtWidgets import QDialog, QFormLayout, QDialogButtonBox
+        from features.generator.organogram import OrganogramWorker, OrganogramRenderer
+        from core.dialog_buttons import style_dialog_button_box
+        directory = document.get("__dynamic_image_dir")
+        try:
+            renderer = OrganogramRenderer(document, rows_plain, rows_rich,
+                                         asset_provider=asset_provider, dynamic_image_dir=directory)
+            if renderer.assignment_issues:
+                raise ValueError(tr("Corrija a distribuição dos registros antes de gerar:\n{pendencias}").format(pendencias=assignment_issue_text(renderer.assignment_issues)))
+            if not renderer.slots:
+                raise ValueError(tr("Não há cartões com informações válidas nos blocos do quadro."))
+            dialog = QDialog(self)
+            dialog.setWindowTitle(tr("Gerar organograma"))
+            layout = QFormLayout(dialog)
+            size = renderer.bounds
+            layout.addRow(QLabel(tr("Tamanho: {largura:.1f} × {altura:.1f} mm · {quantidade} cartões").format(
+                largura=size.width() * 25.4 / 300, altura=size.height() * 25.4 / 300,
+                quantidade=len(renderer.slots))))
+            mode = QComboBox()
+            for label, key in ((tr("PDF no tamanho do quadro"), "pdf"),
+                               (tr("PDF em mosaico A4"), "a4"),
+                               (tr("PDF em mosaico A3"), "a3"), (tr("Imagem PNG"), "png")):
+                mode.addItem(label, key)
+            dpi = QComboBox()
+            dpi.addItem("150 dpi", 150)
+            dpi.addItem("300 dpi", 300)
+            dpi.setEnabled(False)
+            mode.currentIndexChanged.connect(lambda *_: dpi.setEnabled(mode.currentData() == "png"))
+            layout.addRow(tr("Saída"), mode)
+            layout.addRow(tr("Resolução do PNG"), dpi)
+            hint = QLabel(tr("O mosaico mantém o tamanho dos cartões, com margens de 10 mm e sobreposição de 5 mm. Links dos cartões são preservados no PDF."))
+            hint.setWordWrap(True)
+            layout.addRow(hint)
+            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+            style_dialog_button_box(buttons)
+            layout.addRow(buttons)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                if authorized_snapshot:
+                    authorized_snapshot.close()
+                return
+            output_dir, _number = create_forge_output_dir(Path(output_path), self.settings)
+            self._last_forge_output_dir = output_dir
+            self.manager = OrganogramWorker(
+                document, rows_plain, rows_rich, output_dir, mode.currentData(), dpi=dpi.currentData(),
+                asset_provider=asset_provider, dynamic_image_dir=directory,
+                authorized_snapshot=authorized_snapshot, parent=self,
+            )
+            self.manager.progress_updated.connect(self.progress_bar.setValue)
+            self.manager.log_updated.connect(self.log_panel.append)
+            self.manager.error_occurred.connect(self._on_generation_error)
+            self.manager.finished_process.connect(self._on_generation_finished)
+            self._generation_failed = False
+            self.btn_generate_cards.setEnabled(False)
+            self.btn_generate_cards.setText(tr("Gerando… Aguarde"))
+            self.progress_bar.setValue(0)
+            self.start_time = time.time()
+            self.log_panel.append(tr("📂 Salvando em: {pasta}").format(pasta=output_dir.name))
+            self.manager.start()
+        except Exception as error:
+            if authorized_snapshot:
+                authorized_snapshot.close()
+            QMessageBox.warning(self, tr("Não foi possível gerar o quadro"), str(error))
 
     def _on_generation_error(self, message):
         self._generation_failed = True

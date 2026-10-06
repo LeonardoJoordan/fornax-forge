@@ -65,7 +65,12 @@ class CanvasEdit(QObject):
         self.box = None
         box.text_item.document().contentsChanged.disconnect(self.changed)
         box.text_item.document().cursorPositionChanged.disconnect(self.sync_panel)
+        cursor = box.text_item.textCursor()
+        cursor.clearSelection()
+        box.text_item.setTextCursor(cursor)
         box.text_item.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
+        box.text_item.clearFocus()
+        box.text_item.update()
         _set_resize_handles_visible(box, box.isSelected())
         for shortcut, enabled in self.shortcuts:
             shortcut.setEnabled(enabled)
@@ -151,6 +156,7 @@ class CanvasEdit(QObject):
         if event.type() == QEvent.Type.KeyPress:
             if self.box:
                 if event.key() == Qt.Key.Key_Escape:
+                    self.window._finish_canvas_pointer_interaction(leave_pan=True)
                     self.finish()
                     return True
                 for sequence, operation in [(QKeySequence.StandardKey.Undo, 'undo'), (QKeySequence.StandardKey.Redo, 'redo')]:

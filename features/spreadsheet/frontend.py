@@ -251,6 +251,13 @@ def install_frontend(panel):
     layout.addWidget(table, 1)
     table.show()
 
+    panel.lbl_board_status = QLabel()
+    panel.lbl_board_status.setObjectName('sheetHint')
+    panel.lbl_board_status.setWordWrap(True)
+    panel.lbl_board_status.setContentsMargins(14, 6, 14, 6)
+    layout.addWidget(panel.lbl_board_status)
+    panel.lbl_board_status.hide()
+
     image_footer = QFrame()
     image_footer.setObjectName('dynamicImageFooter')
     # Alinha o início deste rodapé ao conjunto de saída (100 px) e à barra

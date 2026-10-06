@@ -56,7 +56,7 @@ def renderers_for_document(
 
 class NativeRenderer:
     def __init__(self, template_data: dict, asset_provider=None):
-        if template_data.get("schema_version") == 4 and isinstance(template_data.get("pages"), list):
+        if isinstance(template_data.get("pages"), list):
             raise ValueError(
                 "NativeRenderer recebe uma única página. Use renderers_for_document()."
             )
@@ -85,6 +85,10 @@ class NativeRenderer:
         if self._static_base_cache is not None:
             renderer._static_base_cache = QImage(self._static_base_cache)
         return renderer
+
+    def paint_card(self, painter, row_plain, row_rich, out_links=None):
+        """Pinta em um dispositivo existente, mantendo textos e formas vetoriais."""
+        self._paint_card(painter, row_rich, out_links, row_plain=row_plain)
 
     def _get_image(self, path, *, external=False) -> QImage:
         path_str = str(path)
@@ -674,7 +678,7 @@ class NativeRenderer:
             painter.translate(-w / 2, -h / 2)
             
             margin = outline_margin(box_data)
-            painter.setClipRect(QRectF(-margin, -10000, w+2*margin, 20000))
+            painter.setClipRect(QRectF(-margin, -10000, w+2*margin, 20000), Qt.ClipOperation.IntersectClip)
             painter.translate(0, y_offset)
             doc.drawContents(painter)
             

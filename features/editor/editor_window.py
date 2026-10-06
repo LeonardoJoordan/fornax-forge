@@ -14,14 +14,16 @@ from PySide6.QtWidgets import (QMainWindow, QGraphicsView, QWidget,
 from PySide6.QtGui import (QPainter, QBrush, QPen, QColor, QShortcut, QIcon, QImage,
                            QKeySequence, QTextCursor, QTextCharFormat, QImageReader, QPixmap,
                            QFont, QTextDocument)
-from PySide6.QtCore import Qt, Signal, QEvent, QRectF, QSize, QPointF, QTimer
+from PySide6.QtCore import Qt, Signal, QEvent, QRectF, QSize, QPointF, QTimer, QSignalBlocker
 from shiboken6 import isValid
 
 from .canvas_items import (DesignerBox, Guideline, px_to_mm, mm_to_px, SignatureItem, RectangleItem,
-                           ImageItem, BackgroundItem, SelectionTransformFrame,
-                           _reader_logical_size, _set_resize_handles_visible)
+                           ImageItem, BackgroundItem, SelectionTransformFrame, SelectionResizeHandle,
+                           _reader_logical_size, _set_resize_handles_visible,
+                           _board_item_center, _board_snap_step)
 from .properties import CaixaDeTextoPanel
 from .document_session import DocumentSessionMixin
+from .organogram_editor import OrganogramEditorMixin, BoardGroupItem
 from .model_adapter import prepare_scene_page
 from .controls import initialize_editor_controls
 from core.template_manager import slugify_model_name
@@ -187,7 +189,7 @@ class ElidedLayerLabel(QLabel):
 
 
 
-class EditorWindow(DocumentSessionMixin, QMainWindow):
+class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
     closed = Signal()
     modelSaved = Signal(str, list, str)
 
@@ -219,6 +221,9 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
         self._autosave_timer.timeout.connect(self._write_fornax_recovery)
         self._model_document = None
         self._active_page_id = "front"
+        self._board_grid_mm = 5.0
+        self._board_margin_mm = 10.0
+        self._loading_board = False
         self._page_selection = {"front": set(), "back": set()}
         self._object_clipboard = []
         self._clipboard_source_page = None
@@ -387,11 +392,13 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
         self._finish_page_interaction()
         saved_document_state = getattr(self, '_last_saved_document_state', None)
         current_has_multiple_pages = bool(
-            self._model_document and len(self._model_document.get("pages", [])) > 1
+            self._model_document and (len(self._model_document.get("pages", [])) > 1
+                                     or self._model_document.get("organogram") is not None)
         )
         saved_had_multiple_pages = bool(
             saved_document_state
-            and len(saved_document_state.get("document", {}).get("pages", [])) > 1
+            and (len(saved_document_state.get("document", {}).get("pages", [])) > 1
+                 or saved_document_state.get("document", {}).get("organogram") is not None)
         )
         if current_has_multiple_pages or saved_had_multiple_pages:
             current_state = self._capture_document_history_state()
@@ -614,7 +621,70 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
             if isinstance(state, dict):
                 self._rewrite_state_asset_paths(state, updates)
 
+    def event(self, event):
+        if event.type() == QEvent.Type.WindowDeactivate and hasattr(self, 'view'):
+            self._finish_canvas_pointer_interaction(leave_pan=True)
+        return super().event(event)
+
+    def _finish_canvas_pointer_interaction(self, *, leave_pan=False):
+        if getattr(self, '_finishing_canvas_pointer', False):
+            return
+        self._finishing_canvas_pointer = True
+        try:
+            active = bool(self.view._pointer_buttons or self.scene.mouseGrabberItem())
+            self.view.release_pointer()
+            grabber = self.scene.mouseGrabberItem()
+            if grabber is not None:
+                grabber.ungrabMouse()
+            # Uma perda de grab pode impedir até a entrega da soltura sintética.
+            # Limpe as sessões remanescentes sem desfazer o trabalho já feito.
+            for item in self.scene.items():
+                for flag in ('_is_mouse_dragging', '_is_resizing'):
+                    if getattr(item, flag, False):
+                        active = True
+                        setattr(item, flag, False)
+                if isinstance(item, SelectionResizeHandle):
+                    item._active = False
+                if hasattr(item, '_anchor_scene'):
+                    item._anchor_scene = None
+                    item._shift_proportion = False
+            if self._group_resize_session:
+                active = True
+                self.end_group_resize()
+                self._refresh_selection_frame()
+            # Como na soltura normal, mantenha as referências aos itens do
+            # último arraste. Alguns itens Qt dependem delas para preservar a
+            # subclasse Python; as posições são substituídas no próximo press.
+            # Os flags acima impedem reutilizar esse estado como arraste ativo.
+            self.scene._group_raw_delta = None
+            self.scene._board_drag_anchor = None
+            self._is_middle_panning = False
+            drawing = getattr(self, 'shape_drawing', None)
+            if drawing and drawing.start is not None:
+                drawing.cancel()
+            if leave_pan:
+                self._leave_space_pan_mode()
+            if leave_pan or self.view.dragMode() != QGraphicsView.DragMode.ScrollHandDrag:
+                self.view.viewport().unsetCursor()
+            if active:
+                self.save_snapshot()
+        finally:
+            self._finishing_canvas_pointer = False
+
+    def _recover_canvas_mouse_grab(self, generation):
+        if generation == self.view._pointer_generation and self.view._pointer_buttons:
+            self._finish_canvas_pointer_interaction(leave_pan=True)
+
     def eventFilter(self, source, event):
+        if source in (self.view, self.view.viewport()) and getattr(self, "_board_connection_sources", None):
+            if event.type() == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
+                position = self.view.mapToScene(event.position().toPoint())
+                group = next((item for item in self.scene.items(position) if isinstance(item, BoardGroupItem)), None)
+                if group:
+                    self._connect_to_board_target(group.data["id"])
+                return True
+            if event.type() in (QEvent.Type.MouseButtonDblClick, QEvent.Type.MouseButtonRelease) and event.button() == Qt.MouseButton.LeftButton:
+                return True
         if getattr(self, 'canvas_edit', None) and self.canvas_edit.box and event.type() in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease):
             return False
         # Escuta tanto a view principal quanto o viewport das barras de rolagem
@@ -644,9 +714,24 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
                 self._apply_zoom(1.0)
 
             if event.type() == QEvent.Type.FocusOut:
-                self._leave_space_pan_mode()
-                self._is_middle_panning = False
-                self.view.viewport().unsetCursor()
+                self._finish_canvas_pointer_interaction(leave_pan=True)
+            elif event.type() == QEvent.Type.UngrabMouse:
+                # Uma soltura normal também pode liberar o grab. Aguarde o Qt
+                # terminar de processá-la antes de procurar uma sessão presa.
+                generation = self.view._pointer_generation
+                QTimer.singleShot(0, self, lambda: self._recover_canvas_mouse_grab(generation))
+
+            if (event.type() == QEvent.Type.MouseMove
+                    and self.view._pointer_buttons & ~event.buttons()):
+                self._finish_canvas_pointer_interaction()
+                return True
+
+            if (event.type() == QEvent.Type.ShortcutOverride
+                    and event.key() == Qt.Key.Key_Escape
+                    and (self.view._pointer_buttons or getattr(self, '_is_middle_panning', False)
+                         or self.view.dragMode() == QGraphicsView.DragMode.ScrollHandDrag)):
+                event.accept()
+                return True
 
             # --- Eventos de Mouse (Botão do Meio) ---
             if event.type() == QEvent.Type.MouseButtonPress:
@@ -658,6 +743,9 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
                     
             elif event.type() == QEvent.Type.MouseMove:
                 if getattr(self, '_is_middle_panning', False):
+                    if not event.buttons() & Qt.MouseButton.MiddleButton:
+                        self._finish_canvas_pointer_interaction()
+                        return True
                     current_pos = event.position().toPoint() if hasattr(event, 'position') else event.pos()
                     delta = current_pos - self._last_pan_pos
                     self.view.horizontalScrollBar().setValue(self.view.horizontalScrollBar().value() - delta.x())
@@ -674,6 +762,10 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
             # --- Eventos de Teclado (Pressionar) ---
             if event.type() == QEvent.Type.KeyPress:
                 key = event.key()
+
+                if key == Qt.Key.Key_Escape:
+                    self._finish_canvas_pointer_interaction(leave_pan=True)
+                    return True
                 
                 # 2. Ativar Pan (Mãozinha) ao segurar Espaço
                 if key == Qt.Key.Key_Space and not event.isAutoRepeat():
@@ -691,11 +783,19 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
                     dy = -step if key == Qt.Key.Key_Up else (step if key == Qt.Key.Key_Down else 0)
                     sel_items = self.scene.selectedItems()
                     if sel_items:
-                        for item in sel_items:
-                            if item.flags() & QGraphicsItem.GraphicsItemFlag.ItemIsMovable:
-                                item._keyboard_move = True
-                                item.moveBy(dx, dy)
-                                item._keyboard_move = False
+                        if self._active_page_id == "organogram":
+                            step = _board_snap_step(self.scene, [i for i in sel_items if hasattr(i, 'rect')])
+                            if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+                                step *= 10
+                            self._move_board_items(sel_items, QPointF(
+                                -step if key == Qt.Key.Key_Left else step if key == Qt.Key.Key_Right else 0,
+                                -step if key == Qt.Key.Key_Up else step if key == Qt.Key.Key_Down else 0))
+                        else:
+                            for item in sel_items:
+                                if item.flags() & QGraphicsItem.GraphicsItemFlag.ItemIsMovable:
+                                    item._keyboard_move = True
+                                    item.moveBy(dx, dy)
+                                    item._keyboard_move = False
                         # A seleção não mudou: recarregar o editor de texto aqui
                         # pode transferir o foco e consumir as próximas setas.
                         self.update_position_ui()
@@ -1488,7 +1588,7 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
         if self._model_document:
             inactive = [
                 field_id
-                for page in self._model_document.get("pages", [])
+                for page in [*self._model_document.get("pages", []), *([self._model_document["organogram"]] if self._model_document.get("organogram") else [])]
                 if page.get("page_id") != self._active_page_id
                 for field_id in page.get("field_ids", [])
             ]
@@ -1520,6 +1620,8 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
         box.setZValue(self._next_object_z())
         
         self.scene.addItem(box)
+        if self._active_page_id == "organogram":
+            box.setPos(box.pos())
         self.scene.clearSelection()
         box.setSelected(True)
         self.sync_placeholders_list()
@@ -1830,7 +1932,7 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
                 item.resize_custom(new_w, new_h)
             current_center = item.mapToScene(item.transformOriginPoint())
             delta = desired_center - current_center
-            item.moveBy(delta.x(), delta.y())
+            self._move_for_transform(item, delta)
 
     def begin_group_resize(self, leader, anchor_scene, initial_w, initial_h):
         group_id = getattr(self._group_root(leader), 'group_id', None)
@@ -1904,6 +2006,8 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
         self.save_snapshot()
 
     def duplicate_selected(self):
+        if self.duplicate_board_selection():
+            return
         if self._mask_edit_session:
             self.finish_mask_edit(True)
         selected_items = self.scene.selectedItems()
@@ -1988,6 +2092,8 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
 
     def copy_selected_items(self):
         """Copia objetos como dados de página, sem duplicar os arquivos de asset."""
+        if self.copy_board_selection():
+            return
         if self._mask_edit_session:
             self.finish_mask_edit(True)
         selected = self._selection_keys()
@@ -2048,6 +2154,10 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
 
     def paste_copied_items(self):
         """Cola a seleção na página ativa como objetos independentes."""
+        if self.paste_board_selection():
+            return
+        if self._active_page_id == "organogram" and any(kind == "signature" for kind, _source in self._object_clipboard):
+            return
         if not self._object_clipboard:
             return
         self._finish_page_interaction()
@@ -2184,7 +2294,7 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
             self.finish_mask_edit(True)
         self.scene.clearSelection()
         for item in self.scene.items():
-            if not isinstance(item, (DesignerBox, ImageItem, SignatureItem, RectangleItem)):
+            if not isinstance(item, (DesignerBox, ImageItem, SignatureItem, RectangleItem, BoardGroupItem)):
                 continue
             if getattr(item, "is_document_background", False):
                 continue
@@ -2196,6 +2306,8 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
         self.on_selection_changed()
 
     def delete_selected_items(self):
+        if getattr(self, "_board_connection_sources", None):
+            self.cancel_board_connection()
         if self._mask_edit_session:
             self.finish_mask_edit(True)
         selected = self.scene.selectedItems()
@@ -2208,6 +2320,9 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
             if getattr(item, 'is_document_background', False):
                 continue
             self.scene.removeItem(item)
+        if self._active_page_id == "organogram":
+            self._update_board_connections()
+            self._update_board_extent()
             
         self.on_selection_changed()
         self.sync_placeholders_list()
@@ -2217,6 +2332,12 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
     def apply_position_x(self, val):
         sel = self.scene.selectedItems()
         if sel:
+            if self._active_page_id == "organogram" and all(hasattr(i, 'rect') and not i.parentItem() for i in sel):
+                bounds = QRectF()
+                for item in sel:
+                    bounds = bounds.united(item.mapRectToScene(item.rect()))
+                self._move_board_items(sel, QPointF(mm_to_px(val) - bounds.center().x(), 0))
+                return
             item = sel[0]
             delta = mm_to_px(val) - item.pos().x()
             group_id = getattr(self._group_root(item), 'group_id', None)
@@ -2227,12 +2348,26 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
     def apply_position_y(self, val):
         sel = self.scene.selectedItems()
         if sel:
+            if self._active_page_id == "organogram" and all(hasattr(i, 'rect') and not i.parentItem() for i in sel):
+                bounds = QRectF()
+                for item in sel:
+                    bounds = bounds.united(item.mapRectToScene(item.rect()))
+                self._move_board_items(sel, QPointF(0, mm_to_px(val) - bounds.center().y()))
+                return
             item = sel[0]
             delta = mm_to_px(val) - item.pos().y()
             group_id = getattr(self._group_root(item), 'group_id', None)
             targets = self._group_members(group_id) if group_id is not None else [item]
             for target in targets:
                 target.moveBy(0, delta)
+
+    def _move_for_transform(self, item, delta):
+        previous = getattr(item, '_resizing_from_handle', False)
+        item._resizing_from_handle = True
+        try:
+            item.moveBy(delta.x(), delta.y())
+        finally:
+            item._resizing_from_handle = previous
 
     def update_width(self, width_mm):
         item = self._get_selected()
@@ -2253,7 +2388,7 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
             # 2. Foto do Depois e Compensação (Calcula o delta e move o item de volta)
             new_center = item.mapToScene(item.transformOriginPoint())
             delta = old_center - new_center
-            item.moveBy(delta.x(), delta.y())
+            self._move_for_transform(item, delta)
             
             # 3. Atualiza a UI para refletir o recuo da coordenada X/Y
             self.update_position_ui()
@@ -2277,7 +2412,7 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
             # 2. Foto do Depois e Compensação (Calcula o delta e move o item de volta)
             new_center = item.mapToScene(item.transformOriginPoint())
             delta = old_center - new_center
-            item.moveBy(delta.x(), delta.y())
+            self._move_for_transform(item, delta)
             
             # 3. Atualiza a UI para refletir o recuo da coordenada X/Y
             self.update_position_ui()
@@ -2306,7 +2441,7 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
                 item.setRotation(item.rotation() + delta_angle)
                 current_center = item.mapToScene(item.transformOriginPoint())
                 movement = desired_center - current_center
-                item.moveBy(movement.x(), movement.y())
+                self._move_for_transform(item, movement)
             return
         for item in items:
             if hasattr(item, 'update_center'):
@@ -2516,6 +2651,8 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
             self.editor_texto_panel.setEnabled(False)
             self.caixa_texto_panel.clear_selection_state()
             self.caixa_texto_panel.setEnabled(False)
+        if self._active_page_id == "organogram" and hasattr(self, "organogram_panel"):
+            self.organogram_panel.refresh()
 
     _DOC_PROPORTION_OFF_BG      = "rgba(220, 53, 69, 102)"
     _DOC_PROPORTION_OFF_HOVER   = "rgba(220, 53, 69, 130)"
@@ -2613,6 +2750,8 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
 
 
     def _on_click_add_signature(self):
+        if self._active_page_id == "organogram":
+            return
         path, _ = QFileDialog.getOpenFileName(self, tr("Selecionar assinatura"), "", tr("Imagens (*.png)"))
         if path:
             sig = SignatureItem(path)
@@ -3081,22 +3220,38 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
             return
 
         item = sel[0]
-        self.spin_pos_x.blockSignals(True)
-        self.spin_pos_y.blockSignals(True)
-        
-        self.spin_pos_x.setEnabled(True)
-        self.spin_pos_y.setEnabled(True)
-
-        if isinstance(item, Guideline):
-            if item.is_vertical:
-                self.spin_pos_x.setValue(px_to_mm(item.pos().x()))
-                self.spin_pos_y.setEnabled(False)
-            else:
-                self.spin_pos_y.setValue(px_to_mm(item.pos().y()))
-                self.spin_pos_x.setEnabled(False)
+        board_items = [i for i in sel if hasattr(i, 'rect') and not isinstance(i, Guideline) and not i.parentItem()]
+        if self._active_page_id == "organogram" and len(board_items) == len(sel):
+            bounds = QRectF()
+            for selected in board_items:
+                bounds = bounds.united(selected.mapRectToScene(selected.rect()))
+            with QSignalBlocker(self.spin_pos_x), QSignalBlocker(self.spin_pos_y):
+                for control, value, axis in ((self.spin_pos_x, bounds.center().x(), 'X'), (self.spin_pos_y, bounds.center().y(), 'Y')):
+                    control.setEnabled(True)
+                    control.setValue(px_to_mm(value))
+                    control.setSingleStep(px_to_mm(_board_snap_step(self.scene, board_items)))
+                    control.setToolTip(tr("Centro do elemento ou da seleção — {eixo}").format(eixo=axis))
         else:
-            self.spin_pos_x.setValue(px_to_mm(item.pos().x()))
-            self.spin_pos_y.setValue(px_to_mm(item.pos().y()))
+            self.spin_pos_x.setToolTip(tr("Posição X"))
+            self.spin_pos_y.setToolTip(tr("Posição Y"))
+            self.spin_pos_x.setSingleStep(1)
+            self.spin_pos_y.setSingleStep(1)
+            self.spin_pos_x.blockSignals(True)
+            self.spin_pos_y.blockSignals(True)
+        
+            self.spin_pos_x.setEnabled(True)
+            self.spin_pos_y.setEnabled(True)
+
+            if isinstance(item, Guideline):
+                if item.is_vertical:
+                    self.spin_pos_x.setValue(px_to_mm(item.pos().x()))
+                    self.spin_pos_y.setEnabled(False)
+                else:
+                    self.spin_pos_y.setValue(px_to_mm(item.pos().y()))
+                    self.spin_pos_x.setEnabled(False)
+            else:
+                self.spin_pos_x.setValue(px_to_mm(item.pos().x()))
+                self.spin_pos_y.setValue(px_to_mm(item.pos().y()))
 
         # Sincroniza Largura e Altura no painel
         if isinstance(item, DesignerBox):
@@ -3501,12 +3656,16 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
                               key=lambda value: value.get('mask_order', 0))
             order.extend(child['object_id'] for child in children)
         data['layer_order'] = order
-        return data
+        return self._append_board_state(data)
 
     def apply_scene_state(self, data: dict, is_undo_redo: bool = False):
         """Limpa a cena e recria tudo com base no dicionário fornecido."""
         # Salva qual layer estava selecionada antes de limpar
         # Identifica o fundo atual antes de limpar a cena
+        self._loading_board = True
+        if getattr(self, "_board_connection_sources", None):
+            self.cancel_board_connection()
+        self.scene._board_grid = 0
         from core.document_layers import upgrade_layers
         data = upgrade_layers(data)
         # Arquivos abertos pelo inicializador podem estar fora da biblioteca.
@@ -3536,6 +3695,8 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
         # Sincroniza os valores de milímetros na UI (Sempre ocorre, mesmo no Undo/Redo)
         self.spin_phys_w.blockSignals(True)
         self.spin_phys_h.blockSignals(True)
+        for control in (self.spin_phys_w, self.spin_phys_h):
+            control.setRange(0.1, 50000) if self._active_page_id == "organogram" else control.setRange(10, 1000)
         self.spin_phys_w.setValue(data.get("target_w_mm", 100.0))
         self.spin_phys_h.setValue(data.get("target_h_mm", 150.0))
         self.spin_phys_w.blockSignals(False)
@@ -3797,7 +3958,9 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
             if shape.masked_images() and getattr(shape, 'mask_group_id', None) is None:
                 shape.mask_group_id = self._next_group_id()
             shape.refresh_mask_structure()
-        self._ensure_background_rectangle()
+        if self._active_page_id != "organogram":
+            self._ensure_background_rectangle()
+        self._load_board_items(data)
 
         # Atualiza Placeholders e Lista de Camadas
         saved_placeholders = data.get("placeholders", [])
@@ -3823,11 +3986,15 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
         # Se for um Undo/Redo e o fundo mudou, reaplica o enquadramento (Zoom to Fit)
         if is_undo_redo and old_bg != data.get("background_path"):
             self._zoom_to_fit()
+        self._loading_board = False
+        self.refresh_board_context()
 
     def save_snapshot(self):
         """Dispara um salvamento na memória (chamado ao soltar o mouse ou terminar uma edição)."""
-        if getattr(self, '_restoring_history', False) or self._mask_edit_session:
+        if getattr(self, '_restoring_history', False) or self._mask_edit_session or self._loading_board:
             return
+        if self._active_page_id == "organogram":
+            self._update_board_extent()
         state = self._capture_document_history_state()
         if self.history._current_index >= 0:
             current = self.history._undo_stack[self.history._current_index]
@@ -3871,6 +4038,8 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
                 self._model_document = copy.deepcopy(state["document"])
                 requested_page = preferred_page or state.get("__active_page_id", self._active_page_id)
                 available = {page["page_id"] for page in self._model_document["pages"]}
+                if self._model_document.get("organogram") is not None:
+                    available.add("organogram")
                 self._active_page_id = requested_page if requested_page in available else "front"
                 self._switching_page = True
                 try:
@@ -3901,6 +4070,8 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
         if self.view.dragMode() == QGraphicsView.DragMode.ScrollHandDrag:
             return
 
+        self._finish_canvas_pointer_interaction()
+
         self._space_pan_items = []
         for item in self.scene.items():
             buttons = item.acceptedMouseButtons()
@@ -3911,6 +4082,7 @@ class EditorWindow(DocumentSessionMixin, QMainWindow):
         self.view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
 
     def _leave_space_pan_mode(self):
+        self.view.release_pointer()
         self.view.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
 
         for item, buttons in getattr(self, "_space_pan_items", []):
