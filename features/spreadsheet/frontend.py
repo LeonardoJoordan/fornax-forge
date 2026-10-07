@@ -243,7 +243,7 @@ def install_frontend(panel):
     table.horizontalHeader().setMinimumSectionSize(64)
     table.horizontalHeader().setDefaultSectionSize(150)
     table.horizontalHeader().setFixedHeight(36)
-    table.setCornerButtonEnabled(False)
+    table.setCornerButtonEnabled(True)
     table.setWordWrap(False)
     panel.btn_toggle_wrap.setChecked(False)
     table.setTextElideMode(Qt.TextElideMode.ElideRight)

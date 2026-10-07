@@ -90,6 +90,8 @@ class RichTextEditor(QTextEdit):
 
 class BlockSelector(QComboBox):
     pasteRequested = Signal()
+    copyRequested = Signal()
+    selectAllRequested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -105,10 +107,13 @@ class BlockSelector(QComboBox):
         self._popup_view.installEventFilter(self)
 
     def eventFilter(self, watched, event):
-        if (watched == self._popup_view and event.type() == QEvent.Type.KeyPress
-                and event.matches(QKeySequence.StandardKey.Paste)):
-            self.pasteRequested.emit()
-            return True
+        if watched == self._popup_view and event.type() == QEvent.Type.KeyPress:
+            for shortcut, signal in ((QKeySequence.StandardKey.Paste, self.pasteRequested),
+                                     (QKeySequence.StandardKey.Copy, self.copyRequested),
+                                     (QKeySequence.StandardKey.SelectAll, self.selectAllRequested)):
+                if event.matches(shortcut):
+                    signal.emit()
+                    return True
         return super().eventFilter(watched, event)
 
 class HTMLDelegate(QStyledItemDelegate):
@@ -132,6 +137,12 @@ class HTMLDelegate(QStyledItemDelegate):
             if event.matches(QKeySequence.StandardKey.Paste):
                 # A colagem continua indo para a tabela inteira, mesmo com o menu aberto.
                 self._paste_block_data(editor)
+                return True
+            if event.matches(QKeySequence.StandardKey.Copy):
+                self._finish_block_shortcut(editor, self.parent()._copy_to_clipboard)
+                return True
+            if event.matches(QKeySequence.StandardKey.SelectAll):
+                self._finish_block_shortcut(editor, self.parent().selectAll)
                 return True
         if isinstance(editor, RichTextEditor) and event.type() == QEvent.Type.KeyPress:
             if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
@@ -364,6 +375,8 @@ class HTMLDelegate(QStyledItemDelegate):
             editor.setMaxVisibleItems(12)
             editor.activated.connect(self._commit_block_editor)
             editor.pasteRequested.connect(self._paste_block_editor)
+            editor.copyRequested.connect(self._copy_block_editor)
+            editor.selectAllRequested.connect(self._select_all_block_editor)
             return editor
         editor = RichTextEditor(parent)
         # Se for a coluna 0 (Cópias), força o alinhamento central no editor
@@ -424,6 +437,15 @@ class HTMLDelegate(QStyledItemDelegate):
         self._paste_block_data(self.sender())
 
     def _paste_block_data(self, editor):
+        self._finish_block_shortcut(editor, self.parent()._paste_from_clipboard)
+
+    def _copy_block_editor(self):
+        self._finish_block_shortcut(self.sender(), self.parent()._copy_to_clipboard)
+
+    def _select_all_block_editor(self):
+        self._finish_block_shortcut(self.sender(), self.parent().selectAll)
+
+    def _finish_block_shortcut(self, editor, action):
         editor.hidePopup()
         self.closeEditor.emit(editor, QAbstractItemDelegate.EndEditHint.NoHint)
-        self.parent()._paste_from_clipboard()
+        action()

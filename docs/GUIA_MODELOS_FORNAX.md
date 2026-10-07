@@ -30,6 +30,26 @@ Abertura por duplo clique depende da associação instalada pelo sistema; sua
 validação nos pacotes está pendente. O ícone previsto é o do programa, sem
 miniatura personalizada nesta versão.
 
+## Copiar dados para outra planilha
+
+Selecione células, linhas pelos números ou colunas pelos cabeçalhos e use
+**Ctrl+C**. No Google Planilhas, Excel ou LibreOffice Calc, escolha a célula de
+destino e cole com **Ctrl+V**. **Ctrl+A**, com a tabela em foco, seleciona tudo.
+O clique no canto entre os cabeçalhos das colunas e os números das linhas
+também seleciona toda a tabela.
+O menu do botão direito também oferece **Copiar**, **Copiar com cabeçalhos** e
+**Selecionar tudo**. A cópia comum não acrescenta os títulos das colunas.
+
+A cópia mantém a ordem visível das colunas, células vazias, quebras de linha e
+as ênfases de negrito, itálico e sublinhado em seu formato HTML. O formato de
+texto usa tabulações para separar colunas. Os estados das assinaturas são
+copiados como **TRUE** (marcada) ou **FALSE** (desmarcada). Na coluna **Bloco**,
+somente o destino preenchido é copiado; a indicação de seleção não vira dado.
+Ao selecionar linhas ou colunas separadas com Ctrl, elas são reunidas na cópia;
+células não selecionadas dentro dessa grade permanecem vazias.
+Durante a edição de uma caixa de texto, Ctrl+C continua copiando o trecho de
+texto selecionado.
+
 ## Armazenamento e proteção
 
 | Modo | Sem senha | Com senha |

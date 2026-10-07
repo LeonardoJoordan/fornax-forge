@@ -9,6 +9,7 @@ from PySide6.QtCore import Qt, QTimer, QRect, Signal, QSignalBlocker
 
 from .clipboard import parse_clipboard_html_table, parse_tsv, parse_clipboard_html_fragment
 from .delegates import HTMLDelegate
+from .copy_export import selection_mime_data
 from .headers import is_quantity_header, is_signature_header, is_block_header
 from core.i18n import tr
 
@@ -130,8 +131,10 @@ class RichTableWidget(QTableWidget):
         self._block_press_position = None
         header = DataHeaderView(self)
         self.setHorizontalHeader(header)
+        header.setSectionsClickable(True)
         header.signatureIconClicked.connect(self.toggle_signature_column)
-        self.setItemDelegate(HTMLDelegate(self))
+        self._html_delegate = HTMLDelegate(self)
+        self.setItemDelegate(self._html_delegate)
         self.setHorizontalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         self.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         self._full_content_mode = False
@@ -141,11 +144,15 @@ class RichTableWidget(QTableWidget):
         self._row_height_timer.setInterval(60)
         self._row_height_timer.timeout.connect(self._resize_pending_rows)
         self.itemChanged.connect(self._force_qty_alignment)
-        self.itemChanged.connect(lambda item: self._queue_row_height_update({item.row()}))
+        self.itemChanged.connect(self._on_item_row_changed)
         self.horizontalHeader().sectionResized.connect(self._queue_all_row_heights)
-        self.model().rowsInserted.connect(
-            lambda parent, first, last: self._queue_row_height_update(range(first, last + 1))
-        )
+        self.model().rowsInserted.connect(self._on_rows_inserted)
+
+    def _on_item_row_changed(self, item):
+        self._queue_row_height_update({item.row()})
+
+    def _on_rows_inserted(self, parent, first, last):
+        self._queue_row_height_update(range(first, last + 1))
 
     def set_block_names(self, names):
         self.block_names = tuple(names)
@@ -201,6 +208,19 @@ class RichTableWidget(QTableWidget):
 
     def contextMenuEvent(self, event):
         menu = QMenu(self)
+        has_selection = bool(self.selectedIndexes())
+        act_copy = menu.addAction(tr("Copiar"))
+        act_copy.setShortcut(QKeySequence.StandardKey.Copy)
+        act_copy.setEnabled(has_selection)
+        act_copy.triggered.connect(lambda: self._copy_to_clipboard())
+        act_headers = menu.addAction(tr("Copiar com cabeçalhos"))
+        act_headers.setEnabled(has_selection)
+        act_headers.triggered.connect(lambda: self._copy_to_clipboard(include_headers=True))
+        act_all = menu.addAction(tr("Selecionar tudo"))
+        act_all.setShortcut(QKeySequence.StandardKey.SelectAll)
+        act_all.setEnabled(bool(self.rowCount() and self.columnCount()))
+        act_all.triggered.connect(self.selectAll)
+        menu.addSeparator()
         act_bold = QAction(tr("Negrito (Ctrl+B)"), self)
         act_bold.triggered.connect(lambda: self._toggle_format("b"))
         act_italic = QAction(tr("Itálico (Ctrl+I)"), self)
@@ -216,6 +236,9 @@ class RichTableWidget(QTableWidget):
         menu.exec(event.globalPos())
 
     def keyPressEvent(self, event):
+        if event.matches(QKeySequence.StandardKey.Copy):
+            self._copy_to_clipboard()
+            return
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             key = event.key()
             if key == Qt.Key.Key_B:
@@ -237,6 +260,31 @@ class RichTableWidget(QTableWidget):
             return
 
         super().keyPressEvent(event)
+
+    def _copy_to_clipboard(self, *, include_headers=False):
+        selected = {(index.row(), index.column()) for index in self.selectedIndexes()}
+        if not selected:
+            return
+        rows = sorted({row for row, _ in selected}, key=self.verticalHeader().visualIndex)
+        columns = sorted({column for _, column in selected}, key=self.horizontalHeader().visualIndex)
+        cells = []
+        if include_headers:
+            cells.append([(self.horizontalHeaderItem(column).text()
+                           if self.horizontalHeaderItem(column) else '', None)
+                          for column in columns])
+        for row in rows:
+            values = []
+            for column in columns:
+                item = self.item(row, column) if (row, column) in selected else None
+                if item is None:
+                    values.append(('', None))
+                elif is_signature_header(self.horizontalHeaderItem(column)):
+                    values.append(('TRUE' if item.checkState() == Qt.CheckState.Checked else 'FALSE', None))
+                else:
+                    rich = None if is_block_header(self.horizontalHeaderItem(column)) else item.data(self.RICH_ROLE)
+                    values.append((item.text(), rich))
+            cells.append(values)
+        QApplication.clipboard().setMimeData(selection_mime_data(cells))
 
     def _add_rows(self, count: int):
         for _ in range(count):
@@ -354,7 +402,7 @@ class RichTableWidget(QTableWidget):
                 
             if affected_cols_logical:
                 # Autoajuste de colunas baseado nas recém alteradas
-                QTimer.singleShot(0, lambda: self._autofit_columns_after_paste(
+                QTimer.singleShot(0, self, lambda: self._autofit_columns_after_paste(
                     affected_cols_logical, 0, self.rowCount() - 1, padding_px=20
                 ))
             return
@@ -406,7 +454,7 @@ class RichTableWidget(QTableWidget):
                 affected_cols_logical.add(dest_col_logical)
 
         if affected_cols_logical:
-            QTimer.singleShot(0, lambda: self._autofit_columns_after_paste(
+            QTimer.singleShot(0, self, lambda: self._autofit_columns_after_paste(
                 affected_cols_logical, start_row, row_end, padding_px=20
             ))
 
