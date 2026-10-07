@@ -6,28 +6,29 @@ import json
 import re
 from uuid import uuid4
 
-from PySide6.QtCore import Qt, QPointF, QTimer, QRectF, QSignalBlocker
-from PySide6.QtGui import QColor, QPen, QPainterPath, QBrush, QPainter, QPixmap, QShortcut, QPainterPathStroker, QDrag, QMouseEvent
+from PySide6.QtCore import Qt, QPointF, QTimer, QRectF, QSignalBlocker, QEvent, QSize
+from PySide6.QtGui import QColor, QPen, QPainterPath, QBrush, QPainter, QPixmap, QShortcut, QPainterPathStroker, QDrag, QMouseEvent, QIcon
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout, QLabel, QPushButton, QSpinBox,
     QDoubleSpinBox, QLineEdit, QComboBox, QTreeWidget, QTreeWidgetItem,
     QDialog, QDialogButtonBox, QMessageBox, QGraphicsItem, QGraphicsRectItem,
-    QGraphicsPathItem, QMenu, QGraphicsView, QColorDialog, QGroupBox, QCheckBox, QGridLayout, QHBoxLayout,
+    QGraphicsPathItem, QMenu, QGraphicsView, QColorDialog, QCheckBox, QGridLayout, QHBoxLayout,
     QStyleOptionGraphicsItem, QStyle,
 )
 from core.i18n import tr
 from core.organogram import (
-    UNITS_PER_MM, add_organogram, new_group, group_rect, board_bounds,
+    UNITS_PER_MM, add_organogram, new_group, group_rect, slot_rect, board_bounds,
     validate_organogram, block_name_key, validate_block_name,
 )
 from core.board_connectors import (connector_style, connector_pen, connector_paths, connector_clip,
                                    MAX_CURVE_RADIUS_MM, validate_connector_style)
 from core.board_routing import board_routes, SIDES
+from core.board_borders import border_style, bordered_group_bounds, paint_group_borders
 from core.model_document import adapt_model_page, ModelValidationError
 from core.dialog_buttons import style_dialog_button_box
 from core.resources import object_icon_path, navigation_icon_path
 from core.theme_icons import themed_svg_icon
-from core.themes import theme_color
+from core.themes import theme_color, theme_manager, themed_style
 from .canvas_items import _snap_board_position, _board_snap_step
 
 
@@ -145,6 +146,10 @@ class BoardGroupItem(QGraphicsRectItem):
         self.setZValue(-10)
         window._board_item_refs[id(self)] = self
 
+    def boundingRect(self):
+        bounds = bordered_group_bounds(self.data).translated(-self.data["x"], -self.data["y"])
+        return bounds.united(super().boundingRect())
+
     def itemChange(self, change, value):
         if self.scene() and change == QGraphicsItem.GraphicsItemChange.ItemPositionChange:
             grid = getattr(self.scene(), "_board_grid", 0)
@@ -156,6 +161,7 @@ class BoardGroupItem(QGraphicsRectItem):
         return super().itemChange(change, value)
 
     def paint(self, painter, option, widget=None):
+        painter.save()
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         for index in range(self.data["columns"] * self.data["rows"]):
             x = index % self.data["columns"] * (self.data["card_w"] + self.data["gap_x"])
@@ -166,11 +172,15 @@ class BoardGroupItem(QGraphicsRectItem):
             pen.setCosmetic(True)
             painter.setPen(pen)
             painter.drawRect(rect)
+        local = {**self.data, "x": 0, "y": 0}
+        paint_group_borders(painter, local, (slot_rect(local, index)
+                            for index in range(local["columns"] * local["rows"])))
         if self.isSelected():
             pen = QPen(QColor(theme_color("accent")), 2)
             pen.setCosmetic(True)
             painter.setPen(pen)
             painter.drawRect(self.rect())
+        painter.restore()
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
@@ -205,7 +215,8 @@ class BoardConnectorItem(QGraphicsPathItem):
         cutouts = QPainterPath()
         cutouts.setFillRule(Qt.FillRule.WindingFill)
         for item in self.scene().items():
-            if isinstance(item, DesignerBox) and item.isVisible() and item.opacity() > 0:
+            if (isinstance(item, DesignerBox) and item.isVisible() and item.opacity() > 0
+                    and not getattr(item, "board_behind", False)):
                 rectangle = QPainterPath()
                 rectangle.addPolygon(item.mapToScene(item.rect()))
                 rectangle.closeSubpath()
@@ -291,30 +302,51 @@ class StructureTree(QTreeWidget):
         event.accept()
 
 
-class ConnectorSides(QGroupBox):
+class ConnectorSides(QWidget):
     """Quatro permissões espaciais em torno de uma representação do bloco."""
     def __init__(self, title, window, key):
-        super().__init__(title)
+        from .frontend import property_heading
+        super().__init__()
         self.key = key
-        grid = QGridLayout(self)
-        grid.setContentsMargins(6, 12, 6, 6)
-        grid.setSpacing(4)
-        block = QLabel(tr("Bloco"))
-        block.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        block.setFixedSize(48, 34)
-        block.setStyleSheet(f'border: 1px solid {theme_color("border_strong")}; border-radius: 3px;')
-        grid.addWidget(block, 1, 1)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        property_heading(layout, title)
+        grid = QGridLayout()
+        layout.addLayout(grid)
+        grid.setContentsMargins(8, 4, 8, 4)
+        grid.setSpacing(6)
+        grid.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.block_icon = QLabel()
+        self.block_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.block_icon.setFixedSize(40, 40)
+        self._refresh_icon()
+        theme_manager().changed.connect(self._refresh_icon)
+        grid.addWidget(self.block_icon, 1, 1, Qt.AlignmentFlag.AlignCenter)
         self.checks = {}
         for side, label, row, column in (("top", tr("Cima"), 0, 1), ("left", tr("Esquerda"), 1, 0),
                                          ("right", tr("Direita"), 1, 2), ("bottom", tr("Baixo"), 2, 1)):
             checkbox = QCheckBox()
-            checkbox.setFixedSize(22, 22)
+            # A área do widget coincide com o indicador (14 px + borda),
+            # evitando o deslocamento causado pelo espaço nativo da legenda.
+            checkbox.setFixedSize(16, 16)
+            checkbox.setStyleSheet('QCheckBox { spacing: 0; padding: 0; margin: 0; }')
             checkbox.setAccessibleName(f"{title}: {label}")
             checkbox.setToolTip(tr("Permitir por {lado}. Mantenha pelo menos um lado marcado.").format(lado=label.lower()))
             checkbox.clicked.connect(lambda _checked, side=side, checkbox=checkbox:
                                        window.change_board_ports(key, side, checkbox.checkState() == Qt.CheckState.Checked))
             grid.addWidget(checkbox, row, column, Qt.AlignmentFlag.AlignCenter)
             self.checks[side] = checkbox
+
+    def _refresh_icon(self):
+        mode = QIcon.Mode.Normal if self.isEnabled() else QIcon.Mode.Disabled
+        self.block_icon.setPixmap(themed_svg_icon(object_icon_path("square-user-round")).pixmap(
+            QSize(40, 40), mode))
+
+    def changeEvent(self, event):
+        super().changeEvent(event)
+        if event.type() == QEvent.Type.EnabledChange and hasattr(self, 'block_icon'):
+            self._refresh_icon()
 
     def refresh(self, groups):
         self.setEnabled(bool(groups))
@@ -330,16 +362,31 @@ class ConnectorSides(QGroupBox):
 
 class OrganogramPanel(QWidget):
     def __init__(self, window):
+        from .frontend import (
+            column, field, row, property_heading, compact_sidebar_action,
+            square_control, compact, centered_toggle_button,
+            outline_controls, corner_radius_controls,
+        )
         super().__init__()
         self.window = window
         self._syncing = False
         self._tree_signature = None
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 8, 12, 8)
-        self.size_label = QLabel()
-        self.size_label.setWordWrap(True)
-        layout.addWidget(self.size_label)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(10)
+        property_heading(layout, tr("HIERARQUIA"))
         self.tree = StructureTree(window)
+        self.tree.setObjectName("boardStructure")
+        themed_style(self.tree, '''
+            QTreeWidget#boardStructure {
+                background: @surface@; border: 1px solid @border@;
+                border-radius: 5px; padding: 3px; outline: none;
+            }
+            QTreeWidget#boardStructure::item { padding: 4px 5px; border: none; }
+            QTreeWidget#boardStructure::item:selected { background: @selection@; color: @text@; }
+            QTreeWidget#boardStructure::item:hover { background: @hover@; }
+        ''')
+        self.tree.setToolTip(tr("Arraste na árvore para mudar o superior. O centro dos blocos encaixa em 5 mm e o dos textos em 2,5 mm."))
         self.tree.setMinimumHeight(150)
         self.tree.setMaximumHeight(260)
         layout.addWidget(self.tree)
@@ -347,44 +394,147 @@ class OrganogramPanel(QWidget):
         self.tree.itemDoubleClicked.connect(lambda *_: QTimer.singleShot(0, self, window.edit_board_group))
         self.tree.itemClicked.connect(self.click_tree_item)
         self.connect_button = QPushButton(tr("Conectar a elemento"))
+        compact_sidebar_action(self.connect_button)
+        self.connect_button.setToolTip(tr("Selecione os blocos, clique em conectar e escolha o superior no desenho ou na árvore."))
         self.connect_button.clicked.connect(window.start_board_connection)
         layout.addWidget(self.connect_button)
         self.connection_hint = QLabel()
         self.connection_hint.setWordWrap(True)
         layout.addWidget(self.connection_hint)
-        form = QFormLayout()
+        self.parent_combo = QComboBox()
+        self.parent_combo.activated.connect(self.change_parent)
+        layout.addWidget(field(tr("Superior"), self.parent_combo))
+        hint = QLabel(tr("Arraste os blocos na árvore para ajustar a hierarquia."))
+        hint.setWordWrap(True)
+        themed_style(hint, 'color: @disabled@; font-size: 10px;')
+        layout.addWidget(hint)
+        self.routing_hint = QLabel()
+        self.routing_hint.setWordWrap(True)
+        layout.addWidget(self.routing_hint)
+
+        # Opções do documento e propriedades compartilham os mesmos controles;
+        # o frontend encaixa cada conteúdo na seção existente do inspetor.
+        self.output_settings, output_layout = column()
+        self.output_settings.setObjectName("boardOutputSettings")
+        output_layout.setContentsMargins(0, 0, 0, 0)
+        property_heading(output_layout, tr("SAÍDA DO QUADRO"), separated=True)
         self.margin = QDoubleSpinBox()
         self.margin.setRange(0, 1000)
         self.margin.setSuffix(" mm")
         self.margin.setKeyboardTracking(False)
         self.margin.valueChanged.connect(self.change_margin)
-        form.addRow(tr("Margem de saída"), self.margin)
-        self.parent_combo = QComboBox()
-        self.parent_combo.activated.connect(self.change_parent)
-        form.addRow(tr("Superior"), self.parent_combo)
-        layout.addLayout(form)
+        output_layout.addWidget(field(tr("Margem de saída"), self.margin))
+        self.size_label = QLabel()
+        self.size_label.setWordWrap(True)
+        themed_style(self.size_label, 'color: @disabled@; font-size: 10px;')
+        output_layout.addWidget(self.size_label)
+        self.output_settings.hide()
+
+        self.properties, properties_layout = column()
+        self.properties.setObjectName("boardProperties")
+        properties_layout.setContentsMargins(0, 0, 0, 0)
+        self.properties.hide()
+        self.group_settings, group_layout = column()
+        group_layout.setContentsMargins(0, 0, 0, 0)
+        property_heading(group_layout, tr("BLOCO / CONJUNTO"))
         self.edit = QPushButton(tr("Editar bloco selecionado"))
+        compact_sidebar_action(self.edit)
         self.edit.clicked.connect(lambda: window.edit_board_group())
-        layout.addWidget(self.edit)
-        ports = QGroupBox(tr("Lados permitidos do bloco"))
-        port_layout = QHBoxLayout(ports)
-        port_layout.setContentsMargins(6, 8, 6, 6)
+        group_layout.addWidget(self.edit)
+        properties_layout.addWidget(self.group_settings)
+
+        self.artwork_layers, artwork_form = column()
+        artwork_form.setContentsMargins(0, 0, 0, 0)
+        property_heading(artwork_form, tr("CAMADAS DO QUADRO"), separated=True)
+        self.artwork_position = QComboBox()
+        self.artwork_position.addItem(tr("À frente do organograma"), False)
+        self.artwork_position.addItem(tr("Atrás do organograma"), True)
+        self.artwork_position.activated.connect(
+            lambda index: window.change_board_artwork_position(self.artwork_position.itemData(index)))
+        artwork_form.addWidget(field(tr("Posição"), self.artwork_position))
+        self.artwork_hint = QLabel(tr("Para uma imagem de fundo, escolha atrás do organograma."))
+        self.artwork_hint.setWordWrap(True)
+        themed_style(self.artwork_hint, 'color: @disabled@; font-size: 10px;')
+        artwork_form.addWidget(self.artwork_hint)
+        properties_layout.addWidget(self.artwork_layers)
+        self.ports, ports_layout = column()
+        ports_layout.setContentsMargins(0, 0, 0, 0)
+        property_heading(ports_layout, tr("LADOS PERMITIDOS"), separated=True)
         self.entry_sides = ConnectorSides(tr("Entrada"), window, "entry_sides")
         self.exit_sides = ConnectorSides(tr("Saída"), window, "exit_sides")
-        port_layout.addWidget(self.entry_sides)
-        port_layout.addWidget(self.exit_sides)
-        layout.addWidget(ports)
-        self.routing_hint = QLabel()
-        self.routing_hint.setWordWrap(True)
-        layout.addWidget(self.routing_hint)
-        appearance = QGroupBox(tr("Conectores"))
-        style_form = QFormLayout(appearance)
+        port_layout = row(ports_layout, self.entry_sides, self.exit_sides)
+        port_layout.setStretch(0, 1)
+        port_layout.setStretch(1, 1)
+        properties_layout.addWidget(self.ports)
+        self.borders, border_form = column()
+        border_form.setContentsMargins(0, 0, 0, 0)
+        self.border_corners = corner_radius_controls('board')
+        for key, control in self.border_corners.spins.items():
+            control.editingFinished.connect(lambda key=key: self.apply_border_corner(key))
+        self.border_corners.sync.toggled.connect(self.toggle_border_corner_sync)
+        border_form.addWidget(self.border_corners)
+        property_heading(border_form, tr("CONTORNO"), separated=True)
+        self.border_enabled = QPushButton(tr("Habilitar contorno"))
+        self.border_enabled.setObjectName('boardOutlineEnabled')
+        self.border_enabled.setCheckable(True)
+        centered_toggle_button(border_form, self.border_enabled)
+        self.border_enabled.clicked.connect(self.toggle_border)
+        self.border_scope = QComboBox()
+        self.border_scope.setObjectName('boardOutlineScope')
+        self.border_scope.setPlaceholderText(tr("Aplicações diferentes"))
+        self.border_scope.addItem(tr("Em cada cartão"), 'cards')
+        self.border_scope.addItem(tr("Ao redor do conjunto"), 'group')
+        self.border_scope.addItem(tr("Cartões e conjunto"), 'both')
+        self.border_scope.activated.connect(self.change_border_scope)
+        border_form.addWidget(field(tr("Aplicar em"), self.border_scope))
+        self.border_outline = outline_controls('boardBorder')
+        self.border_color = self.border_outline.swatch
+        self.border_color_hex = self.border_outline.color
+        self.border_width = self.border_outline.spin_width
+        self.border_opacity = self.border_outline.alpha
+        self.border_position = self.border_outline.position
+        self.border_position.setPlaceholderText(tr("Posições diferentes"))
+        self.border_position.setToolTip(self.border_position.toolTip() + "\n" +
+                                       tr("A posição escolhida vale para os contornos habilitados nos blocos selecionados."))
+        self.border_position.activated.connect(
+            lambda index: window.change_board_border_position(self.border_position.itemData(index)))
+        self.border_color.clicked.connect(self.choose_border_color)
+        self.border_color_hex.editingFinished.connect(lambda: self.apply_color_text(border=True))
+        self.border_width.editingFinished.connect(lambda: window.change_board_border(width_mm=self.border_width.value()))
+        self.border_opacity.editingFinished.connect(lambda: window.change_board_border(opacity=self.border_opacity.value() / 100))
+        self.border_outline.join_straight.clicked.connect(lambda: window.change_board_border(join="miter"))
+        self.border_outline.join_round.clicked.connect(lambda: window.change_board_border(join="round"))
+        border_form.addWidget(self.border_outline)
+        self.border_padding = QDoubleSpinBox()
+        self.border_padding.setRange(0, 1000)
+        self.border_padding.setDecimals(2)
+        self.border_padding.setSingleStep(0.1)
+        self.border_padding.setKeyboardTracking(False)
+        self.border_padding.editingFinished.connect(
+            lambda: window.change_board_border(padding_mm=self.border_padding.value()))
+        self.border_padding.setToolTip(tr("Espaço entre os cartões e o limite do conjunto, antes da espessura do contorno."))
+        self.border_padding_field = field(tr("Folga do conjunto"), compact('', self.border_padding, 'mm'))
+        self.border_outline.layout().addWidget(self.border_padding_field)
+        properties_layout.addWidget(self.borders)
+        self.appearance, style_form = column()
+        style_form.setContentsMargins(0, 0, 0, 0)
+        self.connector_heading = property_heading(style_form, tr("CONECTORES"), separated=True)
         self.style_target = QLabel()
         self.style_target.setWordWrap(True)
-        style_form.addRow(self.style_target)
+        themed_style(self.style_target, 'color: @disabled@; font-size: 10px;')
+        style_form.addWidget(self.style_target)
         self.color = QPushButton()
+        square_control(self.color)
+        self.color.setToolTip(tr("Escolher a cor do conector"))
         self.color.clicked.connect(self.choose_color)
-        style_form.addRow(tr("Cor"), self.color)
+        self.color_hex = QLineEdit()
+        self.color_hex.setMaxLength(7)
+        self.color_hex.setPlaceholderText("#RRGGBB")
+        self.color_hex.editingFinished.connect(lambda: self.apply_color_text(border=False))
+        connector_color_field, connector_color_layout = column()
+        connector_color_layout.setContentsMargins(0, 0, 0, 0)
+        row(connector_color_layout, self.color, self.color_hex).setStretch(1, 1)
+        style_form.addWidget(field(tr("Cor"), connector_color_field))
         self.width = QDoubleSpinBox()
         self.width.setRange(0.05, 20)
         self.width.setDecimals(2)
@@ -392,13 +542,15 @@ class OrganogramPanel(QWidget):
         self.width.setSuffix(" mm")
         self.width.setKeyboardTracking(False)
         self.width.valueChanged.connect(lambda value: window.change_board_connector_style(width_mm=value))
-        style_form.addRow(tr("Espessura"), self.width)
         self.transparency = QSpinBox()
         self.transparency.setRange(0, 100)
         self.transparency.setSuffix(" %")
         self.transparency.setKeyboardTracking(False)
         self.transparency.valueChanged.connect(lambda value: window.change_board_connector_style(opacity=1 - value / 100))
-        style_form.addRow(tr("Transparência"), self.transparency)
+        connector_dimensions = row(style_form, field(tr("Espessura"), self.width),
+                                   field(tr("Transparência"), self.transparency))
+        connector_dimensions.setStretch(0, 1)
+        connector_dimensions.setStretch(1, 1)
         self.radius = QDoubleSpinBox()
         self.radius.setRange(0, MAX_CURVE_RADIUS_MM)
         self.radius.setDecimals(2)
@@ -407,11 +559,20 @@ class OrganogramPanel(QWidget):
         self.radius.setKeyboardTracking(False)
         self.radius.setToolTip(tr("0 mantém as quinas retas. O raio é limitado pelo comprimento dos trechos e pelo espaço entre os blocos."))
         self.radius.valueChanged.connect(lambda value: window.change_board_connector_style(radius_mm=value))
-        style_form.addRow(tr("Raio de curva"), self.radius)
-        layout.addWidget(appearance)
-        hint = QLabel(tr("Arraste na árvore para mudar o superior. O centro dos blocos encaixa em 5 mm e o dos textos em 2,5 mm. Posições sem dados aparecem apenas na edição."))
-        hint.setWordWrap(True)
-        layout.addWidget(hint)
+        style_form.addWidget(field(tr("Raio de curva"), self.radius))
+        properties_layout.addWidget(self.appearance)
+
+    def properties_available(self):
+        window = self.window
+        return window._active_page_id == "organogram" and (
+            bool(getattr(window, "_board_connection_sources", None))
+            or bool(window._board_selected_artwork())
+            or any(isinstance(item, (BoardGroupItem, BoardConnectorItem)) for item in window.scene.selectedItems())
+        )
+
+    def show_connection_message(self, message):
+        self.connection_hint.setText(message)
+        self.connection_hint.setVisible(bool(message))
 
     def select_from_tree(self):
         if self._syncing or getattr(self.window, "_board_connection_sources", None):
@@ -438,6 +599,50 @@ class OrganogramPanel(QWidget):
         if color.isValid():
             self.window.change_board_connector_style(color=color.name())
 
+    def choose_border_color(self):
+        selected = self.window._selected_board_group()
+        if selected is None:
+            return
+        color = QColorDialog.getColor(QColor(border_style(selected.data)["color"]), self, tr("Cor do contorno"))
+        if color.isValid():
+            self.window.change_board_border(color=color.name())
+
+    def toggle_border(self, enabled):
+        # Uma seleção mista conserva o destino particular de cada conjunto.
+        self.window.change_board_border(_enabled=enabled)
+
+    def change_border_scope(self, index):
+        scope = self.border_scope.itemData(index)
+        if scope is None:
+            return
+        enabled = self.border_enabled.isChecked()
+        self.window.change_board_border(
+            target=scope, cards=enabled and scope in ('cards', 'both'),
+            group=enabled and scope in ('group', 'both'))
+
+    def apply_border_corner(self, key):
+        # Como nas formas, vincular afeta a próxima edição, sem zerar cantos.
+        value = self.border_corners.spins[key].value()
+        linked = self.border_corners.sync.isChecked()
+        changes = {key: value}
+        if linked:
+            changes = {corner: value for corner in self.border_corners.spins}
+        self.window.change_board_corner_radii(changes, linked=linked)
+
+    def toggle_border_corner_sync(self, linked):
+        self.border_corners.refresh_sync_icon(linked)
+        self.window.change_board_border(corner_radii_linked=linked)
+
+    def apply_color_text(self, *, border):
+        control = self.border_color_hex if border else self.color_hex
+        value = control.text().strip()
+        color = QColor(value)
+        if len(value) == 7 and value.startswith("#") and color.isValid():
+            change = self.window.change_board_border if border else self.window.change_board_connector_style
+            change(color=color.name())
+        else:
+            self.refresh()
+
     def change_parent(self, index):
         selected = self.window._selected_board_group()
         if selected:
@@ -451,7 +656,14 @@ class OrganogramPanel(QWidget):
 
     def refresh(self):
         window = self.window
-        if window._active_page_id != "organogram" or getattr(window, "_loading_board", False):
+        active = window._active_page_id == "organogram"
+        self.output_settings.setVisible(active)
+        self.properties.setVisible(self.properties_available())
+        if not active:
+            if hasattr(window, "_refresh_board_inspector"):
+                window._refresh_board_inspector()
+            return
+        if getattr(window, "_loading_board", False):
             return
         groups = [item.data for item in window._board_items()]
         selected = window._selected_board_group()
@@ -488,22 +700,72 @@ class OrganogramPanel(QWidget):
         self.parent_combo.setCurrentIndex(max(0, self.parent_combo.findData(parents.get(selected_id))))
         self.parent_combo.blockSignals(False)
         connecting = bool(getattr(window, "_board_connection_sources", None))
+        artwork = window._board_selected_artwork() if not connecting else []
+        self.group_settings.setVisible(bool(selected_ids))
+        self.ports.setVisible(bool(selected_ids))
+        self.borders.setVisible(bool(selected_ids))
+        self.artwork_layers.setVisible(bool(artwork))
+        self.artwork_layers.setEnabled(bool(artwork))
+        explicit_connectors = any(isinstance(item, BoardConnectorItem) for item in window.scene.selectedItems())
+        self.appearance.setVisible(connecting or explicit_connectors)
+        self.connector_heading._section_separator.setVisible(bool(selected_ids or artwork))
+        positions = {getattr(item, "board_behind", False) for item in artwork}
+        with QSignalBlocker(self.artwork_position):
+            self.artwork_position.setCurrentIndex(
+                self.artwork_position.findData(next(iter(positions))) if len(positions) == 1 else -1)
         self.parent_combo.setEnabled(selected_id is not None and not connecting)
         self.edit.setEnabled(selected_id is not None and not connecting)
         chosen = [group for group in groups if group["id"] in selected_ids] if not connecting else []
         self.entry_sides.refresh(chosen)
         self.exit_sides.refresh(chosen)
+        self.borders.setEnabled(bool(chosen))
+        styles = [border_style(group) for group in chosen]
+        border = styles[0] if styles else border_style({})
+        scopes = {style['target'] for style in styles}
+        with QSignalBlocker(self.border_scope):
+            self.border_scope.setCurrentIndex(self.border_scope.findData(next(iter(scopes))) if len(scopes) == 1 else -1)
+        enabled = any(style['cards'] or style['group'] for style in styles)
+        with QSignalBlocker(self.border_enabled):
+            self.border_enabled.setChecked(enabled)
+        self.border_enabled.setText(tr('Desabilitar contorno') if enabled else tr('Habilitar contorno'))
+        self.border_enabled.setToolTip(tr('Aplica a alteração a todos os blocos selecionados.'))
+        self.border_outline.setVisible(enabled)
+        with QSignalBlocker(self.border_corners.sync):
+            self.border_corners.sync.setChecked(border.get('corner_radii_linked', True))
+        self.border_corners.refresh_sync_icon(self.border_corners.sync.isChecked())
+        radii = border.get('corner_radii_mm', {})
+        for key, control in self.border_corners.spins.items():
+            with QSignalBlocker(control):
+                control.setValue(radii.get(key, border['radius_mm']))
+        self.border_color_hex.setText(border["color"].upper())
+        themed_style(self.border_color, f'background: {border["color"]}; border: 1px solid @border_strong@;')
+        for control, value in ((self.border_width, border["width_mm"]),
+                               (self.border_opacity, round(border["opacity"] * 100)),
+                               (self.border_padding, border["padding_mm"])):
+            with QSignalBlocker(control):
+                control.setValue(value)
+        positions = {style[key] for style in styles
+                     for enabled, key in (("cards", "cards_position"), ("group", "group_position")) if style[enabled]}
+        with QSignalBlocker(self.border_position):
+            self.border_position.setCurrentIndex(
+                self.border_position.findData(next(iter(positions))) if len(positions) == 1 else -1)
+        joins = {style["join"] for style in styles}
+        self.border_outline.join_straight.setChecked(joins == {"miter"})
+        self.border_outline.join_round.setChecked(joins == {"round"})
+        self.border_outline.setEnabled(enabled)
+        self.border_padding_field.setVisible(any(style['group'] for style in styles))
         self.routing_hint.setText(tr("Algumas conexões não têm espaço livre. Afaste os blocos ou permita outros lados de entrada e saída.")
                                   if getattr(window, "_board_routes_crowded", False) else "")
+        self.routing_hint.setVisible(bool(self.routing_hint.text()))
         self.connect_button.setEnabled(connecting or (bool(selected_ids) and len(groups) > len(selected_ids)))
         self.connect_button.setText(tr("Cancelar conexão") if connecting else tr("Conectar a elemento"))
         self.tree.setDragEnabled(not connecting)
-        self.connection_hint.setText(getattr(window, "_board_connection_message", "") if connecting else tr("Selecione os blocos, clique em conectar e escolha o superior no desenho ou na árvore."))
+        self.show_connection_message(getattr(window, "_board_connection_message", "") if connecting else "")
         style = window._board_style_for_selection()
         count = len(window._board_selected_connectors())
         self.style_target.setText(tr("Conexões selecionadas: {numero}").format(numero=count) if count else tr("Aparência das novas conexões"))
-        self.color.setText(style["color"].upper())
-        self.color.setStyleSheet(f'QPushButton {{ border-bottom: 4px solid {style["color"]}; }}')
+        self.color_hex.setText(style["color"].upper())
+        themed_style(self.color, f'background: {style["color"]}; border: 1px solid @border_strong@;')
         for control, value in ((self.width, style["width_mm"]), (self.transparency, round((1 - style["opacity"]) * 100)),
                                (self.radius, style["radius_mm"])):
             with QSignalBlocker(control):
@@ -514,9 +776,104 @@ class OrganogramPanel(QWidget):
         rect = board_bounds(window._board_state())
         self.size_label.setText(tr("Tamanho sugerido: {largura:.1f} × {altura:.1f} mm").format(
             largura=rect.width() / UNITS_PER_MM, altura=rect.height() / UNITS_PER_MM))
+        if hasattr(window, "_refresh_board_inspector"):
+            window._refresh_board_inspector()
 
 
 class OrganogramEditorMixin:
+    def change_board_corner_radii(self, changes, *, linked):
+        selected = [item for item in self.scene.selectedItems() if isinstance(item, BoardGroupItem)]
+        radii_by_id = {}
+        for item in selected:
+            style = border_style(item.data)
+            radii = {key: style.get('corner_radii_mm', {}).get(key, style['radius_mm'])
+                     for key in ('top_left', 'top_right', 'bottom_left', 'bottom_right')}
+            radii_by_id[item.data['id']] = {**radii, **changes}
+        self.change_board_border(corner_radii_linked=linked, _radii_by_id=radii_by_id)
+
+    def change_board_border_position(self, position):
+        styles = [border_style(item.data) for item in self.scene.selectedItems() if isinstance(item, BoardGroupItem)]
+        changes = {key: position for enabled, key in (("cards", "cards_position"), ("group", "group_position"))
+                   if any(style[enabled] for style in styles)}
+        if changes:
+            self.change_board_border(**changes)
+
+    def _board_artwork_roots(self):
+        from .canvas_items import DesignerBox, ImageItem, BackgroundItem, RectangleItem
+        return [item for item in self.scene.items()
+                if isinstance(item, (DesignerBox, ImageItem)) and not isinstance(item, BackgroundItem)
+                and not isinstance(item.parentItem(), RectangleItem)
+                and not getattr(item, "is_document_background", False)]
+
+    def _board_selected_artwork(self):
+        from .canvas_items import RectangleItem
+        roots = set(self._board_artwork_roots())
+        selected = {item.parentItem() if isinstance(item.parentItem(), RectangleItem) else item
+                    for item in self.scene.selectedItems()}
+        return list(roots & selected)
+
+    def _sync_board_artwork_layers(self):
+        if self._active_page_id != "organogram":
+            return
+        roots = self._board_artwork_roots()
+        # Preserva as subclasses Python enquanto o Qt usa a ordem da pilha.
+        self._board_artwork_refs = roots
+        # Cada plano mantém a ordem das camadas. O fundo fica acima do papel
+        # (-200), abaixo dos conectores (-20) e dos cartões (-10).
+        for behind in (True, False):
+            items = sorted((item for item in roots if getattr(item, "board_behind", False) == behind),
+                           key=lambda item: (item.zValue(), -(getattr(item, "layer_id", None) or 0)))
+            for index, item in enumerate(items):
+                item.setZValue(-30 + index / (len(items) + 1) if behind else index)
+
+    def change_board_artwork_position(self, behind):
+        if self._active_page_id != "organogram" or getattr(self, "_board_connection_sources", None):
+            return
+        selected = self._board_selected_artwork()
+        if not selected:
+            return
+        for item in selected:
+            item.board_behind = bool(behind)
+        self.refresh_layer_list()
+        for item in self.scene.items():
+            if isinstance(item, BoardConnectorItem):
+                item.update()
+        self.save_snapshot()
+        self.organogram_panel.refresh()
+
+    def change_board_border(self, *, _radii_by_id=None, _enabled=None, **changes):
+        if self._active_page_id != "organogram" or getattr(self, "_board_connection_sources", None):
+            return
+        selected = [item for item in self.scene.selectedItems() if isinstance(item, BoardGroupItem)]
+        if not selected:
+            return
+        candidate = self._board_state()
+        identifiers = {item.data["id"] for item in selected}
+        updated = {}
+        for group in candidate["groups"]:
+            if group["id"] in identifiers:
+                style = {**border_style(group), **changes}
+                if _enabled is not None:
+                    style['cards'] = _enabled and style['target'] in ('cards', 'both')
+                    style['group'] = _enabled and style['target'] in ('group', 'both')
+                if 'target' not in changes and ('cards' in changes or 'group' in changes):
+                    if style['cards'] or style['group']:
+                        style['target'] = 'both' if style['cards'] and style['group'] else 'cards' if style['cards'] else 'group'
+                if 'radius_mm' in changes:
+                    style.pop('corner_radii_mm', None)
+                if _radii_by_id is not None:
+                    style['corner_radii_mm'] = _radii_by_id[group['id']]
+                group["border"] = style
+                updated[group["id"]] = group["border"]
+        validate_organogram(candidate)
+        for item in selected:
+            item.prepareGeometryChange()
+            item.data["border"] = deepcopy(updated[item.data["id"]])
+            item.update()
+        self._update_board_connections()
+        self._update_board_extent()
+        self.save_snapshot()
+
     def change_board_ports(self, key, side, allowed):
         if key not in ("entry_sides", "exit_sides") or side not in SIDES:
             return
@@ -529,7 +886,7 @@ class OrganogramEditorMixin:
             if not sides:
                 self.organogram_panel.entry_sides.refresh([i.data for i in selected])
                 self.organogram_panel.exit_sides.refresh([i.data for i in selected])
-                self.organogram_panel.connection_hint.setText(tr("Mantenha pelo menos um lado permitido em cada entrada e saída."))
+                self.organogram_panel.show_connection_message(tr("Mantenha pelo menos um lado permitido em cada entrada e saída."))
                 return
             changes.append((item, [side for side in SIDES if side in sides]))
         for item, sides in changes:
@@ -651,7 +1008,9 @@ class OrganogramEditorMixin:
         self._board_connector_style = {**connector_style(), **data.get("__board_connector_style", {})}
         self.scene._board_grid = self._board_grid_mm * UNITS_PER_MM if self._active_page_id == "organogram" else 0
         if self._active_page_id != "organogram":
+            self._board_artwork_refs = []
             return
+        self._sync_board_artwork_layers()
         if self.bg_item:
             self.scene.removeItem(self.bg_item)
             self.bg_item = None
@@ -745,7 +1104,7 @@ class OrganogramEditorMixin:
         except ModelValidationError as error:
             self._board_connection_message = str(error)
             self.organogram_panel.refresh()
-            self.organogram_panel.connection_hint.setText(str(error))
+            self.organogram_panel.show_connection_message(str(error))
             return False
         # Preserva os itens não alterados e não emite seleção no meio da operação.
         with QSignalBlocker(self.scene):
@@ -789,12 +1148,19 @@ class OrganogramEditorMixin:
             return True
         return False
 
-    def add_model_organogram(self):
+    def add_model_organogram(self, *, show_chooser=True):
         self._finish_page_interaction()
         self.save_snapshot()
-        self._model_document = add_organogram(self._model_document)
-        self.switch_model_page("organogram")
+        if show_chooser:
+            from .starter_dialog import StarterDialog
+            chooser = StarterDialog("organogram", self, document=self._model_document)
+            if chooser.exec() != QDialog.DialogCode.Accepted:
+                return
+            self._model_document = chooser.result_document
+        else:
+            self._model_document = add_organogram(self._model_document)
         self._pending_history_page_id = "organogram"
+        self.switch_model_page("organogram")
         self.save_snapshot()
         self._refresh_page_controls()
 
@@ -919,7 +1285,7 @@ class OrganogramEditorMixin:
             return
         selected = [item for item in self.scene.selectedItems() if isinstance(item, BoardGroupItem)]
         if not selected or len(selected) == len(self._board_items()):
-            self.organogram_panel.connection_hint.setText(tr("Selecione os blocos que receberão um superior e deixe um bloco disponível como destino."))
+            self.organogram_panel.show_connection_message(tr("Selecione os blocos que receberão um superior e deixe um bloco disponível como destino."))
             return
         self._finish_page_interaction()
         self._board_connection_sources = {item.data["id"] for item in selected}
@@ -1019,4 +1385,4 @@ class OrganogramEditorMixin:
         self.btn_add_sig.setToolTip(tr("Blocos e conexões do quadro") if active else tr("Adicionar uma assinatura opcional ao modelo"))
         if active:
             self._update_board_extent()
-            self.organogram_panel.refresh()
+        self.organogram_panel.refresh()

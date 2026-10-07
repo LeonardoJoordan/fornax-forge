@@ -855,7 +855,14 @@ class MainWindow(QMainWindow):
         ) == QMessageBox.StandardButton.Ok
 
     def _on_add_model(self):
+        from features.editor.starter_dialog import StarterDialog
+        from PySide6.QtWidgets import QDialog
+        chooser = StarterDialog("model", self)
+        if chooser.exec() != QDialog.DialogCode.Accepted:
+            return
         self.editor_window = EditorWindow(self)
+        if chooser.result_document is not None:
+            self.editor_window.load_starter_document(chooser.result_document, chooser.asset_provider)
         self.editor_window.modelSaved.connect(self._on_editor_saved)
         self._connect_editor_lifecycle()
         self.editor_window.show()
@@ -1014,6 +1021,12 @@ class MainWindow(QMainWindow):
                 if new_path != library_model.path:
                     library_model.path.unlink()
                     self._fornax_sessions.forget(library_model.path)
+                # A gravação muda a revisão até quando só acentos/maiúsculas
+                # mudam e o slug continua igual. Descarte o snapshot antigo
+                # antes de reabrir a biblioteca, inclusive no caminho destino.
+                self._fornax_sessions.reload(new_path)
+                if password is not None:
+                    self._fornax_sessions.unlock(new_path, password)
                 self.log_panel.append(
                     tr("Modelo renomeado: '{anterior}' → '{novo}'").format(
                         anterior=old_name, novo=new_name,
@@ -1021,7 +1034,8 @@ class MainWindow(QMainWindow):
                 )
                 self._reload_models_from_disk(select_name=new_name)
             except Exception as error:
-                if new_path != library_model.path:
+                if new_path != library_model.path and library_model.path.exists():
+                    # Uma falha posterior ao rename não pode apagar a única cópia.
                     new_path.unlink(missing_ok=True)
                 QMessageBox.critical(
                     self, tr("Erro"), tr("Falha ao renomear: {erro}").format(erro=error),
@@ -1820,8 +1834,12 @@ class MainWindow(QMainWindow):
         if library_model is not None and library_model.is_fornax:
             opened = self._open_selected_fornax(library_model)
             if opened is None:
-                self.preview_panel.set_preview_text(tr("Modelo protegido"))
-                self.preview_panel.set_model_lock_state(True)
+                protected = library_model.descriptor.mode != PUBLIC_MODE
+                self.preview_panel.set_preview_text(
+                    tr("Modelo protegido") if protected else
+                    tr("Prévia indisponível — o arquivo do modelo precisa ser recarregado")
+                )
+                self.preview_panel.set_model_lock_state(protected)
                 self._update_table_columns([])
                 if hasattr(self, "btn_config_model"):
                     self.btn_config_model.setEnabled(False)

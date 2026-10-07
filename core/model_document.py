@@ -22,6 +22,7 @@ V4_FILENAME = "template_v4.json"
 V4_BACKUP_FILENAME = "template_v4.json.bak"
 V3_FILENAME = "template_v3.json"
 PAGE_IDS = ("front", "back")
+DEFAULT_NEW_MODEL_SIZE_MM = (148.0, 105.0)
 
 # O Qt armazena imagens ARGB em aproximadamente quatro bytes por pixel. O
 # canvas usa um teto menor que assets isolados porque geração paralela mantém

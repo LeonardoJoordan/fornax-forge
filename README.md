@@ -33,6 +33,13 @@ botão foi solto, o editor também encerra a interação pendente automaticament
 
 ## Protótipo de organogramas — branch upgrade-01
 
+**Novo modelo** agora abre um painel com cinco exemplos editáveis e a opção
+**Começar em branco**. Ao adicionar um organograma, escolha uma das quatro
+estruturas prontas ou comece em branco; os blocos usam a Página 1 atual. Na grade,
+defina colunas e linhas antes de abrir a composição. Consulte
+[Modelos iniciais](docs/MODELOS_INICIAIS.md) para substituir os exemplos pelos seus
+próprios arquivos `.fornax` e incluí-los na distribuição.
+
 1. Desenhe o cartão na **Página 1**, com os campos variáveis e a foto desejados.
 2. No botão **+**, escolha **Adicionar organograma**. Uma segunda página e um
    organograma são opções exclusivas; remover a composição libera a outra opção.
@@ -53,25 +60,58 @@ botão foi solto, o editor também encerra a interação pendente automaticament
    Os blocos selecionados ficam apagados e bloqueados até escolher o destino;
    **Esc** ou **Cancelar conexão** cancela. Também é possível arrastar os blocos
    na árvore para mudar o superior; solte na área vazia para remover o superior.
-   Em **Conectores**, ajuste cor, espessura, transparência e **Raio de curva** em
+   Em **Propriedades → Conectores**, ajuste cor, espessura, transparência e **Raio de curva** em
    milímetros. Raio 0 mantém as quinas retas; valores maiores arredondam as linhas,
    limitados pelos trechos disponíveis e pelo espaço entre os blocos. Arraste uma
    área sobre trechos das linhas para selecionar vários conectores; Ctrl adiciona
-   à seleção. As linhas selecionadas recebem um realce. Selecionar uma linha ou um bloco altera suas
-   conexões com o superior; sem seleção, define a aparência das novas conexões. Caixas de texto
+   à seleção. As linhas selecionadas recebem um realce. Selecione as linhas para
+   alterar suas propriedades; durante **Conectar a elemento**, o mesmo submenu
+   permite ajustar a aparência da conexão. Caixas de texto
    interrompem as linhas em sua área, preservando o fundo.
-   Em **Lados permitidos do bloco**, marque as bordas aceitas para **Entrada**
+   Em **Propriedades → Lados permitidos**, marque as bordas aceitas para **Entrada**
    e **Saída**. O padrão é entrada por baixo e saída por cima. Cada controle
    precisa de pelo menos um lado; vários lados permitem escolher uma rota mais
    curta. A alteração vale para todos os blocos selecionados. Conexões para o
    mesmo superior podem compartilhar trechos; outros superiores usam canais
-   separados. Se não houver espaço para uma rota livre, a lateral mostra um aviso.
+   separados. A escolha das rotas considera cruzamentos perpendiculares e prioriza
+   canais próximos e livres, seguindo a ordem espacial dos blocos. Se não houver
+   espaço para uma rota livre, a lateral mostra um aviso.
    O centro dos blocos encaixa em 5 mm e o dos textos em 2,5 mm. X e Y no topo
    mostram o centro do elemento ou da seleção. Mover vários itens mantém suas
    distâncias. A Página 1 usa o alinhamento habitual e modelos existentes abrem
    nas posições salvas. Duplicar ou colar blocos atribui nomes novos automaticamente.
    O desenho mantém posições vazias e
    sugere o tamanho físico pelo conteúdo e pela margem de saída.
+   Em **Propriedades → Contorno**, escolha **Aplicar em**: **Em cada cartão**,
+   **Ao redor do conjunto** ou **Cartões e conjunto**, e clique em **Habilitar contorno**.
+   O botão, os campos e os menus seguem o mesmo padrão das formas. Desabilitar
+   conserva as configurações para reativar depois. Em **Arredondamento de bordas**,
+   ajuste os quatro cantos juntos ou desvincule-os para definir raios independentes.
+   Cor, espessura, opacidade, posição, cantos e folga do conjunto são aplicados
+   aos blocos selecionados e ficam salvos no modelo. O contorno do conjunto mantém
+   sua área planejada; cartões sem dados não recebem borda na saída e conjuntos
+   totalmente vazios ficam ocultos. A folga e a espessura entram no tamanho sugerido,
+   inclusive para PDF em mosaico. Com o contorno do conjunto ativo, os conectores
+   terminam no limite externo da borda e as rotas respeitam essa área.
+   O submenu reutiliza os controles de contorno das formas: **Interno** cresce
+   para dentro, **Centralizado** divide a espessura entre os dois lados e
+   **Externo** cresce para fora. A posição escolhida vale para os contornos habilitados
+   nos blocos selecionados. Modelos anteriores conservam cartões internos e
+   conjuntos externos; posições diferentes são indicadas no seletor até escolher
+   uma posição comum. A opacidade vai de 0% (transparente) a 100% (opaco).
+   O raio do conjunto é limitado pela folga disponível. O traço permanece vetorial
+   e não recorta as imagens; bordas externas dos cartões também entram no tamanho
+   da saída, inclusive quando só parte das posições tem dados.
+   Em **Propriedades → Camadas do quadro → Posição**, imagens, textos e formas selecionados podem
+   ficar **Atrás do organograma** ou **À frente do organograma**. Para usar uma
+   imagem como fundo, escolha atrás; títulos e outros destaques podem continuar
+   à frente. Máscaras e suas imagens mudam de plano juntas. A posição fica salva
+   no modelo e é respeitada na prévia, no PNG e no PDF, inclusive em mosaico.
+   **Estrutura do quadro** concentra a árvore, a escolha do superior e as conexões.
+   **Propriedades** mostra apenas os submenus compatíveis com a seleção, incluindo
+   o botão para editar o bloco ou conjunto. **Documento → Saída do quadro** reúne
+   a margem de saída e o tamanho sugerido. Os títulos internos usam o mesmo padrão
+   centralizado, em caixa alta e com divisores simples do restante do inspetor.
 7. Salve o modelo, retorne à tabela e preencha os registros. **Gerar material**
    oferece PDF no tamanho do quadro, mosaico A4/A3 ou PNG em 150/300 dpi.
 

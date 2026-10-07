@@ -920,6 +920,17 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         except Exception as error:
             print(f"[WARN] Falha ao salvar recuperação protegida: {error}")
 
+    def load_starter_document(self, document, asset_provider=None):
+        """Inicia uma cópia sem nome/destino de gravação e mantém o aviso de salvar."""
+        saved_scene = copy.deepcopy(self._last_saved_state)
+        saved_document = copy.deepcopy(self._last_saved_document_state)
+        self._fornax_asset_provider = self._detached_asset_provider(document, asset_provider) if asset_provider else None
+        self._load_document_into_scene(copy.deepcopy(document))
+        self._current_model_name = None
+        self.setWindowTitle(tr("Editor de modelos — FORNAX Forge"))
+        self._last_saved_state = saved_scene
+        self._last_saved_document_state = saved_document
+
     def _load_document_into_scene(self, document):
         data = prepare_scene_page(adapt_model_page(document, "front"))
         self._current_model_name = data.get("name", "")
@@ -2066,6 +2077,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 new_item.setPos(original.x(), original.y())
 
             new_item.setZValue(original.zValue() + 0.01)
+            if self._active_page_id == "organogram":
+                new_item.board_behind = getattr(original, 'board_behind', False)
             
             # Propriedades Comuns
             new_item.layer_id = None
@@ -3151,10 +3164,11 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         return True
 
     def _next_object_z(self):
-        return max((item.zValue() for item in self.scene.items()
+        highest = max((item.zValue() for item in self.scene.items()
                     if isinstance(item, (DesignerBox, ImageItem, SignatureItem))
                     and not isinstance(item, BackgroundItem)
-                    and not isinstance(item.parentItem(), RectangleItem)), default=-1) + 1
+                    and not isinstance(item.parentItem(), RectangleItem)), default=-1)
+        return max(highest, -1) + 1 if self._active_page_id == "organogram" else highest + 1
 
     def _ensure_background_rectangle(self):
         rect = self._get_document_rect()
@@ -3285,6 +3299,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 self.lst_placeholders.addItem(var)
 
     def refresh_layer_list(self):
+        self._sync_board_artwork_layers()
         self.layer_list.blockSignals(True)
         self.layer_list.clear()
         
@@ -3639,9 +3654,17 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         data['background_path'] = None
         data.pop('bg_props', None)
         entries = []
+        live_items = {getattr(item, 'layer_id', None): item for item in self.scene.items()
+                      if isinstance(item, (DesignerBox, ImageItem, SignatureItem))}
         for kind, group in [('text', 'boxes'), ('image', 'images'), ('signature', 'signatures'), ('shape', 'shapes')]:
             for index, entry in enumerate(data[group]):
                 entry['object_id'] = f"{kind}:{entry.get('layer_id', index)}"
+                if self._active_page_id == "organogram":
+                    item = live_items.get(entry.get('layer_id'))
+                    if item is not None:
+                        root = item.parentItem() if isinstance(item.parentItem(), RectangleItem) else item
+                        entry['board_behind'] = getattr(root, 'board_behind', False)
+                        entry['z_value'] = item.zValue()
                 entries.append(entry)
         by_mask = {}
         for entry in data['images']:
@@ -3796,6 +3819,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 )
                 img.custom_name = img_data.get("custom_name", "")
                 img.layer_id = img_data.get("layer_id")
+                if self._active_page_id == "organogram":
+                    img.board_behind = img_data.get("board_behind", False)
                 img.group_id = img_data.get("group_id")
                 img.setPos(img_data.get("x", 0), img_data.get("y", 0))
                 
@@ -3831,6 +3856,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             box.custom_name = b.get("custom_name", "")
             box.state.rich_text_version = b.get('rich_text_version', 0)
             box.layer_id = b.get("layer_id")
+            if self._active_page_id == "organogram":
+                box.board_behind = b.get("board_behind", False)
             box.group_id = b.get("group_id")
             
             if "html" in b:
@@ -3918,6 +3945,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 item.corner_radii = {key: radius for key in (
                     'top_left', 'top_right', 'bottom_right', 'bottom_left')}
             item.layer_id = entry.get('layer_id')
+            if self._active_page_id == "organogram":
+                item.board_behind = entry.get('board_behind', False)
             item.group_id = entry.get('group_id')
             item.mask_group_id = entry.get('mask_group_id')
             item.dynamic_image_field = str(entry.get('dynamic_image_field') or '').strip()

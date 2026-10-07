@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
 )
 
 from core.custom_widgets import MathDoubleSpinBox
+from core.model_document import DEFAULT_NEW_MODEL_SIZE_MM
 from core.themes import theme_color
 
 from .canvas_items import BackgroundItem, SelectionTransformFrame, mm_to_px
@@ -92,7 +93,8 @@ def initialize_editor_controls(window):
     )
     window.fallback_bg.setZValue(-200)
     window.bg_item = BackgroundItem(None)
-    window.bg_item.resize_custom(mm_to_px(148.0), mm_to_px(105.0))
+    doc_width_mm, doc_height_mm = DEFAULT_NEW_MODEL_SIZE_MM
+    window.bg_item.resize_custom(mm_to_px(doc_width_mm), mm_to_px(doc_height_mm))
     window.bg_item.setPos(0, 0)
     window.bg_item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
     window.bg_item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
@@ -113,7 +115,7 @@ def initialize_editor_controls(window):
 
     window.spin_phys_w = MathDoubleSpinBox(window)
     window.spin_phys_h = MathDoubleSpinBox(window)
-    for control, value in ((window.spin_phys_w, 148.0), (window.spin_phys_h, 105.0)):
+    for control, value in ((window.spin_phys_w, doc_width_mm), (window.spin_phys_h, doc_height_mm)):
         control.setRange(10.0, 1000.0)
         control.setDecimals(2)
         control.setKeyboardTracking(False)
@@ -122,7 +124,7 @@ def initialize_editor_controls(window):
     window.spin_phys_h.valueChanged.connect(window._on_doc_h_changed)
     window.spin_phys_w.editingFinished.connect(window.save_snapshot)
     window.spin_phys_h.editingFinished.connect(window.save_snapshot)
-    window._doc_aspect_ratio = 148.0 / 105.0
+    window._doc_aspect_ratio = doc_width_mm / doc_height_mm
 
     window.chk_doc_proporcao = QPushButton(window)
     window.chk_doc_proporcao.setCheckable(True)

@@ -1,0 +1,49 @@
+{
+  "preset_version": 1,
+  "card_width_mm": 50,
+  "gap_mm": 5,
+  "groups": [
+    {
+      "name": "Direção",
+      "column": 1,
+      "level": 0,
+      "columns": 1,
+      "rows": 1
+    },
+    {
+      "name": "Setor 1",
+      "column": 0,
+      "level": 1,
+      "columns": 2,
+      "rows": 3
+    },
+    {
+      "name": "Setor 2",
+      "column": 1,
+      "level": 1,
+      "columns": 2,
+      "rows": 3
+    },
+    {
+      "name": "Setor 3",
+      "column": 2,
+      "level": 1,
+      "columns": 2,
+      "rows": 3
+    }
+  ],
+  "connections": [
+    {
+      "source": "Direção",
+      "target": "Setor 1"
+    },
+    {
+      "source": "Direção",
+      "target": "Setor 2"
+    },
+    {
+      "source": "Direção",
+      "target": "Setor 3"
+    }
+  ]
+}

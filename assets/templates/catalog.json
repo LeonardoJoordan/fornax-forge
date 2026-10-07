@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "id": "personnel",
+      "kind": "model",
+      "title": "Cartão de aniversário de pessoal",
+      "description": "Cartão de aniversário horizontal, com nome, data e cargo personalizáveis.",
+      "file": "models/birthday-personnel.fornax"
+    },
+    {
+      "id": "internship-certificate",
+      "kind": "model",
+      "title": "Certificado de estágio",
+      "description": "Certificado em A4 horizontal, com nome, área, período e carga horária personalizáveis.",
+      "file": "models/internship-certificate.fornax"
+    },
+    {
+      "id": "identification-prism",
+      "kind": "model",
+      "title": "Prisma de identificação",
+      "description": "Prisma de identificação em A4 horizontal, com nome, tratamento e função personalizáveis.",
+      "file": "models/identification-prism.fornax"
+    },
+    {
+      "id": "certificate",
+      "kind": "model",
+      "title": "Certificado",
+      "description": "Nome, descrição, local e data em uma página A4.",
+      "file": "models/certificate.json"
+    },
+    {
+      "id": "class",
+      "kind": "model",
+      "title": "Identificação de turma",
+      "description": "Foto, nome, turma e matrícula.",
+      "file": "models/class.json"
+    },
+    {
+      "id": "grid",
+      "kind": "organogram",
+      "title": "Quadro em grade",
+      "description": "Uma grade para turma, equipe ou quadro de pessoal.",
+      "file": "organograms/grid.json",
+      "configurable_grid": true
+    },
+    {
+      "id": "team",
+      "kind": "organogram",
+      "title": "Responsável e equipe",
+      "description": "Um responsável ligado a três integrantes.",
+      "file": "organograms/team.json",
+      "configurable_grid": false
+    },
+    {
+      "id": "hierarchy",
+      "kind": "organogram",
+      "title": "Hierarquia em três níveis",
+      "description": "Direção, coordenações e quatro equipes.",
+      "file": "organograms/hierarchy.json",
+      "configurable_grid": false
+    },
+    {
+      "id": "sectors",
+      "kind": "organogram",
+      "title": "Setores e equipes",
+      "description": "Uma direção ligada a três grupos de seis pessoas.",
+      "file": "organograms/sectors.json",
+      "configurable_grid": false
+    }
+  ]
+}

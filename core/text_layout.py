@@ -113,20 +113,30 @@ def resolve_rich_text(box, values):
     return doc.toHtml()
 
 def build_document(box, content):
-    doc = TextOnlyDocument()
+    return configure_text_document(TextOnlyDocument(), box, content)
+
+
+def configure_text_document(doc, box, content):
+    """Configura o mesmo documento de texto no editor, na prévia e na geração.
+
+    O HTML conserva a formatação dos caracteres. Entrelinhas e recuo pertencem
+    às propriedades da caixa, inclusive quando o HTML contém valores antigos.
+    """
     doc.setDocumentMargin(0)
     rich = box.get("rich_text_version") == 1
     cleaned = sanitize_text_html(content)
     if not rich:
         for name in ("color", "background-color", "font-size", "font-family"):
             cleaned = re.sub(name + r'\s*:[^;"]+;?', "", cleaned)
+        cleaned = re.sub(r"(?i)<h[1-6]([^>]*)>", r"<p\1>", cleaned)
+        cleaned = re.sub(r"(?i)</h[1-6]>", "</p>", cleaned)
     cleaned = normalize_text_decoration(cleaned)
     cleaned = re.sub(r"(?i)</?a\b[^>]*>", "", cleaned)
     from core.ui_font import DOCUMENT_FONT_FAMILY
     font = QFont(box.get("font_family", DOCUMENT_FONT_FAMILY), int(box.get("font_size", 16)))
+    font.setStyleStrategy(QFont.StyleStrategy.ForceOutline)
     doc.setDefaultFont(font)
-    if rich:
-        doc.setDefaultStyleSheet("body { color: " + box.get("font_color", "#000000") + "; }")
+    doc.setDefaultStyleSheet("body { color: " + box.get("font_color", "#000000") + "; }" if rich else "")
     doc.setHtml(cleaned)
     options = doc.defaultTextOption()
     options.setAlignment(ALIGNMENTS.get(box.get("align", "left"), Qt.AlignLeft))
@@ -137,18 +147,16 @@ def build_document(box, content):
         color = QTextCharFormat()
         color.setForeground(QBrush(QColor(box.get("font_color", "#000000"))))
         cursor.mergeCharFormat(color)
-        block = QTextBlockFormat()
-        block.setTextIndent(box.get("indent_px", 0.0))
-        block.setLineHeight(box.get("line_height", 1.15) * 100, 1)
-        cursor.mergeBlockFormat(block)
+    block = QTextBlockFormat()
+    block.setTextIndent(box.get("indent_px", 0.0))
+    block.setLineHeight(box.get("line_height", 1.15) * 100, QTextBlockFormat.LineHeightTypes.ProportionalHeight.value)
+    cursor.mergeBlockFormat(block)
     outline = QTextCharFormat()
     outline.setTextOutline(outline_pen(box))
     cursor.mergeCharFormat(outline)
-    frame = doc.rootFrame()
-    if frame is not None:
-        fmt = frame.frameFormat()
-        fmt.setMargin(0)
-        frame.setFrameFormat(fmt)
+    # Ajusta a margem pela API do documento, sem obter o wrapper do quadro
+    # raiz: o PySide pode devolvê-lo com um tipo incorreto após recriar itens.
+    doc.setDocumentMargin(0)
     doc.setTextWidth(box.get("w", 300))
     return doc
 

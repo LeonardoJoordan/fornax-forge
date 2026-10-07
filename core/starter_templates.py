@@ -1,0 +1,119 @@
+"""Catálogo local de pontos de partida; cada escolha cria uma cópia editável."""
+from copy import deepcopy
+from dataclasses import dataclass
+import json
+import math
+from pathlib import Path
+
+from core.resources import PROJECT_ROOT
+from core.model_document import normalize_model_document, ModelValidationError, iter_page_asset_paths
+from core.organogram import add_organogram, new_group, group_rect, UNITS_PER_MM
+
+TEMPLATES_DIR = PROJECT_ROOT / "assets" / "templates"
+
+
+@dataclass(frozen=True)
+class StarterTemplate:
+    id: str
+    kind: str
+    title: str
+    description: str
+    path: Path
+    configurable_grid: bool = False
+
+
+def starter_catalog(kind, *, directory=None):
+    directory = Path(directory or TEMPLATES_DIR).resolve()
+    source = json.loads((directory / "catalog.json").read_text(encoding="utf-8"))
+    result, ids = [], set()
+    for entry in source["templates"]:
+        if entry["kind"] != kind:
+            continue
+        path = (directory / entry["file"]).resolve()
+        if not path.is_relative_to(directory) or entry["id"] in ids:
+            raise ModelValidationError("Entrada inválida no catálogo de exemplos.")
+        ids.add(entry["id"])
+        result.append(StarterTemplate(entry["id"], kind, entry["title"], entry["description"], path,
+                                      entry.get("configurable_grid", False)))
+    return tuple(result)
+
+
+def _read_document(path):
+    if path.suffix.lower() == ".fornax":
+        from core.fornax_container import inspect_fornax, open_public_fornax, PUBLIC_MODE
+        descriptor = inspect_fornax(path)
+        if descriptor.mode != PUBLIC_MODE:
+            raise ModelValidationError("Use um exemplo .fornax salvo sem proteção.")
+        opened = open_public_fornax(descriptor)
+        return opened.document(), opened.asset
+    source = json.loads(path.read_text(encoding="utf-8"))
+    document = normalize_model_document(source)
+    document["__model_dir"] = str(path.parent)
+    assets = {reference: (path.parent / reference).read_bytes()
+              for _page, _kind, reference in iter_page_asset_paths(document)}
+    return document, assets.__getitem__ if assets else None
+
+
+def model_from_starter(template):
+    document, provider = _read_document(template.path)
+    document["name"] = ""
+    # Preferências, origem e credenciais pertencem ao modelo que será criado.
+    for key in ("origin_info", "protection_preferences", "imposition_settings",
+                "last_export_mode", "last_export_format", "last_single_pdf"):
+        document.pop(key, None)
+    return document, provider
+
+
+def organogram_from_starter(document, template, *, columns=None, rows=None):
+    """Usa apenas a estrutura escolhida e mantém a Página 1 do documento atual."""
+    result = add_organogram(document)
+    if template is None:
+        return result
+    if template.path.suffix.lower() == ".fornax":
+        source, _provider = _read_document(template.path)
+    else:
+        source = json.loads(template.path.read_text(encoding="utf-8"))
+    if "organogram" in source:
+        # Um organograma desenhado no editor pode virar um exemplo. A estrutura
+        # reaproveita os grupos/conexões, sem importar o cartão ou seus assets.
+        source = normalize_model_document(source)
+        board = result["organogram"]
+        original = source["organogram"]
+        source_canvas, canvas = source["canvas_size"], result["canvas_size"]
+        ratio = (canvas["h"] / canvas["w"]) / (source_canvas["h"] / source_canvas["w"])
+        board["groups"] = deepcopy(original["groups"])
+        board["connections"] = deepcopy(original["connections"])
+        board["connector_style"] = deepcopy(original["connector_style"])
+        for group in board["groups"]:
+            group["y"] *= ratio
+            group["gap_y"] *= ratio
+            group["card_h"] = group["card_w"] * canvas["h"] / canvas["w"]
+        for key in ("grid_mm", "margin_mm"):
+            board[key] = original[key]
+        return normalize_model_document(result)
+    if source.get("preset_version") != 1:
+        raise ModelValidationError("Versão de estrutura de exemplo não reconhecida.")
+    board = result["organogram"]
+    levels, positions, by_name = {}, {}, {}
+    for settings in source["groups"]:
+        group = new_group(result, columns=columns if template.configurable_grid and columns is not None else settings["columns"],
+                          rows=rows if template.configurable_grid and rows is not None else settings["rows"],
+                          card_width_mm=source.get("card_width_mm", 50), gap_mm=source.get("gap_mm", 5))
+        group["name"] = settings["name"]
+        group["order"] = len(board["groups"])
+        level, column = settings["level"], settings["column"]
+        if type(level) is not int or not 0 <= level <= 10 or not isinstance(column, (int, float)) or not math.isfinite(column) or abs(column) > 100:
+            raise ModelValidationError("Posição de grupo inválida no exemplo.")
+        bounds = group_rect(group)
+        levels[level] = max(levels.get(level, 0), bounds.height())
+        positions[group["id"]] = (level, column)
+        board["groups"].append(group)
+        by_name[group["name"]] = group["id"]
+    stride = max((group_rect(group).width() for group in board["groups"]), default=0) + 20 * UNITS_PER_MM
+    for group in board["groups"]:
+        level, column = positions[group["id"]]
+        group["x"] = column * stride - group_rect(group).width() / 2
+        group["y"] = sum(levels.get(index, 0) + 20 * UNITS_PER_MM for index in range(level))
+    board["connections"] = [{"source": by_name[edge["source"]], "target": by_name[edge["target"]]}
+                            for edge in source.get("connections", [])]
+    return normalize_model_document(result)

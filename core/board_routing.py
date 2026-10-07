@@ -9,6 +9,7 @@ import math
 from statistics import median
 
 from PySide6.QtCore import QPointF
+from core.board_borders import bordered_group_bounds
 
 UNITS_PER_MM = 300 / 25.4
 SIDES = ("top", "right", "bottom", "left")
@@ -115,6 +116,20 @@ class _Channels:
                     count += 1
         return count
 
+    def crossings(self, a, b, owner):
+        """Interseções perpendiculares com outras hierarquias, inclusive quinas."""
+        if _distance(a, b) < 1e-7:
+            return 0
+        axis, coordinate, lo, hi = self._segment(a, b)
+        opposite = 1 - axis
+        coordinates = self.coordinates[opposite]
+        intersections = set()
+        for fixed in coordinates[bisect_left(coordinates, lo - 1e-5):bisect_right(coordinates, hi + 1e-5)]:
+            for start, end, parent in self.lines[opposite][fixed]:
+                if parent != owner and start - 1e-5 <= coordinate <= end + 1e-5:
+                    intersections.add((fixed, parent))
+        return len(intersections)
+
     def add(self, points, owner):
         for a, b in zip(points, points[1:]):
             axis, fixed, lo, hi = self._segment(a, b)
@@ -128,6 +143,12 @@ def _core_candidates(a, b, rects, spacing):
     xmid, ymid = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
     yield [a, (a[0], ymid), (b[0], ymid), b]
     yield [a, (xmid, a[1]), (xmid, b[1]), b]
+    # Canais vizinhos do meio evitam empurrar uma ligação até a porta do
+    # subordinado e bloquear a ligação seguinte em um quadro com vários setores.
+    for step in (1, -1, 2, -2, 3, -3, 5, -5, 8, -8, 13, -13):
+        y, x = ymid + step * spacing, xmid + step * spacing
+        yield [a, (a[0], y), (b[0], y), b]
+        yield [a, (x, a[1]), (x, b[1]), b]
     yield [a, (b[0], a[1]), b]
     yield [a, (a[0], b[1]), b]
     xs = [xmid, min(r[0] for r in rects) - spacing, max(r[2] for r in rects) + spacing]
@@ -142,7 +163,7 @@ def _core_candidates(a, b, rects, spacing):
 
 
 def _search(a, b, obstacles, channels, owner, spacing, local):
-    """Busca limitada, usada apenas quando os caminhos simples estão bloqueados."""
+    """Busca limitada para contornar obstáculos ou cruzamentos evitáveis."""
     xs, ys = {a[0], b[0]}, {a[1], b[1]}
     for _, rect in local:
         xs.update((rect[0] - spacing, rect[2] + spacing))
@@ -151,6 +172,12 @@ def _search(a, b, obstacles, channels, owner, spacing, local):
         near = sorted(coordinates, key=lambda value: min(abs(value - a[axis]), abs(value - b[axis])))[:12]
         for fixed in near:
             (xs if axis == 0 else ys).update((fixed - spacing, fixed + spacing))
+            # As extremidades permitem contornar uma linha, em vez de atravessá-la.
+            ends = sorted({value for start, end, parent in channels.lines[axis][fixed]
+                           if parent != owner for value in (start, end)},
+                          key=lambda value: min(abs(value - a[1 - axis]), abs(value - b[1 - axis])))[:12]
+            for value in ends:
+                (ys if axis == 0 else xs).update((value - spacing, value + spacing))
     for value in (a[0], b[0]):
         xs.update((value - spacing, value + spacing))
     for value in (a[1], b[1]):
@@ -159,7 +186,7 @@ def _search(a, b, obstacles, channels, owner, spacing, local):
     start = (xs.index(a[0]), ys.index(a[1]))
     goal = (xs.index(b[0]), ys.index(b[1]))
     queue = [(0, 0, start, -1)]
-    previous, costs, clear = {}, {(start, -1): 0}, {}
+    previous, costs, clear, crossing_cost = {}, {(start, -1): 0}, {}, {}
     for _ in range(6000):
         if not queue:
             break
@@ -183,9 +210,11 @@ def _search(a, b, obstacles, channels, owner, spacing, local):
             if edge_key not in clear:
                 p, q = (xs[x], ys[y]), (xs[nx], ys[ny])
                 clear[edge_key] = not obstacles.hits(p, q) and not channels.hits(p, q, owner)
+                crossing_cost[edge_key] = channels.crossings(p, q, owner) * spacing * 16
             if not clear[edge_key]:
                 continue
-            next_cost = cost + abs(xs[nx] - xs[x]) + abs(ys[ny] - ys[y]) + (spacing if direction not in (-1, axis) else 0)
+            next_cost = (cost + abs(xs[nx] - xs[x]) + abs(ys[ny] - ys[y])
+                         + (spacing if direction not in (-1, axis) else 0) + crossing_cost[edge_key])
             next_key = (next_node, axis)
             if next_cost < costs.get(next_key, math.inf):
                 costs[next_key] = next_cost
@@ -216,30 +245,45 @@ def _routes(groups, edges, spacing):
                 choices.append((_distance(a, b), first, last, a, b))
         choices.sort()
         best, best_cost, fallback, fallback_score = None, math.inf, None, (math.inf, math.inf)
+        best_crossings = math.inf
+        searches = []
+        def score(points):
+            crossings = sum(channels.crossings(p, q, parent) for p, q in zip(points, points[1:]))
+            cost = (sum(_distance(p, q) for p, q in zip(points, points[1:]))
+                    + max(0, len(points) - 2) * spacing + crossings * spacing * 16)
+            # Não troca um canal central por outro distante apenas por ruído
+            # de ponto flutuante em caminhos com o mesmo comprimento.
+            return round(cost, 6), crossings
         pair = (geometry[parent], geometry[child])
         for _, first, last, a, b in choices:
             terminal_hits = (obstacles.hits(first, a, (parent,)) + obstacles.hits(b, last, (child,))
                              + channels.hits(first, a, parent) + channels.hits(b, last, parent))
+            if terminal_hits == 0:
+                searches.append((first, last, a, b))
             for core in _core_candidates(a, b, pair, spacing):
                 points = _clean([first, *core, last])
-                cost = sum(_distance(p, q) for p, q in zip(points, points[1:])) + max(0, len(points) - 2) * spacing
+                cost, crossings = score(points)
                 if best is not None and cost >= best_cost:
                     continue
                 hits = terminal_hits + sum(obstacles.hits(p, q) + channels.hits(p, q, parent) for p, q in zip(core, core[1:]))
                 if (hits, cost) < fallback_score:
                     fallback, fallback_score = points, (hits, cost)
                 if hits == 0 and cost < best_cost:
-                    best, best_cost = points, cost
-            if best is None and terminal_hits == 0:
+                    best, best_cost, best_crossings = points, cost, crossings
+        if best is None or best_crossings:
+            # Examina no máximo quatro pares de portas para manter a edição ágil.
+            for first, last, a, b in searches[:4]:
                 bounds = (min(a[0], b[0]) - spacing * 2, min(a[1], b[1]) - spacing * 2,
                           max(a[0], b[0]) + spacing * 2, max(a[1], b[1]) + spacing * 2)
                 local = sorted(obstacles.query(bounds), key=lambda item: _distance(_port(item[1], "top"), a))[:24]
                 core = _search(a, b, obstacles, channels, parent, spacing, local)
                 if core:
                     points = _clean([first, *core, last])
-                    cost = sum(_distance(p, q) for p, q in zip(points, points[1:])) + len(points) * spacing
+                    cost, crossings = score(points)
                     if cost < best_cost:
-                        best, best_cost = points, cost
+                        best, best_cost, best_crossings = points, cost, crossings
+                if best is not None and best_crossings == 0:
+                    break
         points = best or fallback
         channels.add(points, parent)
         results.append((parent, child, points, best is None))
@@ -249,9 +293,10 @@ def _routes(groups, edges, spacing):
 def board_routes(board):
     groups = []
     for group in board["groups"]:
-        width = group["columns"] * group["card_w"] + (group["columns"] - 1) * group["gap_x"]
-        height = group["rows"] * group["card_h"] + (group["rows"] - 1) * group["gap_y"]
-        rect = (group["x"], group["y"], group["x"] + width, group["y"] + height)
+        # A folga e o traço do contorno externo delimitam as portas e os
+        # obstáculos. Bordas internas dos cartões não mudam a rota.
+        bounds = bordered_group_bounds(group)
+        rect = (bounds.left(), bounds.top(), bounds.right(), bounds.bottom())
         groups.append((group["id"], rect,
                        tuple(side for side in SIDES if side in group.get("entry_sides", ["bottom"])),
                        tuple(side for side in SIDES if side in group.get("exit_sides", ["top"]))))
@@ -260,6 +305,12 @@ def board_routes(board):
     from core.board_connectors import connector_style
     width = max(connector_style(edge, board)["width_mm"] for edge in board["connections"])
     spacing = max(3, width + 1) * UNITS_PER_MM
-    edges = tuple(sorted((edge["source"], edge["target"]) for edge in board["connections"]))
+    geometry = {identifier: rect for identifier, rect, _, _ in groups}
+    def position(identifier):
+        left, top, right, bottom = geometry[identifier]
+        return ((left + right) / 2, (top + bottom) / 2)
+    # Hierarquias seguem a ordem espacial, sem depender dos UUIDs criados ao salvar/copiar.
+    edges = tuple(sorted(((edge["source"], edge["target"]) for edge in board["connections"]),
+                         key=lambda edge: (position(edge[0]), position(edge[1]), edge)))
     return {(parent, child): ([QPointF(*point) for point in points], crowded)
             for parent, child, points, crowded in _routes(tuple(sorted(groups)), edges, spacing)}

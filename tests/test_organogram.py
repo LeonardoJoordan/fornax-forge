@@ -8,9 +8,9 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
-from PySide6.QtCore import Qt, QPointF, QSettings, QMimeData, QSignalBlocker
+from PySide6.QtCore import Qt, QPointF, QRectF, QSettings, QMimeData, QSignalBlocker, QLineF
 from PySide6.QtGui import QImage, QColor, QDropEvent, QPainter, QPainterPath, QTextCursor
-from PySide6.QtWidgets import QApplication, QTableWidgetItem, QStyleOptionGraphicsItem
+from PySide6.QtWidgets import QApplication, QTableWidgetItem, QStyleOptionGraphicsItem, QLabel, QComboBox, QPushButton, QDoubleSpinBox
 from PySide6.QtTest import QTest
 from pypdf import PdfReader
 
@@ -23,7 +23,8 @@ from core.organogram import (
 )
 from core.board_connectors import connector_style, connector_path, text_cutouts
 from core.board_routing import board_routes
-from features.editor.canvas_items import DesignerBox
+from core.board_borders import border_style, group_border_rect, bordered_group_bounds, paint_group_borders
+from features.editor.canvas_items import DesignerBox, ImageItem, RectangleItem
 from features.editor.organogram_editor import BoardConnectorItem, StructureTree
 from core.fornax_container import (
     save_public_fornax, open_public_fornax, save_protected_fornax,
@@ -118,6 +119,655 @@ class OrganogramTest(unittest.TestCase):
         self.assertEqual([slot[1] for slot in slots], [0, 2])
         self.assertGreater(slots[1][2].left(), slots[0][2].right())
 
+    def test_borders_are_optional_for_old_models_and_validate_geometry(self):
+        document = board_document(2, 1)
+        group = document["organogram"]["groups"][0]
+        self.assertNotIn("border", normalize_model_document(document)["organogram"]["groups"][0])
+        self.assertFalse(border_style(group)["cards"])
+        self.assertFalse(border_style(group)["group"])
+        for style in (None, [], {"cards": 1}, {"group": "true"}, {"width_mm": -1},
+                      {"opacity": 2}, {"radius_mm": float("nan")}, {"padding_mm": True}, {"color": "invalid"},
+                      {"cards_position": "invalid"}, {"group_position": None}, {"join": "bevel"},
+                      {'target': 'invalid'}, {'corner_radii_linked': 1}, {'corner_radii_mm': None},
+                      {'corner_radii_mm': {'top_left': -1}}, {'corner_radii_mm': {'top_right': float('nan')}},
+                      {'corner_radii_mm': {'bottom_left': True}}, {'corner_radii_mm': {'invalid': 3}}):
+            with self.subTest(style=style):
+                invalid = deepcopy(document)
+                invalid["organogram"]["groups"][0]["border"] = style
+                with self.assertRaises(ModelValidationError):
+                    normalize_model_document(invalid)
+        group["border"] = {"group": True, "padding_mm": 10, "width_mm": 2}
+        normalized = normalize_model_document(document)
+        self.assertEqual(normalized["organogram"]["groups"][0]["border"], group["border"])
+        self.assertAlmostEqual(bordered_group_bounds(group).left(), -12 * UNITS_PER_MM)
+
+    def test_thick_and_rounded_group_borders_never_cover_cards(self):
+        group = board_document(1, 1)["organogram"]["groups"][0]
+        card = QRectF(group["x"], group["y"], group["card_w"], group["card_h"])
+        for width, padding in ((0.3, 2), (20, 0), (20, 2), (20, 20)):
+            with self.subTest(width=width, padding=padding):
+                group["border"] = {"group": True, "width_mm": width, "padding_mm": padding,
+                                   "radius_mm": 1000, "color": "#ff0000"}
+                bounds = bordered_group_bounds(group).adjusted(-2, -2, 2, 2)
+                image = QImage(round(bounds.width()) + 1, round(bounds.height()) + 1, QImage.Format.Format_ARGB32)
+                image.fill(Qt.GlobalColor.transparent)
+                painter = QPainter(image)
+                painter.translate(-bounds.topLeft())
+                paint_group_borders(painter, group, [card])
+                painter.end()
+                for corner in (card.topLeft(), card.topRight(), card.bottomLeft(), card.bottomRight()):
+                    sign_x = 1 if corner.x() == card.left() else -1
+                    sign_y = 1 if corner.y() == card.top() else -1
+                    for offset_x in (2, 5, 15, 40, 100):
+                        for offset_y in (2, 5, 15, 40, 100):
+                            point = corner + QPointF(sign_x * offset_x, sign_y * offset_y) - bounds.topLeft()
+                            self.assertEqual(image.pixelColor(round(point.x()), round(point.y())).alpha(), 0)
+                # O traço continua presente, inteiramente fora dos cartões.
+                point = group_border_rect(group).topLeft() + QPointF(group_border_rect(group).width() / 2,
+                                                                      -width * UNITS_PER_MM / 2) - bounds.topLeft()
+                self.assertGreater(image.pixelColor(round(point.x()), round(point.y())).alpha(), 0)
+
+    def test_border_positions_share_shape_rendering_and_include_visible_outer_cards(self):
+        from core.object_style import rounded_rect_path, paint_shape_path
+        from core.organogram import slot_rect, group_rect
+        for target in ("cards", "group"):
+            for position in ("inside", "center", "outside"):
+                for join in ("miter", "round"):
+                    with self.subTest(target=target, position=position, join=join):
+                        document = board_document(2, 1)
+                        board = document["organogram"]
+                        board["margin_mm"] = 0
+                        group = board["groups"][0]
+                        group["border"] = {target: True, target + "_position": position,
+                                           "color": "#ee0000", "width_mm": 2, "padding_mm": 5,
+                                           "opacity": 0.7, "join": join}
+                        # Mesmo contorno vetorial das formas, inclusive a transparência.
+                        rect = slot_rect(group, 0) if target == "cards" else group_border_rect(group)
+                        images = []
+                        for shared in (False, True):
+                            image = QImage(1600, 1200, QImage.Format.Format_ARGB32)
+                            image.fill(Qt.GlobalColor.transparent)
+                            painter = QPainter(image)
+                            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+                            painter.translate(100, 100)
+                            if shared:
+                                paint_shape_path(painter, rounded_rect_path(rect, {}), {
+                                    "fill_opacity": 0, "outline_enabled": True,
+                                    "outline_position": position, "outline_width": 2 * UNITS_PER_MM,
+                                    "outline_color": "#ee0000", "outline_opacity": 0.7, "outline_join": join})
+                            else:
+                                paint_group_borders(painter, group, [slot_rect(group, 0)])
+                            painter.end()
+                            images.append(image)
+                        self.assertEqual(images[0], images[1])
+                        expansion = {"inside": 0, "center": UNITS_PER_MM, "outside": 2 * UNITS_PER_MM}[position]
+                        base = group_rect(group) if target == "group" else slot_rect(group, 0)
+                        extra = 5 * UNITS_PER_MM if target == "group" else 0
+                        expected = base.adjusted(-expansion - extra, -expansion - extra,
+                                                 expansion + extra, expansion + extra)
+                        renderer = OrganogramRenderer(document, [{"Nome": "Pessoa", "__board_block__": group["name"]}])
+                        self.assertEqual(renderer.bounds, expected)
+                        preview = renderer.preview(max_side=1200)
+                        path = self.root / f"{target}-{position}-{join}.png"
+                        renderer.export_png(path, dpi=150)
+                        self.assertFalse(QImage(str(path)).isNull())
+                        # PNG e prévia preservam o traço, mesmo fora da área do cartão.
+                        if position == "outside":
+                            x = rect.left() - UNITS_PER_MM
+                        elif position == "inside":
+                            x = rect.left() + UNITS_PER_MM
+                        else:
+                            x = rect.left()
+                        for output in (preview, QImage(str(path))):
+                            color = output.pixelColor(round((x - expected.left()) * output.width() / expected.width()),
+                                                      round((rect.center().y() - expected.top()) * output.height() / expected.height()))
+                            self.assertGreater(color.red(), color.green() + 100)
+
+    def test_shared_outline_controls_keep_shapes_working_and_save_board_positions(self):
+        regular = self.editor(card_document())
+        shape = next(item for item in regular.scene.items() if isinstance(item, RectangleItem) and item.layer_id == 1)
+        shape.setSelected(True)
+        regular.findChild(QPushButton, "shapeOutlineEnabled").click()
+        position = regular.findChild(QComboBox, "shapeOutlinePosition")
+        position.setCurrentIndex(position.findData("outside"))
+        position.activated.emit(position.currentIndex())
+        self.assertTrue(shape.outline_enabled)
+        self.assertEqual(shape.outline_position, "outside")
+        window, first, second, third = self.chart_with_three_blocks()
+        window.scene.clearSelection()
+        first.setSelected(True)
+        second.setSelected(True)
+        window.change_board_border(cards=True, group=True, width_mm=2)
+        panel = window.organogram_panel
+        self.assertEqual(panel.border_position.currentIndex(), -1, "Legado: cartão interno e conjunto externo.")
+        self.assertEqual([(position.itemText(i), position.itemData(i)) for i in range(position.count())],
+                         [(panel.border_position.itemText(i), panel.border_position.itemData(i)) for i in range(panel.border_position.count())])
+        for choice in ("inside", "center", "outside"):
+            panel.border_position.setCurrentIndex(panel.border_position.findData(choice))
+            panel.border_position.activated.emit(panel.border_position.currentIndex())
+            for item in (first, second):
+                self.assertEqual(item.data["border"]["cards_position"], choice)
+                self.assertEqual(item.data["border"]["group_position"], choice)
+        self.assertNotIn("border", third.data)
+        panel.border_outline.join_round.click()
+        panel.border_opacity.setValue(40)
+        panel.border_opacity.editingFinished.emit()
+        self.assertEqual(first.data["border"]["join"], "round")
+        self.assertEqual(first.data["border"]["opacity"], 0.4)
+        window.undo()
+        self.assertEqual(window._board_items()[0].data["border"]["opacity"], 1)
+        window.redo()
+        expected = deepcopy(window._board_items()[0].data["border"])
+        window.scene.clearSelection()
+        window._board_items()[0].setSelected(True)
+        window.duplicate_board_selection()
+        self.assertEqual(window._board_items()[-1].data["border"], expected)
+        path = self.root / "posicoes.fornax"
+        save_public_fornax(window._model_document, path)
+        self.assertEqual(open_public_fornax(path).document()["organogram"]["groups"][0]["border"], expected)
+        path = self.root / "posicoes-protegidas.fornax"
+        save_protected_fornax(window._model_document, path, "senha-bordas", mode=FULL_MODE)
+        self.assertEqual(unlock_fornax(path, "senha-bordas").document()["organogram"]["groups"][0]["border"], expected)
+
+    def test_outline_scope_toggle_and_corner_edits_preserve_each_selected_group(self):
+        window, first, second, third = self.chart_with_three_blocks()
+        window.scene.clearSelection()
+        first.setSelected(True)
+        panel = window.organogram_panel
+        # O destino também pode ser preparado com o contorno desabilitado.
+        panel.border_scope.setCurrentIndex(panel.border_scope.findData('group'))
+        panel.border_scope.activated.emit(panel.border_scope.currentIndex())
+        self.assertFalse(first.data['border']['group'])
+        self.assertTrue(panel.border_outline.isHidden())
+        panel.border_enabled.click()
+        self.assertTrue(first.data['border']['group'])
+        self.assertFalse(first.data['border']['cards'])
+        window.change_board_border(radius_mm=4)
+        panel.border_corners.sync.click()
+        panel.border_corners.spins['top_left'].setValue(8)
+        panel.border_corners.spins['top_left'].editingFinished.emit()
+        self.assertEqual(first.data['border']['corner_radii_mm'],
+                         {'top_left': 8, 'top_right': 4, 'bottom_left': 4, 'bottom_right': 4})
+        window.scene.clearSelection()
+        second.setSelected(True)
+        window.change_board_border(cards=True, radius_mm=2, corner_radii_linked=False)
+        first.setSelected(True)
+        self.assertEqual(panel.border_scope.currentIndex(), -1)
+        panel.border_corners.spins['top_right'].setValue(6)
+        panel.border_corners.spins['top_right'].editingFinished.emit()
+        self.assertEqual(first.data['border']['corner_radii_mm']['top_left'], 8)
+        self.assertEqual(second.data['border']['corner_radii_mm']['top_left'], 2)
+        self.assertEqual(second.data['border']['corner_radii_mm']['top_right'], 6)
+        self.assertNotIn('border', third.data)
+        panel.border_enabled.click()
+        self.assertEqual(first.data['border']['target'], 'group')
+        self.assertEqual(second.data['border']['target'], 'cards')
+        panel.border_enabled.click()
+        self.assertTrue(first.data['border']['group'])
+        self.assertFalse(first.data['border']['cards'])
+        self.assertTrue(second.data['border']['cards'])
+        self.assertFalse(second.data['border']['group'])
+        before = deepcopy(first.data['border'])
+        panel.border_corners.sync.click()
+        self.assertEqual(first.data['border']['corner_radii_mm'], before['corner_radii_mm'])
+        panel.border_corners.spins['bottom_left'].setValue(3)
+        panel.border_corners.spins['bottom_left'].editingFinished.emit()
+        self.assertTrue(all(value == 3 for value in first.data['border']['corner_radii_mm'].values()))
+        window.undo()
+        restored = {item.data['id']: item for item in window._board_items()}
+        self.assertEqual(restored[first.data['id']].data['border']['corner_radii_mm'], before['corner_radii_mm'])
+        window.redo()
+        # Desabilitar, salvar e reabrir mantém aplicação e configurações.
+        window.scene.clearSelection()
+        first = next(item for item in window._board_items() if item.data['name'] == first.data['name'])
+        first.setSelected(True)
+        panel.border_enabled.click()
+        stored = deepcopy(first.data['border'])
+        self.assertEqual(stored['target'], 'group')
+        self.assertFalse(stored['group'])
+        path = self.root / 'contorno-desabilitado.fornax'
+        save_public_fornax(window._model_document, path)
+        window._load_document_into_scene(open_public_fornax(path).document())
+        window.switch_model_page('organogram')
+        first = next(item for item in window._board_items() if item.data['name'] == first.data['name'])
+        first.setSelected(True)
+        self.assertEqual(panel.border_scope.currentData(), 'group')
+        self.assertEqual(first.data['border'], stored)
+        panel.border_enabled.click()
+        self.assertTrue(first.data['border']['group'])
+        self.assertFalse(first.data['border']['cards'])
+        self.assertEqual(first.data['border']['corner_radii_mm'], stored['corner_radii_mm'])
+
+    def test_board_outline_popups_and_controls_follow_shape_metrics_in_both_themes(self):
+        from core.themes import theme_manager
+        manager = theme_manager()
+        original_theme = manager.theme_id
+        self.addCleanup(manager.select, original_theme)
+        regular = self.editor(card_document())
+        shape = next(item for item in regular.scene.items() if isinstance(item, RectangleItem) and item.layer_id == 1)
+        shape.setSelected(True)
+        regular.findChild(QPushButton, 'shapeOutlineEnabled').click()
+        window, first, _second, _third = self.chart_with_three_blocks()
+        window.scene.clearSelection()
+        first.setSelected(True)
+        window.organogram_panel.border_enabled.click()
+        regular.show()
+        window.show()
+        normal_position = regular.findChild(QComboBox, 'shapeOutlinePosition')
+        panel = window.organogram_panel
+        for theme in ('dark', 'light'):
+            with self.subTest(theme=theme):
+                manager.select(theme)
+                self.app.processEvents()
+                normal_position.showPopup()
+                self.app.processEvents()
+                font_size = normal_position.view().font().pixelSize()
+                row_height = normal_position.view().sizeHintForRow(0)
+                normal_position.hidePopup()
+                for combo in (panel.border_position, panel.border_scope, panel.parent_combo, panel.artwork_position):
+                    combo.showPopup()
+                    self.app.processEvents()
+                    self.assertEqual(combo.view().font().pixelSize(), font_size)
+                    self.assertEqual(combo.view().sizeHintForRow(0), row_height)
+                    self.assertEqual(combo.view().styleSheet(), normal_position.view().styleSheet())
+                    combo.hidePopup()
+                normal_toggle = regular.findChild(QPushButton, 'shapeOutlineEnabled')
+                self.assertEqual(panel.border_enabled.height(), normal_toggle.height())
+                self.assertEqual(panel.border_enabled.styleSheet(), normal_toggle.styleSheet())
+                self.assertEqual(panel.border_width.minimum(), regular.findChild(QDoubleSpinBox, 'shapeOutlineWidth').minimum())
+                self.assertEqual(panel.border_width.maximum(), regular.findChild(QDoubleSpinBox, 'shapeOutlineWidth').maximum())
+                for key, spin in panel.border_corners.spins.items():
+                    normal_spin = regular.findChild(QDoubleSpinBox, 'shapeCornerRadius_' + key)
+                    self.assertEqual(spin.parentWidget().height(), normal_spin.parentWidget().height())
+
+    def test_independent_card_corner_contours_match_shape_rendering(self):
+        from core.object_style import rounded_rect_path, paint_shape_path
+        from core.organogram import slot_rect
+        group = board_document(1, 1)['organogram']['groups'][0]
+        radii = {'top_left': 8, 'top_right': 0, 'bottom_left': 2, 'bottom_right': 4}
+        group['border'] = {'cards': True, 'corner_radii_mm': radii,
+                           'cards_position': 'outside', 'width_mm': 2, 'color': '#aa2244'}
+        images = []
+        for shared in (False, True):
+            image = QImage(800, 1000, QImage.Format.Format_ARGB32)
+            image.fill(Qt.GlobalColor.transparent)
+            painter = QPainter(image)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.translate(50, 50)
+            rect = slot_rect(group, 0)
+            if shared:
+                paint_shape_path(painter, rounded_rect_path(rect, {key: value * UNITS_PER_MM for key, value in radii.items()}),
+                                 {'fill_opacity': 0, 'outline_enabled': True, 'outline_position': 'outside',
+                                  'outline_width': 2 * UNITS_PER_MM, 'outline_color': '#aa2244', 'outline_join': 'miter'})
+            else:
+                paint_group_borders(painter, group, [rect])
+            painter.end()
+            images.append(image)
+        self.assertEqual(images[0], images[1])
+
+    def test_border_position_changes_move_connector_ports_and_match_export(self):
+        window, parent, child, _other = self.chart_with_three_blocks()
+        window.set_board_parent(child.data["id"], parent.data["id"])
+        def path():
+            return next(item for item in window.scene.items() if isinstance(item, BoardConnectorItem)).path()
+        window.scene.clearSelection()
+        parent.setSelected(True)
+        window.change_board_border(group=True, padding_mm=4, width_mm=2)
+        for position, expansion in (("inside", 0), ("center", 1), ("outside", 2)):
+            window.change_board_border_position(position)
+            self.assertAlmostEqual(path().pointAtPercent(0).y(),
+                                   parent.data["y"] + parent.rect().height() + (4 + expansion) * UNITS_PER_MM)
+        window.scene.clearSelection()
+        child.setSelected(True)
+        window.change_board_border(cards=True, width_mm=2)
+        for position, expansion in (("inside", 0), ("center", 1), ("outside", 2)):
+            window.change_board_border_position(position)
+            self.assertAlmostEqual(path().pointAtPercent(1).y(), child.data["y"] - expansion * UNITS_PER_MM)
+            renderer = OrganogramRenderer(window._model_document, [{"Nome": "A"}])
+            self.assertEqual(path(), renderer.paths[(parent.data["id"], child.data["id"])])
+        before_undo = path()
+        child_y = child.data["y"]
+        window.undo()
+        self.assertAlmostEqual(path().pointAtPercent(1).y(), child_y - UNITS_PER_MM)
+        window.redo()
+        self.assertEqual(path(), before_undo)
+
+    def test_artwork_position_controls_undo_duplicate_save_and_normal_pages(self):
+        doc = board_document(1, 1)
+        doc["organogram"]["boxes"] = [{"x": 20, "y": 20, "w": 200, "h": 100,
+                                         "html": "Título", "layer_id": 50, "object_id": "text:50"}]
+        doc["organogram"]["layer_order"] = ["text:50"]
+        window = self.editor(doc)
+        window.switch_model_page("organogram")
+        text = next(item for item in window.scene.items() if isinstance(item, DesignerBox))
+        text.setSelected(True)
+        panel = window.organogram_panel
+        self.assertTrue(panel.artwork_layers.isEnabled())
+        panel.artwork_position.setCurrentIndex(1)
+        panel.artwork_position.activated.emit(1)
+        self.assertTrue(text.board_behind)
+        self.assertLess(text.zValue(), -20)
+        self.assertGreater(text.zValue(), window.fallback_bg.zValue())
+        window.undo()
+        text = next(item for item in window.scene.items() if isinstance(item, DesignerBox))
+        self.assertFalse(text.board_behind)
+        window.redo()
+        text = next(item for item in window.scene.items() if isinstance(item, DesignerBox))
+        self.assertTrue(text.board_behind)
+        window.scene.clearSelection()
+        text.setSelected(True)
+        window.duplicate_selected()
+        texts = [item for item in window.scene.items() if isinstance(item, DesignerBox)]
+        self.assertEqual(len(texts), 2)
+        self.assertTrue(all(item.board_behind and item.zValue() < -20 for item in texts))
+        window.copy_selected_items()
+        window.paste_copied_items()
+        self.assertEqual(len(window._model_document["organogram"]["boxes"]), 3)
+        # Vários elementos podem trocar de plano juntos.
+        window.scene.clearSelection()
+        for item in window._board_artwork_roots():
+            item.setSelected(True)
+        window.change_board_artwork_position(False)
+        self.assertTrue(all(item.zValue() >= 0 for item in window._board_artwork_roots()))
+        window.change_board_artwork_position(True)
+        document = persistent_model_document(window._model_document)
+        public = self.root / "camadas.fornax"
+        save_public_fornax(document, public)
+        opened = open_public_fornax(public).document()
+        self.assertTrue(all(entry["board_behind"] for entry in opened["organogram"]["boxes"]))
+        private = self.root / "camadas-privadas.fornax"
+        save_protected_fornax(document, private, password="senha-camadas", mode=FULL_MODE)
+        self.assertTrue(all(entry["board_behind"] for entry in unlock_fornax(private, "senha-camadas").document()["organogram"]["boxes"]))
+        window._load_document_into_scene(opened)
+        window.switch_model_page("organogram")
+        self.assertTrue(all(item.zValue() < -20 for item in window._board_artwork_roots()))
+        window.switch_model_page("front")
+        self.assertTrue(all("board_behind" not in entry for entry in window.get_current_scene_state()["boxes"]))
+        bad = deepcopy(document)
+        bad["organogram"]["boxes"][0]["board_behind"] = "sim"
+        with self.assertRaises(ModelValidationError):
+            normalize_model_document(bad)
+
+    def test_inspector_separates_hierarchy_document_and_selection_properties(self):
+        window, parent, child, _other = self.chart_with_three_blocks()
+        window.set_board_parent(child.data["id"], parent.data["id"])
+        window.show()
+        self.app.processEvents()
+        panel = window.organogram_panel
+        properties = window._inspector_sections["properties"]
+        document = window._inspector_sections["document"]
+        self.assertTrue(document.isAncestorOf(panel.margin))
+        self.assertTrue(properties.isAncestorOf(panel.border_width))
+        self.assertFalse(window._organogram_section.isAncestorOf(panel.border_width))
+        window.scene.clearSelection()
+        child.setSelected(True)
+        self.assertTrue(properties.isEnabled())
+        self.assertTrue(properties.header.isChecked())
+        self.assertFalse(window.caixa_texto_panel.isEnabled())
+        self.assertFalse(panel.ports.isHidden())
+        self.assertFalse(panel.borders.isHidden())
+        self.assertTrue(panel.artwork_layers.isHidden())
+        self.assertTrue(panel.appearance.isHidden())
+        panel.border_enabled.click()
+        self.assertTrue(child.data["border"]["cards"])
+        panel.border_color_hex.setText("#aabbcc")
+        panel.border_color_hex.editingFinished.emit()
+        self.assertEqual(child.data["border"]["color"], "#aabbcc")
+        window.start_board_connection()
+        self.assertFalse(panel.appearance.isHidden())
+        self.assertFalse(panel.edit.isEnabled())
+        window.cancel_board_connection()
+        window.scene.clearSelection()
+        edge = next(item for item in window.scene.items() if isinstance(item, BoardConnectorItem))
+        edge.setSelected(True)
+        self.assertTrue(properties.isEnabled())
+        self.assertTrue(properties.header.isChecked())
+        self.assertFalse(panel.appearance.isHidden())
+        self.assertTrue(panel.ports.isHidden())
+        self.assertTrue(panel.borders.isHidden())
+        panel.width.setValue(1.7)
+        self.assertEqual(edge.board_edge["style"]["width_mm"], 1.7)
+        panel.color_hex.setText("#112233")
+        panel.color_hex.editingFinished.emit()
+        self.assertEqual(edge.board_edge["style"]["color"], "#112233")
+        panel.color_hex.setText("#zzzzzz")
+        panel.color_hex.editingFinished.emit()
+        self.assertEqual(panel.color_hex.text(), "#112233")
+        text = DesignerBox(10, 1000, 200, 100, "Título")
+        window.scene.addItem(text)
+        window.refresh_layer_list()
+        window.scene.clearSelection()
+        text.setSelected(True)
+        self.assertFalse(panel.artwork_layers.isHidden())
+        self.assertTrue(panel.borders.isHidden())
+        self.assertTrue(panel.appearance.isHidden())
+        for container in (panel, panel.properties, panel.output_settings):
+            for heading in container.findChildren(QLabel, "propertySectionHeading"):
+                self.assertEqual(heading.text(), heading.text().upper())
+                self.assertEqual(heading.alignment(), Qt.AlignmentFlag.AlignCenter)
+                if heading._section_separator is not None:
+                    self.assertEqual(heading._section_separator.height(), 1)
+        window.scene.clearSelection()
+        self.assertTrue(panel.properties.isHidden())
+        self.assertFalse(properties.isEnabled())
+        window.switch_model_page("front")
+        self.assertTrue(panel.output_settings.isHidden())
+        self.assertTrue(panel.properties.isHidden())
+
+    def test_background_images_and_masked_images_respect_board_planes_in_all_outputs(self):
+        doc = persistent_model_document(board_document(1, 1))
+        board = doc["organogram"]
+        parent = board["groups"][0]
+        child = new_group(doc, columns=1, rows=1, y=2000, start_row=1)
+        board["groups"].append(child)
+        board["connections"] = [{"source": parent["id"], "target": child["id"],
+                                 "style": {"color": "#0000ff", "width_mm": 2}}]
+        background = self.root / "fundo.png"
+        image = QImage(60, 60, QImage.Format.Format_RGB32)
+        image.fill(QColor("#ff0000"))
+        image.save(str(background))
+        board["images"] = [{"x": -100, "y": -100, "width": 850, "height": 3100,
+                            "path": str(background), "layer_id": 50, "object_id": "image:50",
+                            "board_behind": True},
+                           {"x": 0, "y": 0, "width": 100, "height": 100,
+                            "path": str(background), "layer_id": 53, "object_id": "image:53",
+                            "mask_shape_id": "shape:52", "mask_order": 0}]
+        board["boxes"] = [{"x": parent["card_w"] / 2 - 100, "y": 1200, "w": 200, "h": 200,
+                           "html": "Texto de fundo", "font_size": 10, "board_behind": True,
+                           "layer_id": 51, "object_id": "text:51"}]
+        board["shapes"] = [{"x": 120, "y": 120, "width": 100, "height": 100,
+                             "shape_type": "rectangle", "fill_color": "#ffffff",
+                             "board_behind": True, "layer_id": 52, "object_id": "shape:52"}]
+        board["layer_order"] = ["image:50", "text:51", "shape:52", "image:53"]
+        window = self.editor(doc)
+        window.switch_model_page("organogram")
+        roots = window._board_artwork_roots()
+        self.assertTrue(all(item.zValue() < -20 for item in roots))
+        shape = next(item for item in roots if isinstance(item, RectangleItem))
+        self.assertEqual(len(shape.masked_images()), 1)
+        edge = next(item for item in window.scene.items() if isinstance(item, BoardConnectorItem))
+        self.assertFalse(edge.cutouts().contains(QPointF(parent["card_w"] / 2, 1300)))
+        rows = [{"Nome": "A"}, {"Nome": "B"}]
+        renderer = OrganogramRenderer(doc, rows)
+        def pixel(output, point):
+            scale_x, scale_y = output.width() / renderer.bounds.width(), output.height() / renderer.bounds.height()
+            return output.pixelColor(round((point.x() - renderer.bounds.left()) * scale_x),
+                                     round((point.y() - renderer.bounds.top()) * scale_y))
+        for mode in ("editor", "preview", "png"):
+            if mode == "editor":
+                output = QImage(round(renderer.bounds.width()), round(renderer.bounds.height()), QImage.Format.Format_ARGB32)
+                output.fill(Qt.GlobalColor.white)
+                painter = QPainter(output)
+                window.scene.render(painter, QRectF(0, 0, output.width(), output.height()), renderer.bounds,
+                                    Qt.AspectRatioMode.IgnoreAspectRatio)
+                painter.end()
+            elif mode == "preview":
+                output = renderer.preview(max_side=3200)
+            else:
+                path = self.root / "fundo.png-output.png"
+                renderer.export_png(path, dpi=300)
+                output = QImage(str(path))
+            self.assertEqual(pixel(output, QPointF(150, 150)), QColor("#dcecf4"))
+            self.assertEqual(pixel(output, QPointF(40, 1300)), QColor("#ff0000"))
+            self.assertEqual(pixel(output, QPointF(parent["card_w"] / 2, 1300)), QColor("#0000ff"))
+        path = self.root / "camadas.pdf"
+        renderer.export_pdf(path)
+        self.assertIn("Texto de fundo", " ".join(PdfReader(path).pages[0].extract_text().split()))
+        # A máscara inteira troca de plano mesmo com a imagem filha selecionada.
+        window.scene.clearSelection()
+        shape.masked_images()[0].setSelected(True)
+        window.change_board_artwork_position(False)
+        self.assertGreaterEqual(shape.zValue(), 0)
+        output = OrganogramRenderer(window._model_document, rows).preview(max_side=3200)
+        self.assertEqual(pixel(output, QPointF(150, 150)), QColor("#ff0000"))
+
+    def test_border_controls_apply_to_selection_undo_copy_and_save(self):
+        window, first, second, third = self.chart_with_three_blocks()
+        window.scene.clearSelection()
+        first.setSelected(True)
+        second.setSelected(True)
+        panel = window.organogram_panel
+        self.assertTrue(panel.borders.isEnabled())
+        panel.border_scope.setCurrentIndex(panel.border_scope.findData('both'))
+        panel.border_scope.activated.emit(panel.border_scope.currentIndex())
+        panel.border_enabled.click()
+        panel.border_padding.setValue(4)
+        panel.border_padding.editingFinished.emit()
+        window.change_board_border(color="#aa2255", opacity=0.6, radius_mm=3)
+        before = deepcopy(first.data["border"])
+        panel.border_width.setValue(1.25)
+        panel.border_width.editingFinished.emit()
+        for item in (first, second):
+            self.assertTrue(item.data["border"]["cards"])
+            self.assertTrue(item.data["border"]["group"])
+            self.assertEqual(item.data["border"]["width_mm"], 1.25)
+            self.assertTrue(item.boundingRect().contains(item.rect().adjusted(-40, -40, 40, 40)))
+        self.assertNotIn("border", third.data)
+        front = deepcopy(window._model_document["pages"][0])
+        window.undo()
+        self.assertEqual(window._board_items()[0].data["border"], before)
+        window.redo()
+        expected = deepcopy(window._board_items()[0].data["border"])
+        window.scene.clearSelection()
+        window._board_items()[0].setSelected(True)
+        window.duplicate_board_selection()
+        self.assertEqual(window._board_items()[-1].data["border"], expected)
+        public = self.root / "bordas.fornax"
+        save_public_fornax(window._model_document, public)
+        opened = open_public_fornax(public).document()
+        self.assertEqual(opened["organogram"]["groups"][0]["border"], expected)
+        self.assertEqual(opened["pages"][0], front)
+        private = self.root / "bordas-protegidas.fornax"
+        save_protected_fornax(opened, private, mode=FULL_MODE, password="teste-bordas")
+        self.assertEqual(unlock_fornax(private, "teste-bordas").document()["organogram"]["groups"][0]["border"], expected)
+
+    def test_border_output_preserves_vacancies_and_hides_empty_groups(self):
+        document = board_document(2, 1)
+        board = document["organogram"]
+        board["margin_mm"] = 0
+        group = board["groups"][0]
+        group["border"] = {"cards": True, "group": True, "color": "#ff0000", "width_mm": 1}
+        empty = new_group(document, columns=1, rows=1, x=4000)
+        empty["border"] = deepcopy(group["border"])
+        board["groups"].append(empty)
+        renderer = OrganogramRenderer(document, [{"Nome": "Pessoa", "__board_block__": group["name"]}])
+        self.assertEqual(len(renderer.slots), 1)
+        self.assertEqual(renderer.bounds, bordered_group_bounds(group))
+        image = renderer.preview(max_side=1200)
+        def pixel(x, y):
+            px = round((x - renderer.bounds.left()) * image.width() / renderer.bounds.width())
+            py = round((y - renderer.bounds.top()) * image.height() / renderer.bounds.height())
+            return image.pixelColor(px, py)
+        self.assertEqual(pixel(3, group["card_h"] / 2).name(), "#ff0000")
+        self.assertEqual(pixel(group["card_w"] + group["gap_x"] + 3, group["card_h"] / 2).name(), "#ffffff")
+        frame = group_border_rect(group)
+        frame_center_x = frame.left() - group["border"]["width_mm"] * UNITS_PER_MM / 2
+        self.assertEqual(pixel(frame_center_x, frame.center().y()).name(), "#ff0000")
+        png = self.root / "bordas.png"
+        renderer.export_png(png, dpi=150)
+        self.assertFalse(QImage(str(png)).isNull())
+        pdf = self.root / "bordas.pdf"
+        renderer.export_pdf(pdf)
+        page = PdfReader(pdf).pages[0]
+        self.assertIn("Pessoa", page.extract_text())
+        operations = page.get_contents().operations
+        self.assertTrue(any(operator in (b"RG", b"SCN", b"rg", b"scn") and list(operands) == [1, 0, 0]
+                            for operands, operator in operations), "A borda deve manter sua cor no PDF vetorial.")
+        group["border"].update(opacity=0.5, radius_mm=4)
+        rounded = OrganogramRenderer(document, [{"Nome": "Pessoa", "__board_block__": group["name"]}])
+        target = QImage(1500, 1500, QImage.Format.Format_RGB32)
+        target.fill(Qt.GlobalColor.white)
+        painter = QPainter(target)
+        painter.translate(100, 100)
+        rounded.paint(painter)
+        painter.end()
+        self.assertEqual(target.pixelColor(round(frame.left() + 100), round(frame.top() + 100)).name(), "#ffffff")
+        color = target.pixelColor(round(frame_center_x + 100), round(frame.center().y() + 100))
+        self.assertEqual(color.red(), 255)
+        self.assertAlmostEqual(color.green(), 127, delta=2)
+
+    def test_connector_ports_follow_external_borders_on_all_four_sides(self):
+        from core.board_connectors import connector_paths
+        from core.organogram import group_rect
+        document = board_document(2, 2)
+        board = document["organogram"]
+        parent = board["groups"][0]
+        child = new_group(document, columns=1, rows=1, x=6000, y=7000)
+        board["groups"].append(child)
+        board["connections"] = [{"source": parent["id"], "target": child["id"]}]
+        edge_key = (parent["id"], child["id"])
+        def port(rect, side):
+            return {"top": QPointF(rect.center().x(), rect.top()),
+                    "bottom": QPointF(rect.center().x(), rect.bottom()),
+                    "left": QPointF(rect.left(), rect.center().y()),
+                    "right": QPointF(rect.right(), rect.center().y())}[side]
+        for group in (parent, child):
+            group["border"] = {"group": True, "padding_mm": 4, "width_mm": 2, "radius_mm": 10}
+        for entry in ("top", "right", "bottom", "left"):
+            for exit_ in ("top", "right", "bottom", "left"):
+                with self.subTest(entry=entry, exit=exit_):
+                    parent["entry_sides"], child["exit_sides"] = [entry], [exit_]
+                    board["connector_style"]["radius_mm"] = 8
+                    path = connector_paths(board)[edge_key]
+                    self.assertEqual(path.pointAtPercent(0), port(bordered_group_bounds(parent), entry))
+                    self.assertEqual(path.pointAtPercent(1), port(bordered_group_bounds(child), exit_))
+                    for step in range(1, 100):
+                        point = path.pointAtPercent(step / 100)
+                        self.assertFalse(group_rect(parent).contains(point))
+                        self.assertFalse(group_rect(child).contains(point))
+        # O cache precisa recuperar os pontos originais quando só há bordas de cartão.
+        for group in (parent, child):
+            group["border"]["cards"] = True
+            group["border"]["group"] = False
+        path = connector_paths(board)[edge_key]
+        self.assertEqual(path.pointAtPercent(0), port(group_rect(parent), "left"))
+        self.assertEqual(path.pointAtPercent(1), port(group_rect(child), "left"))
+
+    def test_border_edits_update_connectors_immediately_and_survive_undo(self):
+        window, parent, child, _other = self.chart_with_three_blocks()
+        window.set_board_parent(child.data["id"], parent.data["id"])
+        def path():
+            return next(item for item in window.scene.items() if isinstance(item, BoardConnectorItem)).path()
+        original_end = path().pointAtPercent(1)
+        window.scene.clearSelection()
+        parent.setSelected(True)
+        window.change_board_border(group=True, padding_mm=4, width_mm=2)
+        self.assertAlmostEqual(path().pointAtPercent(0).y(), parent.data["y"] + parent.rect().height() + 6 * UNITS_PER_MM)
+        self.assertEqual(path().pointAtPercent(1), original_end)
+        window.scene.clearSelection()
+        child.setSelected(True)
+        window.change_board_border(cards=True)
+        self.assertEqual(path().pointAtPercent(1), original_end)
+        window.change_board_border(group=True, padding_mm=7, width_mm=0.4)
+        self.assertAlmostEqual(path().pointAtPercent(1).y(), child.data["y"] - 7.4 * UNITS_PER_MM)
+        renderer = OrganogramRenderer(window._model_document, [{"Nome": "Pessoa"}])
+        self.assertEqual(path(), renderer.paths[(parent.data["id"], child.data["id"])])
+        changed_path = path()
+        window.undo()
+        self.assertEqual(path().pointAtPercent(1), original_end)
+        window.redo()
+        self.assertEqual(path(), changed_path)
+
     def test_filters_and_start_rows_assign_the_right_people(self):
         document = board_document(2, 1)
         group = document["organogram"]["groups"][0]
@@ -160,7 +810,7 @@ class OrganogramTest(unittest.TestCase):
 
     def test_editor_menu_blocks_snap_history_and_page_dimensions(self):
         window = self.editor(card_document())
-        window.add_model_organogram()
+        window.add_model_organogram(show_chooser=False)
         item = window.add_board_group(new_group(window._model_document))
         identifier = item.data["id"]
         initial = item.pos()
@@ -509,6 +1159,7 @@ class OrganogramTest(unittest.TestCase):
         self.assertTrue(panel.exit_sides.checks['top'].isChecked())
         QTest.mouseClick(panel.exit_sides.checks['top'], Qt.MouseButton.LeftButton)
         self.assertEqual(child.data['exit_sides'], ['top'], 'Não permita remover o último lado.')
+        self.assertFalse(panel.connection_hint.isHidden())
         QTest.mouseClick(panel.exit_sides.checks['right'], Qt.MouseButton.LeftButton)
         QTest.mouseClick(panel.exit_sides.checks['top'], Qt.MouseButton.LeftButton)
         self.assertEqual(child.data['exit_sides'], ['right'])
@@ -587,6 +1238,48 @@ class OrganogramTest(unittest.TestCase):
         routes = board_routes(board)
         lines = [routes[(edge['source'], edge['target'])][0] for edge in board['connections']]
         self.assertTrue(overlap(*lines), 'Conexões para o mesmo superior podem compartilhar a chegada.')
+
+    def test_routes_avoid_perpendicular_crossings_independently_of_block_ids(self):
+        from itertools import combinations
+        document = board_document(1, 1)
+        board = document["organogram"]
+        board["groups"] = []
+        # Três setores na mesma ordem espacial; os IDs colocavam o setor central primeiro.
+        for identifier, x, y, width, height in (
+            ("z", 700, 0, 240, 320), ("a", 1100, 0, 240, 320), ("c", 1500, 0, 240, 320),
+            ("d", 0, 750, 350, 660), ("e", 400, 750, 350, 660), ("f", 800, 750, 350, 660),
+        ):
+            group = new_group(document, columns=1, rows=1, x=x, y=y)
+            group.update(id=identifier, card_w=width, card_h=height)
+            board["groups"].append(group)
+        board["connections"] = [{"source": parent, "target": child}
+                                for parent, child in (("z", "d"), ("a", "e"), ("c", "f"))]
+        routes = board_routes(board)
+        self.assertFalse(any(crowded for _, crowded in routes.values()))
+        for (first, _), (second, _) in combinations(routes.values(), 2):
+            for p, q in zip(first, first[1:]):
+                for r, s in zip(second, second[1:]):
+                    intersection, _point = QLineF(p, q).intersects(QLineF(r, s))
+                    self.assertNotEqual(intersection, QLineF.IntersectionType.BoundedIntersection,
+                                        "Hierarquias distintas devem usar os canais livres sem cruzar.")
+        renamed = deepcopy(board)
+        ids = {group["id"]: f"novo-{index}" for index, group in enumerate(renamed["groups"])}
+        for group in renamed["groups"]:
+            group["id"] = ids[group["id"]]
+        for edge in renamed["connections"]:
+            edge.update(source=ids[edge["source"]], target=ids[edge["target"]])
+        renamed["groups"].reverse()
+        renamed["connections"].reverse()
+        renamed_routes = board_routes(renamed)
+        for (parent, child), route in routes.items():
+            self.assertEqual(route, renamed_routes[(ids[parent], ids[child])])
+        board["connector_style"]["radius_mm"] = 5
+        window = self.editor(document)
+        window.switch_model_page("organogram")
+        renderer = OrganogramRenderer(document, [{"Nome": "Pessoa"}])
+        for edge in (item for item in window.scene.items() if isinstance(item, BoardConnectorItem)):
+            key = (edge.board_edge["source"], edge.board_edge["target"])
+            self.assertEqual(edge.path(), renderer.paths[key])
 
     def test_rotated_text_boxes_cut_connectors_in_editor_preview_and_vector_pdf(self):
         doc = persistent_model_document(board_document(1, 1))

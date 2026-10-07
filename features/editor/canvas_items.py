@@ -1,17 +1,15 @@
 import math
-import re
 from uuid import uuid4
 from pathlib import Path
 from PySide6.QtWidgets import (QGraphicsLineItem, QGraphicsRectItem, QGraphicsTextItem,
                                QGraphicsItem, QInputDialog, QLineEdit, QGraphicsPixmapItem,
                                QStyle, QStyleOptionGraphicsItem)
 from PySide6.QtCore import Qt, QPointF, QRectF, QSize, QBuffer, QByteArray, QIODevice
-from PySide6.QtGui import (QPen, QBrush, QColor, QFont, QTextCursor,
-                           QTextBlockFormat, QPixmap, QPainterPathStroker, QTextCharFormat,
+from PySide6.QtGui import (QPen, QBrush, QColor, QTextCursor,
+                           QPixmap, QPainterPathStroker,
                            QImageReader, QPainterPath, QPainter,
                            QImageIOHandler)
-from core.html_utils import normalize_text_decoration, sanitize_text_html
-from core.text_layout import line_reference_ink_bounds, variables_in_html
+from core.text_layout import configure_text_document, text_geometry, variables_in_html
 from core.text_state import TextState
 
 DPI = 300
@@ -1777,109 +1775,23 @@ class DesignerBox(QGraphicsRectItem):
 
     def apply_state(self):
         """Reconstrói todo o documento visual com base na Fonte da Verdade."""
-        self.text_item.blockSignals(True)
-        
-        # 1. Limpeza Retroativa e Injeção de Conteúdo (conserta JSONs antigos já infectados)
-        html = re.sub(r"font-family\s*:[^;\"]+;?", "", self.state.html_content)
-        html = re.sub(r"font-size\s*:[^;\"]+;?", "", html)
-        html = re.sub(r"color\s*:[^;\"]+;?", "", html)
-        html = re.sub(r"background-color\s*:[^;\"]+;?", "", html)
-        html = normalize_text_decoration(html)
-        html = re.sub(r"(?i)<a\b[^>]*>", "", html)
-        html = re.sub(r"(?i)</a>", "", html)
-        html = re.sub(r"(?i)<h[1-6]([^>]*)>", r"<p\1>", html)
-        html = re.sub(r"(?i)</h[1-6]>", "</p>", html)
-        
-        rich = getattr(self.state, 'rich_text_version', 0) == 1
-        self.text_item.setHtml(sanitize_text_html(self.state.html_content if rich else html))
-        
-        # 2. Aplicar Fonte Global e Cor NATIVA (SEMPRE após o setHtml, pois ele reseta o documento)
-        font = QFont(self.state.font_family, self.state.font_size)
-        font.setStyleStrategy(QFont.StyleStrategy.ForceOutline)
-        self.text_item.setFont(font)
-        self.text_item.document().setDefaultFont(font)
-        
-        color = QColor(getattr(self.state, 'font_color', '#000000'))
-        
-        cursor_color = QTextCursor(self.text_item.document())
-        cursor_color.select(QTextCursor.SelectionType.Document)
-        char_fmt = QTextCharFormat()
-        char_fmt.setForeground(QBrush(color))
-        if not rich:
-            cursor_color.mergeCharFormat(char_fmt)
-        
-        # 3. Aplicar Alinhamento Horizontal
-        opt = self.text_item.document().defaultTextOption()
-        if self.state.align == "center": opt.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        elif self.state.align == "right": opt.setAlignment(Qt.AlignmentFlag.AlignRight)
-        elif self.state.align == "justify": opt.setAlignment(Qt.AlignmentFlag.AlignJustify)
-        else: opt.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.text_item.document().setDefaultTextOption(opt)
-        
-        # 4. Aplicar Margens e Entrelinhas
-        cursor = QTextCursor(self.text_item.document())
-        cursor.select(QTextCursor.SelectionType.Document)
-        fmt = QTextBlockFormat()
-        fmt.setTextIndent(self.state.indent_px)
-        fmt.setLineHeight(self.state.line_height * 100.0, 1)
-        cursor.mergeBlockFormat(fmt)
-
-        # 5. Zerar margens para sistema de ancoragem livre
-        root_frame = self.text_item.document().rootFrame()
-        frame_fmt = root_frame.frameFormat()
-        frame_fmt.setMargin(0)
-        root_frame.setFrameFormat(frame_fmt)
-        
-        self.text_item.blockSignals(False)
+        blocked = self.text_item.blockSignals(True)
+        try:
+            doc = configure_text_document(
+                self.text_item.document(), self.text_layout_data(), self.state.html_content,
+            )
+            self.text_item.setFont(doc.defaultFont())
+            self.text_item.setDefaultTextColor(QColor(self.state.font_color))
+        finally:
+            self.text_item.blockSignals(blocked)
         self.recalculate_text_position()
+
+    def text_layout_data(self):
+        return {**vars(self.state), "w": self.rect().width(), "h": self.rect().height()}
 
     def recalculate_text_position(self):
         self.text_item.setTextWidth(self.rect().width())
-        doc = self.text_item.document()
-        layout = doc.documentLayout()
-        logical_h = layout.documentSize().height()
-        box_h = self.rect().height()
-        
-        # --- CÁLCULO DA TINTA REAL (Ignorando Ascender/Descender invisível) ---
-        real_top = 0
-        real_bottom = logical_h
-        
-        first_block = doc.begin()
-        if first_block.isValid():
-            text_layout = first_block.layout()
-            if text_layout.lineCount() > 0:
-                first_line = text_layout.lineAt(0)
-                text_str = first_block.text()[first_line.textStart() : first_line.textStart() + first_line.textLength()]
-                if text_str.strip():
-                    ink_top, _ = line_reference_ink_bounds(doc, first_block, first_line)
-                    real_top = first_line.y() + first_line.ascent() + ink_top
-
-        last_block = doc.begin()
-        last_valid_block = last_block
-        while last_block.isValid():
-            if last_block.text().strip(): last_valid_block = last_block
-            last_block = last_block.next()
-            
-        if last_valid_block.isValid():
-            text_layout = last_valid_block.layout()
-            if text_layout.lineCount() > 0:
-                last_line = text_layout.lineAt(text_layout.lineCount() - 1)
-                text_str = last_valid_block.text()[last_line.textStart() : last_line.textStart() + last_line.textLength()]
-                if text_str.strip():
-                    _, ink_bottom = line_reference_ink_bounds(doc, last_valid_block, last_line)
-                    block_y = layout.blockBoundingRect(last_valid_block).y()
-                    real_bottom = block_y + last_line.y() + last_line.ascent() + ink_bottom
-                    
-        content_h = real_bottom - real_top
-        
-        y = 0
-        if self.state.vertical_align == "center":
-            y = (box_h - content_h) / 2 - real_top
-        elif self.state.vertical_align == "bottom":
-            y = box_h - content_h - real_top
-        else: # Top
-            y = -real_top
-            
+        y, _top, _height = text_geometry(self.text_item.document(), self.text_layout_data())
         self.text_item.setPos(0, y)
 
     def update_center(self):

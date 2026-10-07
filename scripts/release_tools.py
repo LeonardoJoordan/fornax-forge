@@ -16,9 +16,11 @@ LEGAL = ('LICENSE', 'NOTICE', 'AUTHORS.md', 'TRADEMARKS.md', 'SECURITY.md')
 DOCS = ('USO_INSTITUCIONAL.md', 'PRIVACIDADE_E_ARMAZENAMENTO.md',
         'THIRD_PARTY_LICENSES.md', 'AVISO-DISTRIBUICAO.txt', 'ASSET_PROVENANCE.md',
         'RELEASE.md', 'GUIA_MODELOS_FORNAX.md', 'MODELOS_FRENTE_VERSO.md',
-        'CHECKLIST_DISTRIBUICAO_FORNAX.md', 'REFERENCIAS_LEGADAS_E_REPOSITORIO.md')
+        'CHECKLIST_DISTRIBUICAO_FORNAX.md', 'REFERENCIAS_LEGADAS_E_REPOSITORIO.md',
+        'MODELOS_INICIAIS.md')
 ASSETS = {'icons': {'.svg', '.png', '.ico'}, 'fonts': {'.ttf'},
-          'themes': {'.json'}, 'translations': {'.qm'}, 'linux': {'.xml'}}
+          'themes': {'.json'}, 'translations': {'.qm'}, 'linux': {'.xml'},
+          'templates': {'.json', '.fornax', '.png', '.jpg', '.jpeg', '.svg'}}
 
 
 def sha256(path):

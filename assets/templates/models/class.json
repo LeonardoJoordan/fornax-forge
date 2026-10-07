@@ -1,0 +1,141 @@
+{
+  "name": "Identificação de turma",
+  "canvas_size": {
+    "w": 709,
+    "h": 1122
+  },
+  "target_w_mm": 60,
+  "target_h_mm": 95,
+  "placeholders": [
+    "Foto",
+    "Nome",
+    "Turma",
+    "Matricula"
+  ],
+  "schema_version": 4,
+  "guidelines_visible": true,
+  "guidelines_locked": false,
+  "pages": [
+    {
+      "page_id": "front",
+      "field_ids": [
+        "Foto",
+        "Nome",
+        "Turma",
+        "Matricula"
+      ],
+      "images": [],
+      "boxes": [
+        {
+          "x": 35.43307086614173,
+          "y": 35.43307086614173,
+          "w": 637.7952755905512,
+          "h": 94.48818897637796,
+          "font_size": 27,
+          "html": "<p style=\"margin:0;text-align:center;color:#ffffff\"><b>TURMA</b></p>",
+          "rich_text_version": 1,
+          "layer_id": 3,
+          "object_id": "text:3"
+        },
+        {
+          "x": 47.24409448818898,
+          "y": 661.4173228346457,
+          "w": 614.1732283464567,
+          "h": 141.73228346456693,
+          "font_size": 34,
+          "html": "<p style=\"margin:0;text-align:center;color:#243648\"><b>{Nome}</b></p>",
+          "rich_text_version": 1,
+          "layer_id": 6,
+          "object_id": "text:6"
+        },
+        {
+          "x": 47.24409448818898,
+          "y": 826.7716535433071,
+          "w": 614.1732283464567,
+          "h": 106.2992125984252,
+          "font_size": 25,
+          "html": "<p style=\"margin:0;text-align:center;color:#243648\">{Turma}</p>",
+          "rich_text_version": 1,
+          "layer_id": 7,
+          "object_id": "text:7"
+        },
+        {
+          "x": 47.24409448818898,
+          "y": 956.6929133858268,
+          "w": 614.1732283464567,
+          "h": 94.48818897637796,
+          "font_size": 23,
+          "html": "<p style=\"margin:0;text-align:center;color:#607789\">{Matricula}</p>",
+          "rich_text_version": 1,
+          "layer_id": 8,
+          "object_id": "text:8"
+        }
+      ],
+      "layer_order": [
+        "shape:1",
+        "shape:2",
+        "text:3",
+        "shape:4",
+        "text:6",
+        "text:7",
+        "text:8",
+        "shape:9"
+      ],
+      "signatures": [],
+      "shapes": [
+        {
+          "x": 0.0,
+          "y": 0.0,
+          "width": 708.6614173228347,
+          "height": 1122.0472440944882,
+          "shape_type": "rectangle",
+          "fill_color": "#ffffff",
+          "outline_width": 0,
+          "layer_id": 1,
+          "object_id": "shape:1",
+          "is_document_background": true,
+          "locked": true,
+          "z_value": -100,
+          "keep_proportion": false,
+          "outline_position": "inside"
+        },
+        {
+          "x": 0.0,
+          "y": 0.0,
+          "width": 708.6614173228347,
+          "height": 153.54330708661416,
+          "shape_type": "rectangle",
+          "fill_color": "#43635f",
+          "outline_width": 0,
+          "layer_id": 2,
+          "object_id": "shape:2"
+        },
+        {
+          "x": 212.5984251968504,
+          "y": 224.40944881889766,
+          "width": 283.46456692913387,
+          "height": 377.9527559055118,
+          "shape_type": "rectangle",
+          "fill_color": "#edf2f5",
+          "outline_width": 0,
+          "layer_id": 4,
+          "dynamic_image_field": "Foto",
+          "object_id": "shape:4"
+        },
+        {
+          "x": 0.0,
+          "y": 1086.6141732283465,
+          "width": 708.6614173228347,
+          "height": 35.43307086614173,
+          "shape_type": "rectangle",
+          "fill_color": "#d8ad66",
+          "outline_width": 0,
+          "layer_id": 9,
+          "object_id": "shape:9"
+        }
+      ],
+      "background_path": null,
+      "guidelines": []
+    }
+  ]
+}

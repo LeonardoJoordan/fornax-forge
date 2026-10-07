@@ -5,6 +5,7 @@ from PySide6.QtCore import Qt, QRectF
 from PySide6.QtGui import QColor, QPen, QPainterPath, QTransform, QPainterPathStroker
 
 from core.model_document import ModelValidationError
+from core.board_borders import bordered_group_bounds
 
 UNITS_PER_MM = 300 / 25.4
 MAX_CURVE_RADIUS_MM = 100000
@@ -52,8 +53,7 @@ def connector_path(source, target, style, *, points=None, obstacles=None):
         board = {"groups": [source, target], "connections": [{"source": source["id"], "target": target["id"], "style": style}]}
         points = board_routes(board)[(source["id"], target["id"])][0]
     if obstacles is None:
-        from core.organogram import group_rect
-        obstacles = [group_rect(source), group_rect(target)]
+        obstacles = [bordered_group_bounds(source), bordered_group_bounds(target)]
     first, last = points[0], points[-1]
     path = QPainterPath(first)
     requested_radius = style["radius_mm"] * UNITS_PER_MM
@@ -105,8 +105,7 @@ def connector_paths(board):
     from core.board_routing import board_routes
     routes = board_routes(board)
     groups = {group["id"]: group for group in board["groups"]}
-    from core.organogram import group_rect
-    obstacles = [group_rect(group) for group in board["groups"]]
+    obstacles = [bordered_group_bounds(group) for group in board["groups"]]
     return {(edge["source"], edge["target"]): connector_path(
         groups[edge["source"]], groups[edge["target"]], connector_style(edge, board),
         points=routes[(edge["source"], edge["target"])][0], obstacles=obstacles) for edge in board["connections"]}

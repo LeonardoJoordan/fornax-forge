@@ -24,6 +24,24 @@ from PySide6.QtWidgets import (
 from shiboken6 import isValid
 
 
+COMBO_POPUP_STYLE = """
+QListView#editorComboOptions {
+ background: @button@; color: @text@; font-size: 12px;
+ border: 1px solid @border_strong@; border-radius: 8px;
+ padding: 6px; outline: none; selection-background-color: transparent;
+}
+QListView#editorComboOptions::item {
+ min-height: 18px; padding: 2px 12px; border: 1px solid transparent;
+ border-radius: 5px; background: transparent;
+}
+QListView#editorComboOptions::item:selected,
+QListView#editorComboOptions::item:hover {
+ background: @selection@; border-color: @accent@; color: @text@;
+}
+QListView#editorComboOptions::item:disabled { color: @disabled@; }
+"""
+
+
 STYLE = """
 QWidget { background: @surface@; color: @text@; font-size: 12px; }
 QMainWindow, QWidget#root { background: @window@; }
@@ -42,20 +60,6 @@ QMenu::item:disabled { color: @disabled@; }
 QMenu::separator { height: 1px; background: @border_strong@; margin: 6px 8px; }
 QMenu#shapeMenu::item { padding-left: 36px; }
 QMenu#shapeMenu::icon { left: 10px; }
-QListView#editorComboOptions {
- background: @button@; color: @text@; font-size: 12px;
- border: 1px solid @border_strong@; border-radius: 8px;
- padding: 6px; outline: none; selection-background-color: transparent;
-}
-QListView#editorComboOptions::item {
- min-height: 18px; padding: 2px 12px; border: 1px solid transparent;
- border-radius: 5px; background: transparent;
-}
-QListView#editorComboOptions::item:selected,
-QListView#editorComboOptions::item:hover {
- background: @selection@; border-color: @accent@; color: @text@;
-}
-QListView#editorComboOptions::item:disabled { color: @disabled@; }
 
 QLabel#muted { color: @muted@; }
 QFrame#bar { background: @panel@; border-bottom: 1px solid @border@; }
@@ -67,6 +71,7 @@ QPushButton { background: @button@; border: 1px solid @border@;
 QPushButton:hover { background: @hover@; border-color: @border_strong@; }
 QPushButton:checked { background: @selection@; border-color: @accent@; }
 QPushButton:disabled { color: @disabled@; background: @surface@; }
+QPushButton#pageAdd { padding: 0; min-height: 0; }
 QPushButton#primary { background: @accent@; color: @on_accent@; border: none; }
 QFrame#pageSelector { background: transparent; }
 QFrame#pageButton { background: transparent; border: 1px solid @border@; border-radius: 6px; }
@@ -164,6 +169,57 @@ def column():
     return widget, layout
 
 
+def property_heading(layout, title, *, separated=False):
+    """Título comum dos submenus do inspetor, com divisor opcional."""
+    separator = None
+    if separated:
+        separator = QFrame()
+        separator.setObjectName('propertySectionSeparator')
+        separator.setFixedHeight(1)
+        themed_style(
+            separator,
+            'QFrame#propertySectionSeparator { background: @border@; border: none; margin: 0; }',
+        )
+        layout.addWidget(separator)
+    heading = QLabel(title.upper())
+    heading.setObjectName('propertySectionHeading')
+    heading.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    themed_style(heading, 'color: @icon@; font-size: 11px; font-weight: 600;')
+    heading._section_separator = separator
+    layout.addWidget(heading)
+    return heading
+
+
+def compact_sidebar_action(button):
+    content_height = 22 if button.objectName() == 'primary' else 20
+    themed_style(
+        button,
+        f'QPushButton {{ padding: 0 10px; min-height: {content_height}px; '
+        f'max-height: {content_height}px; }}',
+    )
+    button.setFixedHeight(22)
+
+
+def centered_toggle_button(layout, button):
+    """Mantém o botão em 65% da largura útil e centralizado."""
+    wrapper = QWidget()
+    wrapper_layout = QHBoxLayout(wrapper)
+    wrapper_layout.setContentsMargins(0, 0, 0, 0)
+    wrapper_layout.setSpacing(0)
+    wrapper.setFixedHeight(22)
+    themed_style(
+        button,
+        'QPushButton { padding: 0 10px; min-height: 0; max-height: 20px; }',
+    )
+    button.setFixedHeight(22)
+    button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+    wrapper_layout.addStretch(175)
+    wrapper_layout.addWidget(button, 650)
+    wrapper_layout.addStretch(175)
+    layout.addWidget(wrapper)
+    return wrapper
+
+
 def square_control(button):
     button.setProperty('squareControl', True)
     button.setFixedSize(30, 30)
@@ -219,6 +275,162 @@ def compact(name, control, suffix='', width=100, accessible_name=None):
     if suffix:
         layout.addWidget(QLabel(suffix))
     return widget
+
+
+def configure_editor_combo(combo):
+    """Popups com a mesma fonte, margens e altura de itens em todo o editor."""
+    from PySide6.QtWidgets import QFontComboBox
+    if isinstance(combo, QFontComboBox):
+        popup = combo.view()  # Preserva o delegate de prévia tipográfica.
+    else:
+        popup = QListView(combo)
+        combo.setView(popup)
+    popup.setObjectName('editorComboOptions')
+    themed_style(popup, COMBO_POPUP_STYLE)
+    popup.setMouseTracking(True)
+    popup.setUniformItemSizes(True)
+    combo.setMaxVisibleItems(12)
+
+
+def outline_controls(prefix='shapeOutline'):
+    """Controles de contorno compartilhados pelas formas e pelo quadro."""
+    controls, layout = column()
+    layout.setContentsMargins(0, 0, 0, 0)
+    controls.color = QLineEdit('#000000')
+    controls.color.setMaxLength(7)
+    controls.alpha = QDoubleSpinBox()
+    controls.alpha.setObjectName(prefix + 'Alpha')
+    controls.alpha.setRange(0, 100)
+    controls.alpha.setDecimals(0)
+    controls.alpha.setKeyboardTracking(False)
+    controls.swatch = QPushButton()
+    controls.swatch.setObjectName(prefix + 'Swatch')
+    square_control(controls.swatch)
+    controls.spin_width = QDoubleSpinBox()
+    controls.spin_width.setObjectName(prefix + 'Width')
+    controls.spin_width.setDecimals(2)
+    controls.spin_width.setRange(0.01, 1000)
+    controls.spin_width.setSingleStep(0.1)
+    controls.spin_width.setKeyboardTracking(False)
+    controls.position = QComboBox()
+    controls.position.setObjectName(prefix + 'Position')
+    configure_editor_combo(controls.position)
+    for title, value in [(tr('Interno'), 'inside'), (tr('Centralizado'), 'center'), (tr('Externo'), 'outside')]:
+        controls.position.addItem(title, value)
+    controls.position.setToolTip(tr('Interno: para dentro. Externo: para fora. Centralizado: metade para cada lado.'))
+    controls.position_field = field(tr('Posição'), controls.position)
+    thickness_row = row(layout, field(tr('Espessura'), compact('', controls.spin_width, 'mm')), controls.position_field)
+    thickness_row.setStretch(0, 1)
+    thickness_row.setStretch(1, 1)
+    color_row = row(layout, controls.swatch, controls.color, compact(
+        state_icon_path('opacity'), controls.alpha, '%', 85, tr('Opacidade do contorno')))
+    color_row.setStretch(1, 1)
+    controls.join, join_layout = column()
+    join_layout.setContentsMargins(0, 0, 0, 0)
+    controls.join.setObjectName(prefix + 'Join')
+    buttons = QWidget()
+    buttons_layout = QHBoxLayout(buttons)
+    buttons_layout.setContentsMargins(0, 0, 0, 0)
+    buttons_layout.setSpacing(6)
+    group = QButtonGroup(controls.join)
+    group.setExclusive(True)
+    controls.join_straight = QPushButton()
+    controls.join_round = QPushButton()
+    for index, (button, name, tooltip) in enumerate((
+            (controls.join_straight, 'Straight', tr('Cantos retos')),
+            (controls.join_round, 'Round', tr('Cantos arredondados')))):
+        button.setObjectName('outlineJoin' + name if prefix == 'shapeOutline' else prefix + 'Join' + name)
+        button.setCheckable(True)
+        button.setToolTip(tooltip)
+        button.setAccessibleName(tooltip)
+        square_control(button)
+        group.addButton(button, index)
+    buttons_layout.addStretch(1)
+    buttons_layout.addWidget(controls.join_straight)
+    buttons_layout.addWidget(controls.join_round)
+    buttons_layout.addStretch(1)
+    join_layout.addWidget(buttons)
+    def refresh_icons():
+        controls.join_straight.setIcon(themed_svg_icon(align_icon_path('straight_edge')))
+        controls.join_round.setIcon(themed_svg_icon(align_icon_path('curved_edge')))
+        controls.join_straight.setIconSize(QSize(18, 18))
+        controls.join_round.setIconSize(QSize(18, 18))
+    refresh_icons()
+    _connect_theme_callback(controls, refresh_icons)
+    controls.join_field = field(tr('Cantos do contorno'), controls.join)
+    layout.addWidget(controls.join_field)
+    return controls
+
+
+def corner_radius_controls(prefix='shape'):
+    """Mesmo painel de quatro cantos, ícones e vínculo em formas e conjuntos."""
+    rectangle_radius, rectangle_radius_layout = column()
+    rectangle_radius_layout.setContentsMargins(0, 0, 0, 0)
+    property_heading(
+        rectangle_radius_layout, tr('ARREDONDAMENTO DE BORDAS'), separated=True
+    )
+    sync_radii = QPushButton()
+    sync_radii.setObjectName('syncCornerRadii' if prefix == 'shape' else prefix + 'SyncCornerRadii')
+    sync_radii.setCheckable(True)
+    sync_radii.setChecked(True)
+    sync_radii.setToolTip(tr('Sincronizar o arredondamento dos quatro cantos'))
+    square_control(sync_radii)
+    def refresh_radius_sync_icon(checked):
+        asset_name = 'lock ratio' if checked else 'unlock ratio'
+        sync_radii.setIcon(themed_svg_icon(action_icon_path(asset_name)))
+        sync_radii.setIconSize(QSize(20, 20))
+    refresh_radius_sync_icon(sync_radii.isChecked())
+    _connect_theme_callback(rectangle_radius, lambda: refresh_radius_sync_icon(sync_radii.isChecked()))
+    corner_grid = QGridLayout()
+    corner_grid.setContentsMargins(0, 0, 0, 0)
+    corner_grid.setHorizontalSpacing(7)
+    corner_grid.setVerticalSpacing(8)
+    corner_spins = {}
+    corner_icon_labels = []
+    for index, (key, title, asset_name) in enumerate((
+        ('top_left', tr('Sup. esquerdo'), 'sup_esq'),
+        ('top_right', tr('Sup. direito'), 'sup_dir'),
+        ('bottom_left', tr('Inf. esquerdo'), 'inf_esq'),
+        ('bottom_right', tr('Inf. direito'), 'inf_dir'),
+    )):
+        spin = QDoubleSpinBox()
+        spin.setObjectName(prefix + 'CornerRadius_' + key)
+        spin.setDecimals(2)
+        spin.setRange(0, 1000)
+        spin.setSingleStep(0.1)
+        spin.setKeyboardTracking(False)
+        spin.setToolTip(title)
+        icon_label = QLabel()
+        icon_label.setObjectName(('cornerRadiusIcon_' if prefix == 'shape' else prefix + 'CornerRadiusIcon_') + key)
+        icon_label.setFixedSize(22, 30)
+        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        icon_label.setToolTip(title)
+        icon_label.setPixmap(themed_svg_icon(align_icon_path(asset_name)).pixmap(18, 18))
+        value_box = compact('', spin, 'mm', None)
+        row_index = index // 2
+        is_left = key.endswith('left')
+        if is_left:
+            corner_grid.addWidget(value_box, row_index, 0)
+            corner_grid.addWidget(icon_label, row_index, 1)
+        else:
+            corner_grid.addWidget(icon_label, row_index, 3)
+            corner_grid.addWidget(value_box, row_index, 4)
+        corner_spins[key] = spin
+        corner_icon_labels.append((icon_label, asset_name))
+    def refresh_corner_radius_icons():
+        for label, asset_name in corner_icon_labels:
+            label.setPixmap(themed_svg_icon(align_icon_path(asset_name)).pixmap(18, 18))
+    _connect_theme_callback(rectangle_radius, refresh_corner_radius_icons)
+    corner_grid.setColumnStretch(0, 1)
+    corner_grid.setColumnStretch(4, 1)
+    corner_grid.addWidget(
+        sync_radii, 0, 2, 2, 1, Qt.AlignmentFlag.AlignCenter,
+    )
+    rectangle_radius_layout.addLayout(corner_grid)
+    rectangle_radius.spins = corner_spins
+    rectangle_radius.sync = sync_radii
+    rectangle_radius.refresh_sync_icon = refresh_radius_sync_icon
+    return rectangle_radius
 
 
 class FooterSaveAlignment(QObject):
@@ -634,53 +846,6 @@ def install_frontend(w):
     il.setContentsMargins(0, 0, 0, 0)
     il.setSpacing(1)
     props, pl = column()
-    def property_heading(layout, title, *, separated=False):
-        separator = None
-        if separated:
-            separator = QFrame()
-            separator.setObjectName('propertySectionSeparator')
-            separator.setFixedHeight(1)
-            themed_style(
-                separator,
-                'QFrame#propertySectionSeparator { background: @border@; border: none; margin: 0; }',
-            )
-            layout.addWidget(separator)
-        heading = QLabel(title)
-        heading.setObjectName('propertySectionHeading')
-        heading.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        themed_style(heading, 'color: @icon@; font-size: 11px; font-weight: 600;')
-        heading._section_separator = separator
-        layout.addWidget(heading)
-        return heading
-
-    def centered_toggle_button(layout, button):
-        """Mantém o botão em 65% da largura útil e centralizado."""
-        wrapper = QWidget()
-        wrapper_layout = QHBoxLayout(wrapper)
-        wrapper_layout.setContentsMargins(0, 0, 0, 0)
-        wrapper_layout.setSpacing(0)
-        wrapper.setFixedHeight(22)
-        themed_style(
-            button,
-            'QPushButton { padding: 0 10px; min-height: 0; max-height: 20px; }',
-        )
-        button.setFixedHeight(22)
-        button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        wrapper_layout.addStretch(175)
-        wrapper_layout.addWidget(button, 650)
-        wrapper_layout.addStretch(175)
-        layout.addWidget(wrapper)
-        return wrapper
-
-    def compact_sidebar_action(button):
-        content_height = 22 if button.objectName() == 'primary' else 20
-        themed_style(
-            button,
-            f'QPushButton {{ padding: 0 10px; min-height: {content_height}px; '
-            f'max-height: {content_height}px; }}',
-        )
-        button.setFixedHeight(22)
-
     shape_color = QLineEdit('#ffffff')
     shape_color.setMaxLength(7)
     fill_alpha = QDoubleSpinBox()
@@ -726,132 +891,20 @@ def install_frontend(w):
     outline_enabled.setObjectName('shapeOutlineEnabled')
     outline_enabled.setCheckable(True)
     outline_toggle_container = centered_toggle_button(shape_layout, outline_enabled)
-    outline_color = QLineEdit('#000000')
-    outline_color.setMaxLength(7)
-    outline_alpha = QDoubleSpinBox()
-    outline_alpha.setObjectName('shapeOutlineAlpha')
-    outline_alpha.setRange(0, 100)
-    outline_alpha.setDecimals(0)
-    outline_alpha.setKeyboardTracking(False)
-    outline_swatch = QPushButton()
-    outline_swatch.setObjectName('shapeOutlineSwatch')
-    square_control(outline_swatch)
-    outline_width = QDoubleSpinBox()
-    outline_width.setObjectName('shapeOutlineWidth')
-    outline_width.setDecimals(2)
-    outline_width.setRange(0.01, 1000)
-    outline_width.setSingleStep(0.1)
-    outline_width.setKeyboardTracking(False)
-    outline_position = QComboBox()
-    outline_position.setObjectName('shapeOutlinePosition')
-    for title, value in [(tr('Interno'), 'inside'), (tr('Centralizado'), 'center'), (tr('Externo'), 'outside')]:
-        outline_position.addItem(title, value)
-    outline_position.setToolTip(tr('Interno: para dentro. Externo: para fora. Centralizado: metade para cada lado.'))
-    outline_details, outline_details_layout = column()
-    outline_details_layout.setContentsMargins(0, 0, 0, 0)
-    outline_color_row = row(outline_details_layout, outline_swatch, outline_color, compact(
-        state_icon_path('opacity'), outline_alpha, '%', 85, tr('Opacidade do contorno')
-    ))
-    outline_color_row.setStretch(1, 1)
-    outline_join, join_layout = column()
-    join_layout.setContentsMargins(0, 0, 0, 0)
-    outline_join.setObjectName('shapeOutlineJoin')
-    join_buttons = QWidget()
-    join_buttons_layout = QHBoxLayout(join_buttons)
-    join_buttons_layout.setContentsMargins(0, 0, 0, 0)
-    join_buttons_layout.setSpacing(6)
-    join_group = QButtonGroup(outline_join)
-    join_group.setExclusive(True)
-    join_straight = QPushButton()
-    join_straight.setObjectName('outlineJoinStraight')
-    join_straight.setCheckable(True)
-    join_straight.setToolTip(tr('Cantos retos'))
-    join_straight.setAccessibleName(tr('Cantos retos'))
-    square_control(join_straight)
-    join_round = QPushButton()
-    join_round.setObjectName('outlineJoinRound')
-    join_round.setCheckable(True)
-    join_round.setToolTip(tr('Cantos arredondados'))
-    join_round.setAccessibleName(tr('Cantos arredondados'))
-    square_control(join_round)
-    join_group.addButton(join_straight, 0)
-    join_group.addButton(join_round, 1)
-    join_buttons_layout.addStretch(1)
-    join_buttons_layout.addWidget(join_straight)
-    join_buttons_layout.addWidget(join_round)
-    join_buttons_layout.addStretch(1)
-    join_layout.addWidget(join_buttons)
-    def refresh_outline_join_icons():
-        join_straight.setIcon(themed_svg_icon(align_icon_path('straight_edge')))
-        join_round.setIcon(themed_svg_icon(align_icon_path('curved_edge')))
-        join_straight.setIconSize(QSize(18, 18))
-        join_round.setIconSize(QSize(18, 18))
-    refresh_outline_join_icons()
-    _connect_theme_callback(outline_join, refresh_outline_join_icons)
-    join_field = field(tr('Cantos do contorno'), outline_join)
-    outline_details_layout.addWidget(join_field)
-    rectangle_radius, rectangle_radius_layout = column()
-    rectangle_radius_layout.setContentsMargins(0, 0, 0, 0)
-    radius_heading = property_heading(
-        rectangle_radius_layout, tr('ARREDONDAMENTO DE BORDAS'), separated=True
-    )
-    sync_radii = QPushButton()
-    sync_radii.setObjectName('syncCornerRadii')
-    sync_radii.setCheckable(True)
-    sync_radii.setChecked(True)
-    sync_radii.setToolTip(tr('Sincronizar o arredondamento dos quatro cantos'))
-    square_control(sync_radii)
-    def refresh_radius_sync_icon(checked):
-        asset_name = 'lock ratio' if checked else 'unlock ratio'
-        sync_radii.setIcon(themed_svg_icon(action_icon_path(asset_name)))
-        sync_radii.setIconSize(QSize(20, 20))
-    refresh_radius_sync_icon(sync_radii.isChecked())
-    corner_grid = QGridLayout()
-    corner_grid.setContentsMargins(0, 0, 0, 0)
-    corner_grid.setHorizontalSpacing(7)
-    corner_grid.setVerticalSpacing(8)
-    corner_spins = {}
-    corner_icon_labels = []
-    for index, (key, title, asset_name) in enumerate((
-        ('top_left', tr('Sup. esquerdo'), 'sup_esq'),
-        ('top_right', tr('Sup. direito'), 'sup_dir'),
-        ('bottom_left', tr('Inf. esquerdo'), 'inf_esq'),
-        ('bottom_right', tr('Inf. direito'), 'inf_dir'),
-    )):
-        spin = QDoubleSpinBox()
-        spin.setObjectName('shapeCornerRadius_' + key)
-        spin.setDecimals(2)
-        spin.setRange(0, 1000)
-        spin.setSingleStep(0.1)
-        spin.setKeyboardTracking(False)
-        spin.setToolTip(title)
-        icon_label = QLabel()
-        icon_label.setObjectName('cornerRadiusIcon_' + key)
-        icon_label.setFixedSize(22, 30)
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon_label.setToolTip(title)
-        icon_label.setPixmap(themed_svg_icon(align_icon_path(asset_name)).pixmap(18, 18))
-        value_box = compact('', spin, 'mm', None)
-        row_index = index // 2
-        is_left = key.endswith('left')
-        if is_left:
-            corner_grid.addWidget(value_box, row_index, 0)
-            corner_grid.addWidget(icon_label, row_index, 1)
-        else:
-            corner_grid.addWidget(icon_label, row_index, 3)
-            corner_grid.addWidget(value_box, row_index, 4)
-        corner_spins[key] = spin
-        corner_icon_labels.append((icon_label, asset_name))
-    def refresh_corner_radius_icons():
-        for label, asset_name in corner_icon_labels:
-            label.setPixmap(themed_svg_icon(align_icon_path(asset_name)).pixmap(18, 18))
-    _connect_theme_callback(rectangle_radius, refresh_corner_radius_icons)
-    corner_grid.setColumnStretch(0, 1)
-    corner_grid.setColumnStretch(4, 1)
-    corner_grid.addWidget(
-        sync_radii, 0, 2, 2, 1, Qt.AlignmentFlag.AlignCenter,
-    )
-    rectangle_radius_layout.addLayout(corner_grid)
+    outline_details = outline_controls()
+    outline_color = outline_details.color
+    outline_alpha = outline_details.alpha
+    outline_swatch = outline_details.swatch
+    outline_width = outline_details.spin_width
+    outline_position = outline_details.position
+    outline_join = outline_details.join
+    join_straight = outline_details.join_straight
+    join_round = outline_details.join_round
+    join_field = outline_details.join_field
+    rectangle_radius = corner_radius_controls()
+    sync_radii = rectangle_radius.sync
+    corner_spins = rectangle_radius.spins
+    refresh_radius_sync_icon = rectangle_radius.refresh_sync_icon
     shape_layout.insertWidget(shape_layout.indexOf(outline_toggle_container), rectangle_radius)
 
     outline_heading_container, outline_heading_layout = column()
@@ -895,15 +948,7 @@ def install_frontend(w):
             # operador altere explicitamente um dos cantos.
             w.save_snapshot()
     sync_radii.toggled.connect(toggle_radius_sync)
-    position_field = field(tr('Posição'), outline_position)
-    thickness_row = row(outline_details_layout, field(tr('Espessura'), compact('', outline_width, 'mm')), position_field)
-    thickness_row.setStretch(0, 1)
-    thickness_row.setStretch(1, 1)
-    for layout_index in range(outline_details_layout.count()):
-        if outline_details_layout.itemAt(layout_index).layout() is thickness_row:
-            outline_details_layout.takeAt(layout_index)
-            break
-    outline_details_layout.insertLayout(0, thickness_row)
+    position_field = outline_details.position_field
     shape_layout.insertWidget(shape_layout.indexOf(outline_toggle_container) + 1, outline_details)
     background_outline_hint = QLabel(tr('No plano de fundo, o contorno cresce sempre para dentro da página.'))
     background_outline_hint.setWordWrap(True)
@@ -1508,6 +1553,8 @@ def install_frontend(w):
     il.insertWidget(0, document_section)
     from .organogram_editor import OrganogramPanel, BoardConnectorItem
     w.organogram_panel = OrganogramPanel(w)
+    pl.addWidget(w.organogram_panel.properties)
+    dl.insertWidget(dl.indexOf(table_fields_heading._section_separator), w.organogram_panel.output_settings)
     w._organogram_section = Section(tr('Estrutura do quadro'), w.organogram_panel, True)
     w._organogram_section.hide()
     il.insertWidget(1, w._organogram_section)
@@ -1626,15 +1673,19 @@ def install_frontend(w):
             page_layout.addWidget(group)
         if len(page_ids) < 2:
             add_page = QPushButton(page_selector)
+            add_page.setObjectName('pageAdd')
             add_page.setFixedSize(34, 34)
-            add_page.setIcon(themed_svg_icon(action_icon_path('plus')))
-            add_page.setIconSize(QSize(18, 18))
+            add_page.setIcon(themed_svg_icon(navigation_icon_path('plus')))
+            add_page.setIconSize(QSize(20, 20))
             add_page.setToolTip(tr('Adicionar página ou organograma'))
             add_page.setAccessibleName(tr('Adicionar página ou organograma'))
             add_menu = QMenu(add_page)
             add_menu.addAction(tr('Adicionar página'), w.add_model_page)
             add_menu.addAction(tr('Adicionar organograma'), w.add_model_organogram)
-            add_page.setMenu(add_menu)
+            def show_add_menu(_checked=False, anchor=add_page, menu=add_menu):
+                menu.ensurePolished()
+                menu.popup(anchor.mapToGlobal(QPoint(0, -menu.sizeHint().height())))
+            add_page.clicked.connect(show_add_menu)
             page_layout.addWidget(add_page)
         page_layout.invalidate()
         page_layout.activate()
@@ -1657,6 +1708,18 @@ def install_frontend(w):
     w._footer_save_alignment.schedule()
 
     selection_state = {'kind': None}
+
+    def inspector_selection_kind(selected, text_available):
+        if text_available:
+            return 'text'
+        if w._active_page_id == 'organogram':
+            if (getattr(w, '_board_connection_sources', None)
+                    or any(isinstance(item, BoardConnectorItem) for item in selected)):
+                return 'connection'
+            from .organogram_editor import BoardGroupItem
+            if any(isinstance(item, BoardGroupItem) for item in selected):
+                return 'board'
+        return 'object' if selected else 'none'
 
     def clear_text_presentation():
         """Limpa somente os controles visuais; o texto continua no item da cena."""
@@ -1693,14 +1756,14 @@ def install_frontend(w):
         for control in moved:
             if isValid(control):
                 control.setEnabled(p.isEnabled())
-        props.setEnabled(p.isEnabled())
         text_available = t.isEnabled()
-        properties_available = p.isEnabled()
+        properties_available = p.isEnabled() or w.organogram_panel.properties_available()
+        props.setEnabled(properties_available)
         prop_section.setEnabled(properties_available)
         text_section.setEnabled(text_available)
         text_body.setEnabled(t.isEnabled())
         selected = w.scene.selectedItems()
-        current_kind = 'text' if text_available else ('object' if selected else 'none')
+        current_kind = inspector_selection_kind(selected, text_available)
         if current_kind != selection_state['kind']:
             # Undo/Redo reconstrói a cena e produz transições temporárias de
             # seleção. Elas não representam uma escolha nova do operador.
@@ -1710,7 +1773,7 @@ def install_frontend(w):
                 prop_section.header.setChecked(bool(properties_available))
                 text_section.header.setChecked(bool(text_available))
                 selection_state['kind'] = current_kind
-        from .canvas_items import RectangleItem, ImageItem, BackgroundItem, SignatureItem
+        from .canvas_items import DesignerBox, RectangleItem, ImageItem, BackgroundItem, SignatureItem
         mask_session = w._mask_edit_session
         inspector_item = (
             mask_session.get('inspector_item')
@@ -1739,7 +1802,8 @@ def install_frontend(w):
         shape_controls.setVisible(is_shape)
         restore_controls.setVisible(restore_visible)
         p.btn_restore.setVisible(restore_visible)
-        link_controls.setVisible(inspector_item is not None)
+        supported_inspector = isinstance(inspector_item, (DesignerBox, ImageItem, SignatureItem))
+        link_controls.setVisible(supported_inspector)
         dynamic_controls.setVisible(False)
         # A seleção técnica da imagem durante o enquadramento não deve alterar
         # nem apagar visualmente o inspetor que o operador já estava usando.
@@ -1752,7 +1816,7 @@ def install_frontend(w):
             and not isinstance(inspector_item, RectangleItem)
             and isinstance(inspector_item.parentItem(), RectangleItem)
         )
-        link_available = inspector_item is not None and not (
+        link_available = supported_inspector and not (
             background_selected or masked_image_selected
         )
         link_controls.setEnabled(link_available)
@@ -1867,6 +1931,7 @@ def install_frontend(w):
     # O seletor de camadas bloqueia os sinais da cena enquanto seleciona pela lista.
     # Atualizar depois dele também cobre o único acesso ao plano de fundo.
     w.layer_list.itemSelectionChanged.connect(sync_enabled)
+    w._refresh_board_inspector = sync_enabled
     # O editor sempre começa no contexto geral do documento. As seções de
     # objeto só são habilitadas quando o usuário faz uma seleção explícita.
     w.scene.clearSelection()
@@ -1881,8 +1946,8 @@ def install_frontend(w):
         """Restaura preferências visuais após uma reconstrução do histórico."""
         selected = w.scene.selectedItems()
         text_available = t.isEnabled()
-        properties_available = p.isEnabled()
-        current_kind = 'text' if text_available else ('object' if selected else 'none')
+        properties_available = p.isEnabled() or w.organogram_panel.properties_available()
+        current_kind = inspector_selection_kind(selected, text_available)
         selection_state['kind'] = current_kind
         if current_kind != 'text':
             clear_text_presentation()
@@ -1896,16 +1961,6 @@ def install_frontend(w):
 
     w._restore_inspector_state = restore_inspector_state
 
-    # QListView permite que os popups usem as mesmas métricas do workspace.
-    # O seletor de fontes conserva seu delegate de prévia tipográfica.
-    from PySide6.QtWidgets import QFontComboBox
+    # Comboboxes do quadro usam o mesmo popup das ferramentas tradicionais.
     for combo in w.findChildren(QComboBox):
-        if isinstance(combo, QFontComboBox):
-            popup = combo.view()
-        else:
-            popup = QListView(combo)
-            combo.setView(popup)
-        popup.setObjectName('editorComboOptions')
-        popup.setMouseTracking(True)
-        popup.setUniformItemSizes(True)
-        combo.setMaxVisibleItems(12)
+        configure_editor_combo(combo)

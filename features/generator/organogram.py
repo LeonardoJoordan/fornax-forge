@@ -9,6 +9,7 @@ from PySide6.QtGui import QPainter, QImage, QPen, QColor, QPdfWriter, QPageLayou
 from core.model_document import adapt_model_page, normalize_model_document, validate_raster_dimensions
 from core.organogram import assignment_plan, assignment_issue_text, board_bounds, UNITS_PER_MM
 from core.board_connectors import connector_style, connector_pen, connector_paths, text_cutouts, connector_clip
+from core.board_borders import paint_group_borders
 from core.i18n import tr
 from core.naming_engine import confined_output_path
 from .renderer import NativeRenderer
@@ -24,12 +25,28 @@ class OrganogramRenderer:
         self.card = NativeRenderer(adapt_model_page(self.document), asset_provider=asset_provider)
         self.card.set_dynamic_image_directory(dynamic_image_dir)
         self.slots, self.assignment_issues = assignment_plan(self.document, rows_plain, rows_rich, dynamic_image_dir)
+        self.group_slots = {}
+        for slot in self.slots:
+            self.group_slots.setdefault(slot[0], []).append(slot)
         self.bounds = board_bounds(self.board, visible_slots=self.slots)
         # O desenho complementar pode ultrapassar a página 1, mas não aloca raster.
         artwork = adapt_model_page(self.document)
         for key in ("boxes", "images", "shapes", "signatures", "layer_order", "background_path"):
             artwork[key] = deepcopy(self.board.get(key))
-        self.artwork = NativeRenderer(artwork, asset_provider=asset_provider)
+        # Máscara e imagens contidas nela pertencem ao mesmo plano.
+        mask_positions = {entry.get("object_id"): entry.get("board_behind", False)
+                          for entry in artwork.get("shapes", [])}
+        self.artwork_planes = {}
+        for behind in (True, False):
+            plane = deepcopy(artwork)
+            identifiers = set()
+            for collection in ("boxes", "images", "shapes"):
+                plane[collection] = [entry for entry in plane.get(collection, [])
+                                     if mask_positions.get(entry.get("mask_shape_id"),
+                                                           entry.get("board_behind", False)) == behind]
+                identifiers.update(entry.get("object_id") for entry in plane[collection])
+            plane["layer_order"] = [key for key in (plane.get("layer_order") or []) if key in identifiers]
+            self.artwork_planes[behind] = NativeRenderer(plane, asset_provider=asset_provider)
 
     def paint(self, painter, *, region=None, stop=None, out_links=None):
         region = region or self.bounds
@@ -38,10 +55,12 @@ class OrganogramRenderer:
             painter.setClipRect(region, Qt.ClipOperation.IntersectClip)
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+            self.artwork_planes[True].paint_card(painter, {}, {}, out_links)
             visible = {slot[0] for slot in self.slots}
             painter.save()
             try:
-                painter.setClipPath(connector_clip(region, text_cutouts(self.board.get("boxes", []))), Qt.ClipOperation.IntersectClip)
+                foreground_text = [box for box in self.board.get("boxes", []) if not box.get("board_behind", False)]
+                painter.setClipPath(connector_clip(region, text_cutouts(foreground_text)), Qt.ClipOperation.IntersectClip)
                 for edge in self.board["connections"]:
                     if edge["source"] in visible and edge["target"] in visible:
                         style = connector_style(edge, self.board)
@@ -50,21 +69,26 @@ class OrganogramRenderer:
             finally:
                 painter.restore()
             canvas = self.document["canvas_size"]
-            for _group_id, _index, rect, plain, rich in self.slots:
-                if stop and stop():
-                    raise InterruptedError(tr("Geração cancelada."))
-                if not region.intersects(rect):
-                    continue
-                painter.save()
-                try:
-                    painter.setClipRect(rect, Qt.ClipOperation.IntersectClip)
-                    painter.translate(rect.topLeft())
-                    painter.scale(rect.width() / canvas["w"], rect.height() / canvas["h"])
-                    self.card.paint_card(painter, plain, rich, out_links)
-                finally:
-                    painter.restore()
-            # Textos e formas adicionados no quadro ficam acima dos cartões.
-            self.artwork.paint_card(painter, {}, {}, out_links)
+            # Mantém a mesma ordem de sobreposição dos conjuntos no editor.
+            for group in self.board["groups"]:
+                slots = self.group_slots.get(group["id"], [])
+                for _group_id, _index, rect, plain, rich in slots:
+                    if stop and stop():
+                        raise InterruptedError(tr("Geração cancelada."))
+                    if not region.intersects(rect):
+                        continue
+                    painter.save()
+                    try:
+                        painter.setClipRect(rect, Qt.ClipOperation.IntersectClip)
+                        painter.translate(rect.topLeft())
+                        painter.scale(rect.width() / canvas["w"], rect.height() / canvas["h"])
+                        self.card.paint_card(painter, plain, rich, out_links)
+                    finally:
+                        painter.restore()
+                # Vagas não ganham bordas; conjuntos totalmente vazios ficam ocultos.
+                if slots:
+                    paint_group_borders(painter, group, (slot[2] for slot in slots))
+            self.artwork_planes[False].paint_card(painter, {}, {}, out_links)
         finally:
             painter.restore()
 

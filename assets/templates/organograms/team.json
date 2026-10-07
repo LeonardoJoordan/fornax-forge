@@ -1,0 +1,49 @@
+{
+  "preset_version": 1,
+  "card_width_mm": 50,
+  "gap_mm": 5,
+  "groups": [
+    {
+      "name": "Responsável",
+      "column": 1,
+      "level": 0,
+      "columns": 1,
+      "rows": 1
+    },
+    {
+      "name": "Integrante 1",
+      "column": 0,
+      "level": 1,
+      "columns": 1,
+      "rows": 1
+    },
+    {
+      "name": "Integrante 2",
+      "column": 1,
+      "level": 1,
+      "columns": 1,
+      "rows": 1
+    },
+    {
+      "name": "Integrante 3",
+      "column": 2,
+      "level": 1,
+      "columns": 1,
+      "rows": 1
+    }
+  ],
+  "connections": [
+    {
+      "source": "Responsável",
+      "target": "Integrante 1"
+    },
+    {
+      "source": "Responsável",
+      "target": "Integrante 2"
+    },
+    {
+      "source": "Responsável",
+      "target": "Integrante 3"
+    }
+  ]
+}

@@ -13,6 +13,7 @@ from PySide6.QtGui import QTransform
 
 from core.model_document import ModelValidationError, MAX_OBJECT_COORDINATE
 from core.board_connectors import connector_style, validate_connector_style, connector_paths
+from core.board_borders import border_style, validate_border_style, bordered_group_bounds, bordered_card_bounds
 from core.i18n import tr
 
 UNITS_PER_MM = 300 / 25.4
@@ -129,6 +130,10 @@ def slot_rect(group, index):
 
 def validate_organogram(board):
     validate_connector_style(board.get("connector_style", {}))
+    for collection in ("boxes", "images", "shapes"):
+        for entry in board.get(collection, []):
+            if type(entry.get("board_behind", False)) is not bool:
+                raise ModelValidationError("Posição do elemento no organograma inválida.")
     if board.get("signatures") or board.get("background_path"):
         raise ModelValidationError("O organograma não possui assinatura ou fundo de documento.")
     for key, minimum in (("grid_mm", 0.1), ("margin_mm", 0)):
@@ -148,6 +153,7 @@ def validate_organogram(board):
         if group["id"] in ids:
             raise ModelValidationError("Identidade de bloco repetida.")
         ids.add(group["id"])
+        validate_border_style(group.get("border", {}))
         for key, default in (("entry_sides", ["bottom"]), ("exit_sides", ["top"])):
             sides = group.get(key, default)
             if (not isinstance(sides, list) or not sides or not all(isinstance(side, str) for side in sides)
@@ -175,7 +181,7 @@ def validate_organogram(board):
                 raise ModelValidationError("Geometria de bloco inválida.")
         if min(group["card_w"], group["card_h"]) <= 0 or min(group["gap_x"], group["gap_y"]) < 0:
             raise ModelValidationError("Tamanho ou espaçamento de cartão inválido.")
-        bounds = group_rect(group)
+        bounds = bordered_group_bounds(group)
         if max(abs(bounds.left()), abs(bounds.right()), abs(bounds.top()), abs(bounds.bottom())) > MAX_OBJECT_COORDINATE:
             raise ModelValidationError("O bloco excede a área segura de edição.")
     if count > MAX_SLOTS:
@@ -320,18 +326,20 @@ def board_bounds(board, *, visible_slots=None):
     bounds = artwork_bounds(board)
     if visible_slots is None:
         for group in board["groups"]:
-            bounds = bounds.united(group_rect(group))
+            bounds = bounds.united(bordered_group_bounds(group))
     else:
+        groups_by_id = {group["id"]: group for group in board["groups"]}
         for slot in visible_slots:
-            bounds = bounds.united(slot[2])
+            bounds = bounds.united(bordered_card_bounds(groups_by_id[slot[0]], slot[2]))
         # Conexões seguem os limites dos conjuntos, mesmo parcialmente ocupados.
         visible = {slot[0] for slot in visible_slots}
         linked = {edge[key] for edge in board["connections"]
                   if edge["source"] in visible and edge["target"] in visible
                   for key in ("source", "target")}
         for group in board["groups"]:
-            if group["id"] in linked:
-                bounds = bounds.united(group_rect(group))
+            if group["id"] in linked or (group["id"] in visible and border_style(group)["group"]
+                                           and border_style(group)["opacity"] > 0):
+                bounds = bounds.united(bordered_group_bounds(group))
     groups = {group["id"]: group for group in board["groups"]}
     visible = set(groups) if visible_slots is None else {slot[0] for slot in visible_slots}
     paths = connector_paths(board)
