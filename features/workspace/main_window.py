@@ -2017,6 +2017,9 @@ class MainWindow(QMainWindow):
         
         signatures = list(signatures or [])
         has_board = organogram is not None
+        self.table_panel.table.set_block_names(
+            [group["name"] for group in organogram["groups"]] if has_board else []
+        )
         column_count = 1 + len(signatures) + int(has_board) + len(placeholders)
         self.table_panel.table.setColumnCount(column_count)
         self.table_panel.table.setHorizontalHeaderItem(0, QTableWidgetItem(quantity_header_label()))
@@ -2035,7 +2038,7 @@ class MainWindow(QMainWindow):
             header = QTableWidgetItem(tr("Bloco"))
             header.setData(BLOCK_DESTINATION_ROLE, True)
             names = ", ".join(group["name"] for group in organogram["groups"])
-            header.setToolTip(tr("Destino do registro no organograma. Use o nome definido no editor.\nBlocos disponíveis: {nomes}").format(nomes=names))
+            header.setToolTip(tr("Clique na célula para escolher o destino do registro no organograma.\nBlocos disponíveis: {nomes}").format(nomes=names))
             self.table_panel.table.setHorizontalHeaderItem(1 + len(signatures), header)
         for offset, placeholder in enumerate(placeholders, start=1 + len(signatures) + int(has_board)):
             self.table_panel.table.setHorizontalHeaderItem(offset, QTableWidgetItem(placeholder))
@@ -2049,7 +2052,7 @@ class MainWindow(QMainWindow):
         status = getattr(self.table_panel, "lbl_board_status", None)
         if status is not None:
             status.setVisible(has_board)
-            status.setText(tr("Preencha Bloco com o nome do destino definido no editor."))
+            status.setText(tr("Escolha o destino na coluna Bloco ou cole os dados da planilha."))
             status.setToolTip("")
 
         self.table_panel.table.setRowCount(1)
@@ -2671,10 +2674,27 @@ class MainWindow(QMainWindow):
             current_imposition = self.cached_model_data.get("imposition_settings") 
             has_any_link = any(box.get("has_link") for box in (self.cached_model_data.get("boxes", []) + self.cached_model_data.get("images", []) + self.cached_model_data.get("shapes", [])))
 
+        from features.generator.organogram import OrganogramRenderer
+        from features.generator.tiled_document import PageTilingRenderer
+        document = self.cached_model_document
+        plain, rich = self._scrape_table_data()
+        provider = getattr(self, '_fornax_asset_provider', None)
+        directory = self.table_panel.txt_dynamic_image_dir.text().strip()
+        if document.get('organogram') is not None:
+            has_data = any(str(value or '').strip() for row in plain for key, value in row.items()
+                           if key != 'modelo' and not key.startswith('__'))
+            tile_renderer = OrganogramRenderer(document, plain, rich, asset_provider=provider,
+                                               dynamic_image_dir=directory, layout_preview=not has_data,
+                                               fixed_layout=True)
+        else:
+            tile_renderer = PageTilingRenderer(document, row_plain=plain[0] if plain else None,
+                row_rich=rich[0] if rich else None, asset_provider=provider, dynamic_image_dir=directory)
+
         dlg = ExportConfigDialog(self, slug, vars_available, self.current_filename_suffix,
                            model_size_px=model_size, 
                            model_print_size_mm=model_print_size_mm,
-                           current_imposition=current_imposition)
+                           current_imposition=current_imposition, tile_renderer=tile_renderer,
+                           current_tiling=self._model_tiling_settings(document))
         
         dlg.set_link_warning_visible(has_any_link)
         
@@ -2686,6 +2706,7 @@ class MainWindow(QMainWindow):
             self._update_template_json({
                 "output_suffix": new_suffix,
                 "imposition_settings": new_imposition,
+                "tiling_settings": dlg.get_tiling_settings(),
             })
 
             msg_imp = tr(" [Imposição ativada]") if new_imposition["enabled"] else ""
@@ -2701,6 +2722,8 @@ class MainWindow(QMainWindow):
                 self._render_current_sheet_preview()
             else:
                 self._start_sheet_preview_preload()
+
+        dlg.deleteLater()
 
     def _open_theme_dialog(self):
         dlg = ThemeDialog(self)
@@ -2911,6 +2934,8 @@ class MainWindow(QMainWindow):
     def _resolve_imposition_settings(self):
         """Resolve a configuração efetiva sem deixar presets contaminarem o modelo base."""
         base_w, base_h = self._get_model_base_print_size_mm()
+        if self._model_tiling_settings(self.cached_model_document or {}).get('tiling'):
+            return {'enabled': False, 'target_w_mm': base_w, 'target_h_mm': base_h}
         imp = (self.cached_model_data or {}).get("imposition_settings", {}) or {}
         presets = imp.get("presets", {}) or {}
         active_name = imp.get("active_preset_name") or self.SYSTEM_IMPOSITION_PRESET
@@ -3145,6 +3170,11 @@ class MainWindow(QMainWindow):
                                       asset_provider, authorized_snapshot)
             return
 
+        if self._model_tiling_settings(document).get('tiling'):
+            self._generate_tiled_pages(document, rows_plain, rows_rich, custom_path,
+                                       asset_provider, authorized_snapshot)
+            return
+
         imposition_cfg = self._resolve_imposition_settings()
         if model_dir is not None:
             for page in document["pages"]:
@@ -3227,72 +3257,85 @@ class MainWindow(QMainWindow):
             self.preview_panel.set_preview_text(tr("Não foi possível gerar a prévia do quadro."))
             self.log_panel.append(str(error))
 
+    def _model_tiling_settings(self, document):
+        configured = document.get('tiling_settings')
+        if isinstance(configured, dict):
+            return copy.deepcopy(configured)
+        # Reaproveita as escolhas da primeira implementação sem exigir migração do arquivo.
+        key = f'workspace/organogram_export/{self.preview_panel.cbo_models.currentData() or slugify_model_name(self.active_model_name)}'
+        try:
+            configured = json.loads(self.settings.value(key, '{}'))
+            if isinstance(configured, dict) and configured:
+                configured.setdefault('auto_orientation', False)
+                return configured
+        except (ValueError, TypeError):
+            pass
+        return {}
+
+    def _start_tiled_generation(self, worker, output_dir):
+        self.manager = worker
+        self._last_forge_output_dir = output_dir
+        worker.progress_updated.connect(self.progress_bar.setValue)
+        worker.log_updated.connect(self.log_panel.append)
+        worker.error_occurred.connect(self._on_generation_error)
+        worker.finished_process.connect(self._on_generation_finished)
+        self._generation_failed = False
+        self.btn_generate_cards.setEnabled(False)
+        self.btn_generate_cards.setText(tr("Gerando… Aguarde"))
+        self.progress_bar.setValue(0)
+        self.start_time = time.time()
+        self.log_panel.append(tr("📂 Salvando em: {pasta}").format(pasta=output_dir.name))
+        worker.start()
+
     def _generate_organogram(self, document, rows_plain, rows_rich, output_path,
                              asset_provider, authorized_snapshot):
-        from PySide6.QtWidgets import QDialog, QFormLayout, QDialogButtonBox
         from features.generator.organogram import OrganogramWorker, OrganogramRenderer
-        from core.dialog_buttons import style_dialog_button_box
-        directory = document.get("__dynamic_image_dir")
+        from features.generator.tiled_document import tiling_options
         try:
+            directory = document.get("__dynamic_image_dir")
             renderer = OrganogramRenderer(document, rows_plain, rows_rich,
-                                         asset_provider=asset_provider, dynamic_image_dir=directory)
+                                         asset_provider=asset_provider, dynamic_image_dir=directory, fixed_layout=True)
             if renderer.assignment_issues:
                 raise ValueError(tr("Corrija a distribuição dos registros antes de gerar:\n{pendencias}").format(pendencias=assignment_issue_text(renderer.assignment_issues)))
             if not renderer.slots:
                 raise ValueError(tr("Não há cartões com informações válidas nos blocos do quadro."))
-            dialog = QDialog(self)
-            dialog.setWindowTitle(tr("Gerar organograma"))
-            layout = QFormLayout(dialog)
-            size = renderer.bounds
-            layout.addRow(QLabel(tr("Tamanho: {largura:.1f} × {altura:.1f} mm · {quantidade} cartões").format(
-                largura=size.width() * 25.4 / 300, altura=size.height() * 25.4 / 300,
-                quantidade=len(renderer.slots))))
-            mode = QComboBox()
-            for label, key in ((tr("PDF no tamanho do quadro"), "pdf"),
-                               (tr("PDF em mosaico A4"), "a4"),
-                               (tr("PDF em mosaico A3"), "a3"), (tr("Imagem PNG"), "png")):
-                mode.addItem(label, key)
-            dpi = QComboBox()
-            dpi.addItem("150 dpi", 150)
-            dpi.addItem("300 dpi", 300)
-            dpi.setEnabled(False)
-            mode.currentIndexChanged.connect(lambda *_: dpi.setEnabled(mode.currentData() == "png"))
-            layout.addRow(tr("Saída"), mode)
-            layout.addRow(tr("Resolução do PNG"), dpi)
-            hint = QLabel(tr("O mosaico mantém o tamanho dos cartões, com margens de 10 mm e sobreposição de 5 mm. Links dos cartões são preservados no PDF."))
-            hint.setWordWrap(True)
-            layout.addRow(hint)
-            buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-            style_dialog_button_box(buttons)
-            layout.addRow(buttons)
-            buttons.accepted.connect(dialog.accept)
-            buttons.rejected.connect(dialog.reject)
-            if dialog.exec() != QDialog.DialogCode.Accepted:
-                if authorized_snapshot:
-                    authorized_snapshot.close()
-                return
+            configuration = self._model_tiling_settings(document)
+            options = tiling_options(configuration, renderer.bounds)
+            if options is not None:
+                from core.tiling import build_tile_plan
+                build_tile_plan(renderer.bounds, **options)
             output_dir, _number = create_forge_output_dir(Path(output_path), self.settings)
-            self._last_forge_output_dir = output_dir
-            self.manager = OrganogramWorker(
-                document, rows_plain, rows_rich, output_dir, mode.currentData(), dpi=dpi.currentData(),
-                asset_provider=asset_provider, dynamic_image_dir=directory,
-                authorized_snapshot=authorized_snapshot, parent=self,
-            )
-            self.manager.progress_updated.connect(self.progress_bar.setValue)
-            self.manager.log_updated.connect(self.log_panel.append)
-            self.manager.error_occurred.connect(self._on_generation_error)
-            self.manager.finished_process.connect(self._on_generation_finished)
-            self._generation_failed = False
-            self.btn_generate_cards.setEnabled(False)
-            self.btn_generate_cards.setText(tr("Gerando… Aguarde"))
-            self.progress_bar.setValue(0)
-            self.start_time = time.time()
-            self.log_panel.append(tr("📂 Salvando em: {pasta}").format(pasta=output_dir.name))
-            self.manager.start()
+            mode = self.cbo_export_format.currentData()
+            worker = OrganogramWorker(document, rows_plain, rows_rich, output_dir,
+                'png' if mode == 'png' else 'pdf', dpi=configuration.get('dpi', 150),
+                tiling_options=options, separate_files=mode == 'pdf_item', asset_provider=asset_provider,
+                dynamic_image_dir=directory, authorized_snapshot=authorized_snapshot, parent=self)
+            self._start_tiled_generation(worker, output_dir)
         except Exception as error:
             if authorized_snapshot:
                 authorized_snapshot.close()
             QMessageBox.warning(self, tr("Não foi possível gerar o quadro"), str(error))
+
+    def _generate_tiled_pages(self, document, rows_plain, rows_rich, output_path,
+                              asset_provider, authorized_snapshot):
+        from features.generator.tiled_document import TiledDocumentWorker, PageTilingRenderer, tiling_options
+        from core.tiling import build_tile_plan
+        try:
+            options = tiling_options(self._model_tiling_settings(document))
+            renderer = PageTilingRenderer(document, asset_provider=asset_provider)
+            build_tile_plan(renderer.bounds, **tiling_options(self._model_tiling_settings(document), renderer.bounds))
+            output_dir, _number = create_forge_output_dir(Path(output_path), self.settings)
+            worker = TiledDocumentWorker(document, rows_plain, rows_rich, output_dir,
+                self.cbo_export_format.currentData(), options=options,
+                dpi=self._model_tiling_settings(document).get('dpi', 150),
+                pattern=self.current_filename_suffix or '{modelo}', asset_provider=asset_provider,
+                dynamic_image_dir=document.get('__dynamic_image_dir'),
+                authorized_snapshot=authorized_snapshot, parent=self)
+            self._start_tiled_generation(worker, output_dir)
+        except Exception as error:
+            if authorized_snapshot:
+                authorized_snapshot.close()
+            QMessageBox.warning(self, tr("Não foi possível gerar os ladrilhos"), str(error))
 
     def _on_generation_error(self, message):
         self._generation_failed = True
@@ -3363,6 +3406,11 @@ class MainWindow(QMainWindow):
                     imp_settings["enabled"] = False
                     self._update_template_json({"imposition_settings": imp_settings})
 
+        tiled = self._model_tiling_settings(self.cached_model_document or {})
+        if tiled:
+            self.cbo_presets_main.addItem(tr('Ladrilhos'), '__tiling__')
+            if tiled.get('tiling'):
+                self.cbo_presets_main.setCurrentIndex(self.cbo_presets_main.findData('__tiling__'))
         self.cbo_presets_main.blockSignals(False)
         self._refresh_main_preset_tooltip()
 
@@ -3372,13 +3420,23 @@ class MainWindow(QMainWindow):
         if not self.cached_model_data or index < 0: return
         
         name = self._main_preset_name_at(index)
+        tiled = self._model_tiling_settings(self.cached_model_document or {})
+        if name == '__tiling__':
+            tiled['tiling'] = True
+            self._update_template_json({'tiling_settings': tiled})
+            self._refresh_main_preset_tooltip()
+            self._invalidate_sheet_previews()
+            self._refresh_preview_navigation()
+            self._on_table_selection()
+            return
+        tiled['tiling'] = False
         
         imp = self.cached_model_data.setdefault("imposition_settings", {})
 
         if name == SYSTEM_PRESET:
             imp["enabled"] = False
             imp["active_preset_name"] = SYSTEM_PRESET
-            self._update_template_json({"imposition_settings": imp})
+            self._update_template_json({"imposition_settings": imp, "tiling_settings": tiled})
             self.log_panel.append(tr("⚡ Layout aplicado: <b>{nome}</b>").format(nome=tr(SYSTEM_PRESET)))
             self._refresh_main_preset_tooltip()
             self._invalidate_sheet_previews()
@@ -3390,7 +3448,7 @@ class MainWindow(QMainWindow):
         presets = imp.get("presets", {}) or {}
         if name in presets:
             imp["active_preset_name"] = name
-            self._update_template_json({"imposition_settings": imp})
+            self._update_template_json({"imposition_settings": imp, "tiling_settings": tiled})
             self.log_panel.append(tr("⚡ Layout aplicado: <b>{nome}</b>").format(nome=name))
         self._refresh_main_preset_tooltip()
         self._invalidate_sheet_previews()
@@ -3410,6 +3468,9 @@ class MainWindow(QMainWindow):
             return
 
         name = self._main_preset_name_at(self.cbo_presets_main.currentIndex())
+        if name == '__tiling__':
+            self.cbo_presets_main.setToolTip(tr('Impressão em ladrilhos. Ajuste papel, tamanho e posição nas configurações de geração.'))
+            return
         imp_settings = self.cached_model_data.get("imposition_settings", {}) or {}
         preset = (imp_settings.get("presets", {}) or {}).get(name, {})
         model_w, model_h = self._get_model_base_print_size_mm()

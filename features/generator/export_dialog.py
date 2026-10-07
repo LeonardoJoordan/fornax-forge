@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QLabel, QLineEdit,
                                QDialogButtonBox, QCheckBox, QGroupBox, QDoubleSpinBox,
                                QWidget, QScrollArea,
                                QComboBox, QMessageBox)
+from copy import deepcopy
 from PySide6.QtCore import Qt
 from .imposition import SheetAssembler
 from .preset_warnings import warning_display_name, warning_tooltip, with_model_ratio_snapshot
@@ -14,9 +15,9 @@ class ConfigDialog(QDialog):
     def __init__(self, parent, model_slug: str, available_vars: list[str], 
                  current_pattern: str = "", model_size_px: tuple[int, int] = (1000, 1000),
                  model_print_size_mm: tuple[float, float] = None,
-                 current_imposition: dict = None):
+                 current_imposition: dict = None, tile_renderer=None, current_tiling=None):
         super().__init__(parent)
-        self.setWindowTitle(tr("Configurações de exportação"))
+        self.setWindowTitle(tr("Configurações de geração"))
         self.resize(640, 760)
         
         self.model_slug = model_slug
@@ -36,7 +37,9 @@ class ConfigDialog(QDialog):
             "presets": {}, "active_preset_name": ""
         }
         self._original_enabled = self.imposition_settings.get("enabled", False)
-        self.presets = self.imposition_settings.get("presets", {}) or {}
+        self.presets = deepcopy(self.imposition_settings.get("presets", {}) or {})
+        self._initial_tiling = current_tiling or {}
+        self.tiling_panel = None
         self.active_preset_name = self.imposition_settings.get("active_preset_name", "") or self.SYSTEM_PRESET_NAME
         if self.active_preset_name not in self.presets:
             self.active_preset_name = self.SYSTEM_PRESET_NAME
@@ -238,6 +241,15 @@ class ConfigDialog(QDialog):
         self._load_presets_ui()
         
         ly_print.addWidget(self.container_imposition)
+        if tile_renderer is not None:
+            from .tiling_panel import TilingPanel
+            self.resize(980, 800)
+            self.tiling_panel = TilingPanel(tile_renderer, initial=self._initial_tiling)
+            ly_print.addWidget(self.tiling_panel)
+            self.tiling_panel.tiling.toggled.connect(self._toggle_tiling)
+            self.tiling_panel.changed.connect(self._update_capacity_preview)
+            if self.tiling_panel.tiling.isChecked():
+                self.chk_imposition.setChecked(False)
         print_group = QGroupBox(tr("Impressão"))
         print_layout = QVBoxLayout(print_group)
         print_layout.setContentsMargins(8, 10, 8, 8)
@@ -265,6 +277,14 @@ class ConfigDialog(QDialog):
         self._update_capacity_preview()
     def get_pattern(self):
         return self.result_pattern
+
+    def get_tiling_settings(self):
+        return self.tiling_panel.configuration() if self.tiling_panel else self._initial_tiling
+
+    def _toggle_tiling(self, enabled):
+        if enabled:
+            self.chk_imposition.setChecked(False)
+        self._update_capacity_preview()
     
     def get_imposition_settings(self):
         return {
@@ -319,7 +339,14 @@ class ConfigDialog(QDialog):
 
     def _update_capacity_preview(self):
         """Calcula dinamicamente quantos itens cabem e valida se o modelo cabe na folha."""
+        if self.tiling_panel is not None and self.tiling_panel.tiling.isChecked():
+            self.lbl_capacity.clear()
+            self.lbl_imposition_hint.setText(tr('Ajuste o tamanho final e arraste o desenho na prévia para posicionar os cortes.'))
+            themed_style(self.lbl_imposition_hint, 'color: @muted@; font-style: italic; padding-left: 4px;')
+            self.buttonBox.button(QDialogButtonBox.StandardButton.Ok).setEnabled(self.tiling_panel.valid)
+            return
         if not self.chk_imposition.isChecked():
+            self._toggle_imposition_ui(False)
             self.lbl_capacity.setText(tr("Imposição desativada (1 item por arquivo)"))
             themed_style(self.lbl_capacity, "color: gray;")
             self.buttonBox.button(QDialogButtonBox.StandardButton.Ok).setEnabled(True)
@@ -349,6 +376,10 @@ class ConfigDialog(QDialog):
             ok_button.setEnabled(False)
 
     def _on_accept(self):
+        if self.tiling_panel:
+            self.tiling_panel.interpret_controls()
+            if not self.tiling_panel.valid:
+                return
         # Auto-save inteligente das configurações
         if self.active_preset_name == self.SYSTEM_PRESET_NAME:
             # Se ativou imposição no preset de sistema, assumimos que algo foi customizado
@@ -373,7 +404,7 @@ class ConfigDialog(QDialog):
                     
                 self.presets[final_name] = self._get_current_settings()
                 self.active_preset_name = final_name
-        else:
+        elif not (self.tiling_panel and self.tiling_panel.tiling.isChecked()):
             # Se já está em um preset do usuário, salva silenciosamente (auto-save fluido)
             self.presets[self.active_preset_name] = self._get_current_settings()
 
@@ -527,6 +558,8 @@ class ConfigDialog(QDialog):
             self._load_presets_ui()
 
     def _toggle_imposition_ui(self, enabled):
+        if enabled and self.tiling_panel is not None:
+            self.tiling_panel.tiling.setChecked(False)
         self.container_imposition.setVisible(enabled)
         if enabled:
             if self.active_preset_name == self.SYSTEM_PRESET_NAME:
@@ -536,6 +569,11 @@ class ConfigDialog(QDialog):
         else:
             self.lbl_imposition_hint.setText(tr("ℹ️ O arquivo gerado terá as dimensões exatas do modelo original (1 item por arquivo)."))
             themed_style(self.lbl_imposition_hint, "color: gray; font-style: italic; padding-left: 4px;")
+
+    def done(self, result):
+        if self.tiling_panel:
+            self.tiling_panel.stop_preview()
+        super().done(result)
 
     def _insert_variable(self, var_name):
         self.txt_pattern.insert(f"{{{var_name}}}")

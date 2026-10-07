@@ -1,8 +1,9 @@
 from io import BytesIO
 from pathlib import Path
 
-from pypdf import PdfReader, PdfWriter
+from pypdf import PdfReader, PdfWriter, Transformation
 from pypdf.annotations import Link
+from pypdf.generic import RectangleObject
 
 
 def _pdf_link_rect(page, rect, canvas_width, canvas_height):
@@ -33,15 +34,17 @@ def _pdf_link_rect(page, rect, canvas_width, canvas_height):
 
 
 def inject_pdf_links(
-    pdf_path, links_by_page, canvas_width, canvas_height, *, memory_only=False,
+    pdf_path, links_by_page, canvas_width, canvas_height, *, memory_only=False, page_labels=None,
+    page_size_mm=None,
 ):
     """Adiciona hyperlinks a um PDF pronto.
 
     ``links_by_page`` mapeia o índice (base zero) de cada página para uma lista
     de dicionários com ``rect`` (QRectF) e ``url``. O modo comum usa troca
     atômica; ``memory_only`` evita criar uma segunda cópia sensível no disco.
+    Os opcionais identificam páginas e corrigem o tamanho físico sem redimensionar a arte.
     """
-    if not links_by_page:
+    if not links_by_page and not page_labels and page_size_mm is None:
         return 0
 
     pdf_path = Path(pdf_path)
@@ -53,6 +56,17 @@ def inject_pdf_links(
             reader = PdfReader(source_file)
             writer = PdfWriter()
             writer.clone_document_from_reader(reader)
+            if page_size_mm is not None:
+                width, height = (value * 72 / 25.4 for value in page_size_mm)
+                for page in writer.pages:
+                    # QPageSize arredonda para pontos inteiros. Corrige o papel
+                    # mantendo a escala e a posição do desenho a partir do topo.
+                    offset_y = height - float(page.mediabox.height)
+                    page.add_transformation(Transformation().translate(ty=offset_y))
+                    page.mediabox = RectangleObject((0, 0, width, height))
+                    page.cropbox = RectangleObject((0, 0, width, height))
+            for page_index, label in enumerate(page_labels or []):
+                writer.set_page_label(page_index, page_index, prefix=label)
 
             for raw_page_index, links in links_by_page.items():
                 page_index = int(raw_page_index)
@@ -80,7 +94,7 @@ def inject_pdf_links(
                     )
                     inserted_links += 1
 
-            if inserted_links:
+            if inserted_links or page_labels or page_size_mm is not None:
                 if memory_only:
                     output = BytesIO()
                     writer.write(output)
@@ -89,7 +103,7 @@ def inject_pdf_links(
                     with temp_path.open("wb") as output_file:
                         writer.write(output_file)
 
-        if inserted_links:
+        if inserted_links or page_labels or page_size_mm is not None:
             if memory_only:
                 pdf_path.write_bytes(rewritten)
             else:

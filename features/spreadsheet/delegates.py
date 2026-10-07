@@ -1,11 +1,14 @@
 import re
 from PySide6.QtWidgets import (QStyledItemDelegate, QStyle, QStyleOptionViewItem,
-                               QApplication, QTextEdit, QToolTip, QAbstractItemDelegate)
-from PySide6.QtGui import (QTextDocument, QPalette, QTextCursor, QFont, QPen, QColor,
+                               QApplication, QTextEdit, QToolTip, QAbstractItemDelegate, QComboBox)
+from PySide6.QtGui import (QTextDocument, QPalette, QTextCursor, QFont, QPen, QColor, QKeySequence,
                            QTextOption, QPainter)
-from PySide6.QtCore import Qt, QEvent, QRectF, QRect, QPointF
-from core.themes import theme_color
+from PySide6.QtCore import Qt, QEvent, QRectF, QRect, QPointF, Signal
+from core.themes import theme_color, themed_style
 from core.html_utils import TextOnlyDocument, sanitize_text_html
+from core.i18n import tr
+from core.organogram import block_name_key
+from .headers import is_block_header
 
 
 RICH_TEXT_STYLESHEET = "b, strong { font-weight: 800; }"
@@ -85,6 +88,29 @@ class RichTextEditor(QTextEdit):
         fmt.setFontUnderline(not fmt.fontUnderline())
         self.mergeCurrentCharFormat(fmt)
 
+class BlockSelector(QComboBox):
+    pasteRequested = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName('blockDestinationEditor')
+        themed_style(self, '''
+            QComboBox#blockDestinationEditor {
+                min-height: 0; min-width: 0; padding: 0 24px 0 7px;
+                border: 1px solid @accent@; border-radius: 0;
+                background: @field@; color: @text@; combobox-popup: 0;
+            }
+        ''')
+        self._popup_view = self.view()
+        self._popup_view.installEventFilter(self)
+
+    def eventFilter(self, watched, event):
+        if (watched == self._popup_view and event.type() == QEvent.Type.KeyPress
+                and event.matches(QKeySequence.StandardKey.Paste)):
+            self.pasteRequested.emit()
+            return True
+        return super().eventFilter(watched, event)
+
 class HTMLDelegate(QStyledItemDelegate):
     @staticmethod
     def _is_checked(value):
@@ -102,6 +128,11 @@ class HTMLDelegate(QStyledItemDelegate):
         )
 
     def eventFilter(self, editor, event):
+        if isinstance(editor, QComboBox) and event.type() == QEvent.Type.KeyPress:
+            if event.matches(QKeySequence.StandardKey.Paste):
+                # A colagem continua indo para a tabela inteira, mesmo com o menu aberto.
+                self._paste_block_data(editor)
+                return True
         if isinstance(editor, RichTextEditor) and event.type() == QEvent.Type.KeyPress:
             if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
                 if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
@@ -136,6 +167,11 @@ class HTMLDelegate(QStyledItemDelegate):
         check_state = index.data(Qt.ItemDataRole.CheckStateRole)
         if check_state is not None:
             self._paint_centered_check(painter, options, index, check_state, style)
+            return
+
+        if is_block_header(self.parent().horizontalHeaderItem(index.column())):
+            self._paint_block_cell(painter, options, index, style)
+            self._paint_current(painter, options, index)
             return
 
         rich_text = index.data(Qt.ItemDataRole.UserRole)
@@ -179,6 +215,31 @@ class HTMLDelegate(QStyledItemDelegate):
         doc.drawContents(painter)
         painter.restore()
         self._paint_current(painter, options, index)
+
+    def _paint_block_cell(self, painter, options, index, style):
+        style.drawPrimitive(QStyle.PrimitiveElement.PE_PanelItemViewItem,
+                            options, painter, options.widget)
+        label = QStyleOptionViewItem(options)
+        label.rect.adjust(0, 0, -22, 0)
+        label.features |= QStyleOptionViewItem.ViewItemFeature.HasDisplay
+        label.features &= ~QStyleOptionViewItem.ViewItemFeature.WrapText
+        label.displayAlignment = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        text = str(index.data(Qt.ItemDataRole.DisplayRole) or '')
+        label.text = text if text.strip() else tr('Selecione um bloco')
+        if not text.strip():
+            muted = QColor(theme_color('muted'))
+            label.palette.setColor(QPalette.ColorRole.Text, muted)
+            label.palette.setColor(QPalette.ColorRole.HighlightedText, muted)
+        style.drawControl(QStyle.ControlElement.CE_ItemViewItem, label, painter, options.widget)
+        center = options.rect.center()
+        x, y = options.rect.right() - 12, center.y()
+        painter.save()
+        color = (options.palette.color(QPalette.ColorRole.HighlightedText)
+                 if options.state & QStyle.StateFlag.State_Selected else QColor(theme_color('muted')))
+        painter.setPen(QPen(color, 1.5, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap,
+                            Qt.PenJoinStyle.RoundJoin))
+        painter.drawPolyline([QPointF(x - 4, y - 2), QPointF(x, y + 2), QPointF(x + 4, y - 2)])
+        painter.restore()
 
     def _paint_centered_check(self, painter, options, index, check_state, style):
         style.drawPrimitive(
@@ -295,6 +356,15 @@ class HTMLDelegate(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         if index.data(Qt.ItemDataRole.CheckStateRole) is not None:
             return None
+        if is_block_header(self.parent().horizontalHeaderItem(index.column())):
+            editor = BlockSelector(parent)
+            editor.addItem(tr("Sem bloco"), "")
+            for name in self.parent().block_names:
+                editor.addItem(name, name)
+            editor.setMaxVisibleItems(12)
+            editor.activated.connect(self._commit_block_editor)
+            editor.pasteRequested.connect(self._paste_block_editor)
+            return editor
         editor = RichTextEditor(parent)
         # Se for a coluna 0 (Cópias), força o alinhamento central no editor
         if index.column() == 0:
@@ -302,9 +372,21 @@ class HTMLDelegate(QStyledItemDelegate):
         return editor
     
     def updateEditorGeometry(self, editor, option, index):
-        editor.setGeometry(option.rect)
+        if isinstance(editor, BlockSelector):
+            editor.setFont(option.font)
+            editor.setGeometry(option.rect.adjusted(1, 1, -1, -1))
+        else:
+            editor.setGeometry(option.rect)
 
     def setEditorData(self, editor, index):
+        if isinstance(editor, QComboBox):
+            editor.setProperty("blockActivated", False)
+            text = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
+            selected = next((i for i in range(1, editor.count())
+                             if block_name_key(editor.itemData(i)) == block_name_key(text)), -1)
+            editor.setPlaceholderText(text or tr("Selecione um bloco"))
+            editor.setCurrentIndex(selected)
+            return
         html = index.data(Qt.ItemDataRole.UserRole)
         text = index.data(Qt.ItemDataRole.DisplayRole)
         if html:
@@ -314,6 +396,13 @@ class HTMLDelegate(QStyledItemDelegate):
         editor.moveCursor(QTextCursor.MoveOperation.End)
 
     def setModelData(self, editor, model, index):
+        if isinstance(editor, QComboBox):
+            # Abrir e cancelar o menu não corrige nem apaga um nome colado.
+            if editor.property("blockActivated"):
+                value = editor.currentData()
+                model.setData(index, None, Qt.ItemDataRole.UserRole)
+                model.setData(index, value, Qt.ItemDataRole.DisplayRole)
+            return
         raw_html = editor.toHtml()
         html_content_only = re.sub(r'<(head|style|script)[^>]*>.*?</\1>', '', raw_html, flags=re.IGNORECASE | re.DOTALL)
         plain = editor.toPlainText()
@@ -324,3 +413,17 @@ class HTMLDelegate(QStyledItemDelegate):
         
         model.setData(index, clean_html, Qt.ItemDataRole.UserRole)
         model.setData(index, plain, Qt.ItemDataRole.DisplayRole)
+
+    def _commit_block_editor(self, _):
+        editor = self.sender()
+        editor.setProperty("blockActivated", True)
+        self.commitData.emit(editor)
+        self.closeEditor.emit(editor, QAbstractItemDelegate.EndEditHint.NoHint)
+
+    def _paste_block_editor(self):
+        self._paste_block_data(self.sender())
+
+    def _paste_block_data(self, editor):
+        editor.hidePopup()
+        self.closeEditor.emit(editor, QAbstractItemDelegate.EndEditHint.NoHint)
+        self.parent()._paste_from_clipboard()

@@ -3,13 +3,13 @@ import re
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTableWidget, 
                                QTableWidgetItem, QApplication, QMenu, QPushButton, QSpinBox,
                                QAbstractItemView, QHeaderView, QStyle,
-                               QStyleOptionHeader)
+                               QStyleOptionHeader, QComboBox)
 from PySide6.QtGui import QKeySequence, QFontMetrics, QAction
 from PySide6.QtCore import Qt, QTimer, QRect, Signal, QSignalBlocker
 
 from .clipboard import parse_clipboard_html_table, parse_tsv, parse_clipboard_html_fragment
 from .delegates import HTMLDelegate
-from .headers import is_quantity_header, is_signature_header
+from .headers import is_quantity_header, is_signature_header, is_block_header
 from core.i18n import tr
 
 
@@ -126,6 +126,8 @@ class RichTableWidget(QTableWidget):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.block_names = ()
+        self._block_press_position = None
         header = DataHeaderView(self)
         self.setHorizontalHeader(header)
         header.signatureIconClicked.connect(self.toggle_signature_column)
@@ -144,6 +146,33 @@ class RichTableWidget(QTableWidget):
         self.model().rowsInserted.connect(
             lambda parent, first, last: self._queue_row_height_update(range(first, last + 1))
         )
+
+    def set_block_names(self, names):
+        self.block_names = tuple(names)
+
+    def mousePressEvent(self, event):
+        self._block_press_position = (
+            event.position().toPoint()
+            if event.button() == Qt.MouseButton.LeftButton else None
+        )
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        pressed = self._block_press_position
+        self._block_press_position = None
+        position = event.position().toPoint()
+        index = self.indexAt(position)
+        super().mouseReleaseEvent(event)
+        if (pressed is not None and event.button() == Qt.MouseButton.LeftButton
+                and event.modifiers() == Qt.KeyboardModifier.NoModifier
+                and (position - pressed).manhattanLength() < QApplication.startDragDistance()
+                and index.isValid() and index == self.indexAt(pressed)
+                and is_block_header(self.horizontalHeaderItem(index.column()))
+                and len(self.selectedIndexes()) == 1):
+            self.edit(index)
+            editor = self.indexWidget(index)
+            if isinstance(editor, QComboBox):
+                editor.showPopup()
 
     def toggle_signature_column(self, column):
         """Marca todas quando houver alguma desmarcada; senão, desmarca todas."""

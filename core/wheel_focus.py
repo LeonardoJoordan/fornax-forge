@@ -2,6 +2,7 @@
 
 from PySide6.QtCore import QObject, QEvent, Qt
 from PySide6.QtWidgets import QAbstractScrollArea, QAbstractSpinBox, QComboBox, QWidget
+from shiboken6 import isValid
 
 
 class WheelFocusGuard(QObject):
@@ -13,23 +14,32 @@ class WheelFocusGuard(QObject):
 
     @staticmethod
     def _selector_for(widget):
-        while isinstance(widget, QWidget):
+        while isinstance(widget, QWidget) and isValid(widget):
             if isinstance(widget, (QComboBox, QAbstractSpinBox)):
                 return widget
             widget = widget.parentWidget()
         return None
 
     def _belongs_to_combo_popup(self, widget):
+        # Editores de células são destruídos ao confirmar/cancelar a seleção.
+        # A referência Python pode sobreviver ao controle nativo do Qt.
+        if self._armed is not None and not isValid(self._armed):
+            self._armed = None
         if not isinstance(self._armed, QComboBox):
             return False
         popup = self._armed.view()
-        while isinstance(widget, QWidget):
-            if widget is popup or widget is popup.viewport():
+        viewport = popup.viewport()
+        while isinstance(widget, QWidget) and isValid(widget):
+            if widget is popup or widget is viewport:
                 return True
             widget = widget.parentWidget()
         return False
 
     def eventFilter(self, watched, event):
+        if self._armed is not None and not isValid(self._armed):
+            self._armed = None
+        if not isValid(watched):
+            return False
         kind = event.type()
         selector = self._selector_for(watched)
         if kind == QEvent.Type.Polish and selector is not None:

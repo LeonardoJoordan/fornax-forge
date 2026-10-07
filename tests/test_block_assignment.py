@@ -11,7 +11,8 @@ import zipfile
 from unittest.mock import patch
 
 from PySide6.QtCore import Qt, QSettings, QTimer
-from PySide6.QtWidgets import QApplication, QLabel, QLineEdit, QDialogButtonBox
+from PySide6.QtWidgets import QApplication, QLabel, QLineEdit, QDialogButtonBox, QComboBox
+from PySide6.QtTest import QTest
 from pypdf import PdfReader
 
 from core.fornax_container import save_public_fornax, save_protected_fornax, unlock_fornax, FULL_MODE, open_public_fornax
@@ -73,6 +74,113 @@ class BlockAssignmentTest(unittest.TestCase):
         table._paste_from_clipboard()
         window._refresh_preview_after_data_change()
         return table
+
+    def open_block_menu(self, table, row=0):
+        table.resize(650, 300)
+        table.show()
+        self.app.processEvents()
+        index = table.model().index(row, 1)
+        point = table.visualRect(index).center()
+        QTest.mouseClick(table.viewport(), Qt.MouseButton.LeftButton, pos=point)
+        self.app.processEvents()
+        editor = table.indexWidget(index)
+        self.assertIsInstance(editor, QComboBox)
+        self.assertTrue(editor.view().isVisible())
+        return editor
+
+    def test_single_click_selects_available_block_and_can_clear_destination(self):
+        window, _, _ = self.workspace()
+        table = window.table_panel.table
+        editor = self.open_block_menu(table)
+        self.assertFalse(editor.isEditable())
+        self.assertEqual([editor.itemData(i) for i in range(editor.count())],
+                         ['', 'SetorX', 'Comando'])
+        QTest.keyClick(editor.view(), Qt.Key.Key_End)
+        QTest.keyClick(editor.view(), Qt.Key.Key_Return)
+        self.assertEqual(table.item(0, 1).text(), 'Comando')
+        self.assertIsNone(table.item(0, 1).data(table.RICH_ROLE))
+        editor = self.open_block_menu(table)
+        QTest.keyClick(editor.view(), Qt.Key.Key_Home)
+        QTest.keyClick(editor.view(), Qt.Key.Key_Return)
+        self.assertEqual(table.item(0, 1).text(), '')
+
+    def test_destination_editor_fits_compact_cell_with_real_workspace_style(self):
+        from core.themes import theme_manager, themed_style
+        from features.workspace.frontend import STYLE
+        document = self.document()
+        document['organogram']['groups'][0]['name'] = 'Setor com um nome longo que ultrapassa a largura da coluna'
+        window, _, _ = self.workspace(document)
+        table = window.table_panel.table
+        themed_style(window, STYLE)
+        manager = theme_manager()
+        previous = manager.theme_id, manager.current
+        self.addCleanup(lambda: manager.select(previous[0], previous[1]))
+        for theme in ('dark', 'light'):
+            manager.select(theme)
+            table.setRowHeight(0, 25)
+            editor = self.open_block_menu(table)
+            cell = table.visualRect(table.model().index(0, 1))
+            self.assertTrue(cell.contains(editor.geometry()), (theme, cell, editor.geometry()))
+            self.assertLessEqual(editor.view().window().width(), cell.width())
+            self.assertEqual(editor.currentIndex(), -1)
+            self.assertEqual(editor.placeholderText(), 'Selecione um bloco')
+            self.assertIsNone(table.item(0, 1))
+            QTest.keyClick(editor.view(), Qt.Key.Key_Escape)
+            QTest.keyClick(editor, Qt.Key.Key_Escape)
+
+    def test_repeated_menu_selection_with_application_wheel_guard_has_no_exceptions(self):
+        from core.wheel_focus import WheelFocusGuard
+        from shiboken6 import isValid
+        from PySide6.QtCore import QEvent
+        window, _, _ = self.workspace()
+        table = window.table_panel.table
+        guard = WheelFocusGuard(self.app)
+        self.app.installEventFilter(guard)
+        self.addCleanup(guard.deleteLater)
+        self.addCleanup(lambda: self.app.removeEventFilter(guard))
+        errors = []
+        with patch('sys.excepthook', lambda *args: errors.append(args)):
+            for _ in range(5):
+                editor = self.open_block_menu(table)
+                view = editor.view()
+                point = view.visualRect(view.model().index(1, 0)).center()
+                QTest.mouseClick(view.viewport(), Qt.MouseButton.LeftButton, pos=point)
+                self.assertEqual(table.item(0, 1).text(), 'SetorX')
+                self.app.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+                self.assertFalse(isValid(editor))
+                point = table.visualRect(table.model().index(0, 2)).center()
+                QTest.mouseClick(table.viewport(), Qt.MouseButton.LeftButton, pos=point)
+                self.assertIsNone(guard._armed)
+        self.assertEqual(errors, [])
+
+    def test_menu_cancellation_preserves_unknown_and_normalized_pasted_destinations(self):
+        window, _, _ = self.workspace()
+        table = self.paste(window, 'Inexistente\tAna\n setorx \tBruno')
+        for row, selected in ((0, -1), (1, 1)):
+            expected = table.item(row, 1).text()
+            editor = self.open_block_menu(table, row)
+            self.assertEqual(editor.currentIndex(), selected)
+            QTest.keyClick(editor.view(), Qt.Key.Key_Escape)
+            QTest.keyClick(editor, Qt.Key.Key_Escape)
+            self.assertEqual(table.item(row, 1).text(), expected)
+
+    def test_spreadsheet_paste_works_while_destination_menu_is_open(self):
+        window, _, _ = self.workspace()
+        table = window.table_panel.table
+        editor = self.open_block_menu(table)
+        self.app.clipboard().setText('SetorX\tAna\tAnalista\nComando\tBruno\tDiretor')
+        QTest.keyClick(editor.view(), Qt.Key.Key_V, Qt.KeyboardModifier.ControlModifier)
+        self.assertEqual(table.rowCount(), 2)
+        self.assertEqual(table.item(0, 1).text(), 'SetorX')
+        self.assertEqual(table.item(1, 1).text(), 'Comando')
+        self.assertEqual(table.item(1, 2).text(), 'Bruno')
+        self.app.processEvents()
+        table.setCurrentCell(0, 1)
+        point = table.visualRect(table.model().index(1, 1)).center()
+        QTest.mouseClick(table.viewport(), Qt.MouseButton.LeftButton,
+                         Qt.KeyboardModifier.ShiftModifier, pos=point)
+        self.assertGreater(len(table.selectedIndexes()), 1)
+        self.assertIsNone(table.indexWidget(table.model().index(1, 1)))
 
     def test_real_spreadsheet_paste_routes_interleaved_rows_and_pdf_uses_same_plan(self):
         window, _, _ = self.workspace()
@@ -145,6 +253,9 @@ class BlockAssignmentTest(unittest.TestCase):
         self.assertEqual(plain[0][BLOCK_DESTINATION_KEY], "SetorX")
         self.assertEqual(plain[0]["Bloco"], "Conteúdo do cartão")
         self.assertEqual(len(list(assigned_slots(window.cached_model_document, plain, rich))), 1)
+        table.edit(table.model().index(0, placeholder_col))
+        from features.spreadsheet.delegates import RichTextEditor
+        self.assertIsInstance(table.indexWidget(table.model().index(0, placeholder_col)), RichTextEditor)
 
     def test_duplicate_and_blank_names_are_rejected_in_model_validation(self):
         for name in (" setorx ", "SETORX", "", "   "):
@@ -295,6 +406,7 @@ class BlockAssignmentTest(unittest.TestCase):
         self.assertEqual(table.item(1, 1).text(), "Chefia")
         self.assertEqual(table.item(0, 2).text(), "Ana")
         self.assertEqual(table.item(1, 2).text(), "Bruno")
+        self.assertEqual(table.block_names, ('Novo setor', 'Chefia'))
         plain, rich = window._scrape_table_data()
         self.assertEqual(assignment_plan(window.cached_model_document, plain, rich)[1], [])
 
@@ -304,6 +416,7 @@ class BlockAssignmentTest(unittest.TestCase):
         self.assertFalse(any(is_block_header(table.horizontalHeaderItem(col)) for col in range(table.columnCount())))
         self.assertEqual(table.columnCount(), 3)
         self.assertEqual(table.horizontalHeaderItem(1).text(), "Nome")
+        self.assertEqual(table.block_names, ())
 
 
 if __name__ == "__main__":

@@ -30,13 +30,6 @@
       "file": "models/formal-invitation.fornax"
     },
     {
-      "id": "class",
-      "kind": "model",
-      "title": "Identificação de turma",
-      "description": "Foto, nome, turma e matrícula.",
-      "file": "models/class.json"
-    },
-    {
       "id": "grid",
       "kind": "organogram",
       "title": "Quadro em grade",
@@ -75,6 +68,13 @@
       "description": "Uma direção ligada a três grupos de seis pessoas.",
       "file": "organograms/sectors.json",
       "configurable_grid": false
+    },
+    {
+      "id": "corporate-organogram",
+      "kind": "model",
+      "title": "Organograma institucional",
+      "description": "Direção, gerências e equipes de operações, administração e comercial. 22 cartões com foto, nome, função e setor.",
+      "file": "models/corporate-organogram.fornax"
     }
   ]
 }

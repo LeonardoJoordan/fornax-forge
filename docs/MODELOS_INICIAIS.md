@@ -30,9 +30,53 @@ arrastar a própria camada **Organograma** entre esses elementos. Imagens ligada
 a uma máscara acompanham sua forma, mantendo o conjunto no mesmo plano.
 A opção de posição nas propriedades continua disponível e acompanha essa ordem.
 
+Em **Arquivo → Configurações de geração… → Impressão**, habilite
+**Impressão em ladrilhos** para montar o desenho com várias folhas. Essa opção
+e **Múltiplos itens por página** são alternativas. O ladrilhamento funciona
+tanto com organogramas quanto com páginas comuns, inclusive modelos de duas páginas.
+Escolha o papel (ou medidas personalizadas), a orientação e, se desejar,
+margem na folha, marcas de corte e sobreposição. Ajuste a largura ou altura
+final do desenho; a outra medida acompanha a proporção original.
+**Restaurar tamanho original** recupera as dimensões do modelo, mantendo
+papel, posição, margens e demais escolhas da impressão.
+A margem da folha não altera a margem de saída definida no editor.
+As opções ficam guardadas no próprio modelo. **Gerar material** usa diretamente
+essas escolhas e o formato selecionado na janela principal, sem abrir outro painel.
+Na orientação **Automática — menos folhas**, o programa compara retrato e
+paisagem e escolhe a opção com menor quantidade de folhas; em caso de empate,
+prefere uma grade com menos divisões e depois retrato. **Otimizar disposição**
+ativa essa comparação e alinha o desenho ao início da grade.
+
+**PDF — arquivo único** reúne todas as folhas. **PDF — arquivos separados**
+gera `organograma_A1.pdf`, `organograma_B1.pdf`, `organograma_A2.pdf` etc.
+**PNG — arquivos separados** usa os mesmos sufixos e grava a resolução física
+escolhida. As letras identificam colunas e os números, linhas; depois de Z vêm
+AA, AB e assim por diante. A ordem de geração é da esquerda para a direita,
+descendo uma linha por vez. Os PDFs também identificam suas páginas como A1,
+B1, A2 etc., inclusive quando não há marcas impressas.
+
+O **Mapa das folhas** mostra as divisões e permite selecionar uma parte.
+Os limites das folhas aparecem com linhas tracejadas finas. Arraste o desenho
+para reposicioná-lo, ou informe as posições horizontal e vertical em milímetros;
+a quantidade de páginas acompanha a mudança. Em organogramas, o tamanho planejado
+é preservado quando algumas posições ficam sem dados.
+**Folha selecionada** mostra o conteúdo exato do arquivo daquela posição.
+Sem sobreposição, as partes se encostam. Com sobreposição, há conteúdo repetido
+à direita/abaixo para facilitar a montagem; as marcas indicam onde recortar
+para encaixar as partes sem repetir o desenho. Elas precisam de pelo menos
+5 mm de margem na folha; a janela informa quando falta espaço, sem modificar
+a configuração. Imprima os arquivos em **tamanho real / 100%**, preservando
+as dimensões físicas. Cada desenho aceita até 1.000 folhas, e a geração pode ser cancelada.
+Para páginas comuns, os arquivos separados mantêm o padrão de nomenclatura e
+acrescentam a posição, por exemplo `Ana_A1.pdf`; modelos com duas páginas também
+usam `_pag1` ou `_pag2`. O PDF único do lote é `ladrilhos.pdf`, com identificadores
+que combinam o nome do registro e a posição da folha. As predefinições rápidas
+da janela principal permitem alternar entre **Ladrilhos** e as opções de imposição
+sem apagar suas configurações.
+
 Os exemplos são locais e acompanham a instalação. O catálogo inicial contém
-cinco modelos (cartão de aniversário de pessoal, certificado de estágio, prisma de identificação, convite institucional
-e identificação de turma) e cinco estruturas (grade, responsável e equipe,
+cinco modelos (cartão de aniversário de pessoal, certificado de estágio, prisma de identificação,
+convite institucional e organograma institucional) e cinco estruturas (grade, responsável e equipe,
 hierarquia em três níveis, organograma escolar e setores e equipes). Os espaços de foto são formas
 com imagem variável ligada ao campo **Foto**; selecione a pasta de imagens ao
 preencher a tabela. Os textos fixos, como “INSTITUIÇÃO”, podem ser editados.
@@ -41,7 +85,12 @@ O **Organograma escolar** oferece 12 cartões em três níveis: Direção;
 Coordenação pedagógica, Secretaria e Coordenação administrativa; e equipes de
 Professores (quatro cartões), Atendimento (dois) e Apoio escolar (dois).
 Cada equipe se conecta ao seu responsável. A estrutura usa o cartão da Página 1;
-na tabela, preencha a coluna **Bloco** com o nome do grupo correspondente.
+Na tabela, clique em uma célula da coluna **Bloco** para escolher o grupo
+correspondente no menu. Células vazias mostram **Selecione um bloco**, sem
+adicionar esse texto aos dados. O campo acompanha a altura da linha da tabela.
+**Sem bloco** limpa o destino. Também é possível colar
+os nomes e os dados de uma planilha; nomes desconhecidos continuam visíveis
+para correção. Esse menu aparece somente na coluna de destino do organograma.
 Os nomes, a quantidade de cartões e as conexões podem ser ajustados no editor.
 
 Nas propriedades do organograma, **Aplicar em** escolhe quais contornos exibir:
@@ -102,3 +151,12 @@ em A5 horizontal (**210 × 148 mm**), com os campos **tratamento**, **convidado*
 **evento**, **nome_diretor**, **Link Whats**, **Link Mapa** e **Link E-mail**,
 e imagens incorporadas em `models/formal-invitation.fornax`.
 Os demais exemplos iniciais usam textos e formas vetoriais criados para o projeto.
+
+O último modelo, **Organograma institucional**, vem do **Teste organograma**
+aprovado pelo desenvolvedor. Inclui o cartão de **90 × 130 mm**, com os campos
+**nome**, **funcao**, **setor** e **Imagem**, e o quadro completo da Fornax Corporation:
+um diretor, três gerentes e três equipes de seis pessoas, totalizando **22 cartões**.
+O título, a imagem do quadro, os contornos e as conexões são preservados, com
+as imagens incorporadas em `models/corporate-organogram.fornax`. Ele aparece na
+última posição de **Novo modelo**, substituindo **Identificação de turma**, e abre
+como uma cópia editável sem nome.

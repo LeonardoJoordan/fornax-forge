@@ -11,11 +11,10 @@ from core.i18n import tr, current_locale
 from core.themes import themed_style, theme_color
 from core.dialog_buttons import style_dialog_button_box
 from core.starter_templates import starter_catalog, model_from_starter, organogram_from_starter
-from core.organogram import board_bounds, slot_rect, UNITS_PER_MM
+from core.organogram import board_bounds, UNITS_PER_MM
 from core.model_document import adapt_model_page, DEFAULT_NEW_MODEL_SIZE_MM
-from core.board_connectors import connector_paths, connector_style, connector_pen
-from core.board_borders import paint_group_borders, card_clip_path
 from features.generator.renderer import NativeRenderer
+from features.generator.organogram import OrganogramRenderer
 
 
 TEMPLATE_DIMENSIONS_ROLE = Qt.ItemDataRole.UserRole + 2
@@ -43,37 +42,13 @@ def starter_dimensions(document):
 
 
 def starter_thumbnail(document, provider=None):
+    if document.get("organogram") is not None:
+        # Usa a prévia completa para conservar camadas, textos e imagens do quadro.
+        renderer = OrganogramRenderer(document, [], asset_provider=provider,
+                                     layout_preview=True, fixed_layout=True)
+        return QPixmap.fromImage(renderer.preview(max_side=320))
     renderer = NativeRenderer(adapt_model_page(document), asset_provider=provider)
-    card = renderer.render_to_pixmap(row_rich=None, max_side=320)
-    if document.get("organogram") is None:
-        return card
-    board = document["organogram"]
-    bounds = board_bounds(board)
-    scale = 320 / max(bounds.width(), bounds.height())
-    pixmap = QPixmap(max(1, round(bounds.width() * scale)), max(1, round(bounds.height() * scale)))
-    pixmap.fill(Qt.GlobalColor.white)
-    painter = QPainter(pixmap)
-    try:
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-        painter.scale(scale, scale)
-        painter.translate(-bounds.left(), -bounds.top())
-        paths = connector_paths(board)
-        for edge in board["connections"]:
-            painter.setPen(connector_pen(connector_style(edge, board)))
-            painter.drawPath(paths[(edge["source"], edge["target"])])
-        for group in board["groups"]:
-            for index in range(group["columns"] * group["rows"]):
-                rect = slot_rect(group, index)
-                painter.save()
-                painter.setClipPath(card_clip_path(group, rect), Qt.ClipOperation.IntersectClip)
-                painter.drawPixmap(rect, card, QRectF(card.rect()))
-                painter.restore()
-            paint_group_borders(painter, group, (slot_rect(group, index)
-                                for index in range(group["columns"] * group["rows"])))
-    finally:
-        painter.end()
-    return pixmap
+    return renderer.render_to_pixmap(row_rich=None, max_side=320)
 
 
 def thumbnail_icon(pixmap):

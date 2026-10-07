@@ -54,6 +54,8 @@ class StarterTemplatesTest(unittest.TestCase):
 
     def test_all_bundled_models_open_as_unnamed_editable_independent_copies(self):
         self.assertEqual(len(starter_catalog("model")), 5)
+        self.assertNotIn("class", [template.id for template in starter_catalog("model")])
+        self.assertEqual(starter_catalog("model")[-1].id, "corporate-organogram")
         for template in starter_catalog("model"):
             with self.subTest(template=template.id):
                 original = template.path.read_bytes()
@@ -68,11 +70,24 @@ class StarterTemplatesTest(unittest.TestCase):
                 self.assertIsNone(window._current_model_dir)
                 current = window._document_with_active_page()
                 self.assertEqual(current["placeholders"], document["placeholders"])
+                if document.get("organogram") is not None:
+                    self.assertEqual(current["organogram"], document["organogram"])
                 self.assertFalse(window._states_equal_for_close(window.get_current_scene_state(), window._last_saved_state))
                 current["name"] = "Minha cópia"
                 destination = self.root / f"{template.id}.fornax"
                 save_public_fornax(current, destination, asset_provider=window._save_asset_provider)
-                self.assertEqual(open_public_fornax(destination).document()["placeholders"], document["placeholders"])
+                saved = open_public_fornax(destination)
+                self.assertEqual(saved.document()["placeholders"], document["placeholders"])
+                if document.get("organogram") is not None:
+                    saved_board = saved.document()["organogram"]
+                    expected_board = deepcopy(document["organogram"])
+                    for image in expected_board["images"]:
+                        saved_image = next(entry for entry in saved_board["images"]
+                                           if entry["object_id"] == image["object_id"])
+                        self.assertEqual(saved.asset(saved_image["path"]), provider(image["path"]))
+                        # O novo pacote atribui referências próprias aos mesmos bytes.
+                        image["path"] = saved_image["path"]
+                    self.assertEqual(saved_board, expected_board)
                 self.assertEqual(template.path.read_bytes(), original)
 
     def test_bundled_structures_keep_front_page_and_have_unique_names_and_nonoverlapping_groups(self):
