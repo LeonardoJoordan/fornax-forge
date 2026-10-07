@@ -14,6 +14,10 @@ As dimensões editadas em **Documento** são aplicadas às duas páginas. Copiar
 
 A tabela apresenta a união dos placeholders encontrados na frente e no verso. Um placeholder com o mesmo nome nas duas páginas usa o mesmo conteúdo da linha.
 
+Negrito, itálico e sublinhado aplicados ao placeholder no modelo são herdados
+pelo conteúdo inserido. A tabela pode acrescentar essas ênfases em trechos do
+texto, mantendo a fonte, o tamanho e a cor definidos no modelo.
+
 Cada linha representa um documento completo. **Cópias** multiplica documentos, não páginas. Uma linha com `Cópias = 3` em um modelo frente e verso produz três documentos, cada um com sua frente e seu verso.
 
 ## Arquivos gerados

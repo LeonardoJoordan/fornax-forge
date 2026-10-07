@@ -78,7 +78,7 @@ class StarterTemplatesTest(unittest.TestCase):
     def test_bundled_structures_keep_front_page_and_have_unique_names_and_nonoverlapping_groups(self):
         document = fixtures.card_document()
         original = deepcopy(document)
-        self.assertEqual(len(starter_catalog("organogram")), 4)
+        self.assertEqual(len(starter_catalog("organogram")), 5)
         for template in starter_catalog("organogram"):
             with self.subTest(template=template.id):
                 result = organogram_from_starter(document, template)

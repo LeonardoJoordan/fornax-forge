@@ -14,7 +14,7 @@ from core.starter_templates import starter_catalog, model_from_starter, organogr
 from core.organogram import board_bounds, slot_rect, UNITS_PER_MM
 from core.model_document import adapt_model_page, DEFAULT_NEW_MODEL_SIZE_MM
 from core.board_connectors import connector_paths, connector_style, connector_pen
-from core.board_borders import paint_group_borders
+from core.board_borders import paint_group_borders, card_clip_path
 from features.generator.renderer import NativeRenderer
 
 
@@ -64,7 +64,11 @@ def starter_thumbnail(document, provider=None):
             painter.drawPath(paths[(edge["source"], edge["target"])])
         for group in board["groups"]:
             for index in range(group["columns"] * group["rows"]):
-                painter.drawPixmap(slot_rect(group, index), card, QRectF(card.rect()))
+                rect = slot_rect(group, index)
+                painter.save()
+                painter.setClipPath(card_clip_path(group, rect), Qt.ClipOperation.IntersectClip)
+                painter.drawPixmap(rect, card, QRectF(card.rect()))
+                painter.restore()
             paint_group_borders(painter, group, (slot_rect(group, index)
                                 for index in range(group["columns"] * group["rows"])))
     finally:

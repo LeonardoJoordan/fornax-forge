@@ -9,7 +9,7 @@ from PySide6.QtGui import QPainter, QImage, QPen, QColor, QPdfWriter, QPageLayou
 from core.model_document import adapt_model_page, normalize_model_document, validate_raster_dimensions
 from core.organogram import assignment_plan, assignment_issue_text, board_bounds, UNITS_PER_MM
 from core.board_connectors import connector_style, connector_pen, connector_paths, text_cutouts, connector_clip
-from core.board_borders import paint_group_borders
+from core.board_borders import paint_group_borders, card_clip_path
 from core.i18n import tr
 from core.naming_engine import confined_output_path
 from .renderer import NativeRenderer
@@ -79,7 +79,7 @@ class OrganogramRenderer:
                         continue
                     painter.save()
                     try:
-                        painter.setClipRect(rect, Qt.ClipOperation.IntersectClip)
+                        painter.setClipPath(card_clip_path(group, rect), Qt.ClipOperation.IntersectClip)
                         painter.translate(rect.topLeft())
                         painter.scale(rect.width() / canvas["w"], rect.height() / canvas["h"])
                         self.card.paint_card(painter, plain, rich, out_links)

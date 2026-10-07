@@ -1,0 +1,22 @@
+{
+  "preset_version": 1,
+  "card_width_mm": 50,
+  "gap_mm": 5,
+  "groups": [
+    {"name": "Direção", "column": 1, "level": 0, "columns": 1, "rows": 1},
+    {"name": "Coordenação pedagógica", "column": 0, "level": 1, "columns": 1, "rows": 1},
+    {"name": "Secretaria", "column": 1, "level": 1, "columns": 1, "rows": 1},
+    {"name": "Coordenação administrativa", "column": 2, "level": 1, "columns": 1, "rows": 1},
+    {"name": "Professores", "column": 0, "level": 2, "columns": 2, "rows": 2},
+    {"name": "Atendimento", "column": 1, "level": 2, "columns": 2, "rows": 1},
+    {"name": "Apoio escolar", "column": 2, "level": 2, "columns": 2, "rows": 1}
+  ],
+  "connections": [
+    {"source": "Direção", "target": "Coordenação pedagógica"},
+    {"source": "Direção", "target": "Secretaria"},
+    {"source": "Direção", "target": "Coordenação administrativa"},
+    {"source": "Coordenação pedagógica", "target": "Professores"},
+    {"source": "Secretaria", "target": "Atendimento"},
+    {"source": "Coordenação administrativa", "target": "Apoio escolar"}
+  ]
+}

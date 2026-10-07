@@ -48,6 +48,7 @@ def _insert_cell_html(cursor, html, base_format):
     O QTextEdit da planilha inclui fonte, tamanho e cor padrão em seu HTML. Esses
     atributos pertencem à interface da planilha, não ao conteúdo do modelo. Da
     célula importamos somente as ênfases que o usuário pode editar na tabela.
+    A formatação padrão da célula nunca remove a ênfase do placeholder.
     """
     source = TextOnlyDocument()
     source.setHtml(sanitize_text_html(html))
@@ -65,9 +66,10 @@ def _insert_cell_html(cursor, html, base_format):
             if fragment.isValid():
                 source_format = fragment.charFormat()
                 output_format = QTextCharFormat(base_format)
-                output_format.setFontWeight(source_format.fontWeight())
-                output_format.setFontItalic(source_format.fontItalic())
-                output_format.setFontUnderline(source_format.fontUnderline())
+                if source_format.fontWeight() > QFont.Weight.Normal:
+                    output_format.setFontWeight(max(base_format.fontWeight(), source_format.fontWeight()))
+                output_format.setFontItalic(base_format.fontItalic() or source_format.fontItalic())
+                output_format.setFontUnderline(base_format.fontUnderline() or source_format.fontUnderline())
                 cursor.insertText(fragment.text(), output_format)
             iterator += 1
         block = block.next()

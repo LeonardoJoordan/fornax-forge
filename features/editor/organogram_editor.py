@@ -23,7 +23,8 @@ from core.organogram import (
 from core.board_connectors import (connector_style, connector_pen, connector_paths, connector_clip,
                                    MAX_CURVE_RADIUS_MM, validate_connector_style)
 from core.board_routing import board_routes, SIDES
-from core.board_borders import border_style, bordered_group_bounds, paint_group_borders
+from core.board_borders import (border_style, bordered_group_bounds, paint_group_borders,
+                                card_clip_path, APPEARANCE_KEYS)
 from core.model_document import adapt_model_page, ModelValidationError
 from core.dialog_buttons import style_dialog_button_box
 from core.resources import object_icon_path, navigation_icon_path
@@ -167,7 +168,11 @@ class BoardGroupItem(QGraphicsRectItem):
             x = index % self.data["columns"] * (self.data["card_w"] + self.data["gap_x"])
             y = index // self.data["columns"] * (self.data["card_h"] + self.data["gap_y"])
             rect = QRectF(x, y, self.data["card_w"], self.data["card_h"])
+            painter.save()
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setClipPath(card_clip_path(self.data, rect), Qt.ClipOperation.IntersectClip)
             painter.drawImage(rect, self.preview)
+            painter.restore()
             pen = QPen(QColor(theme_color("border_strong")), 1, Qt.PenStyle.DashLine)
             pen.setCosmetic(True)
             painter.setPen(pen)
@@ -481,12 +486,13 @@ class OrganogramPanel(QWidget):
         self.border_enabled.clicked.connect(self.toggle_border)
         self.border_scope = QComboBox()
         self.border_scope.setObjectName('boardOutlineScope')
-        self.border_scope.setPlaceholderText(tr("Aplicações diferentes"))
+        self.border_scope.setPlaceholderText(tr("Contornos diferentes"))
         self.border_scope.addItem(tr("Em cada cartão"), 'cards')
         self.border_scope.addItem(tr("Ao redor do conjunto"), 'group')
         self.border_scope.addItem(tr("Cartões e conjunto"), 'both')
         self.border_scope.activated.connect(self.change_border_scope)
-        border_form.addWidget(field(tr("Aplicar em"), self.border_scope))
+        self.border_scope.setToolTip(tr("Escolha qual contorno editar. Cartão e conjunto mantêm cores e configurações independentes. A opção Cartões e conjunto aplica as alterações a ambos."))
+        border_form.addWidget(field(tr("Editar contorno"), self.border_scope))
         self.border_outline = outline_controls('boardBorder')
         self.border_color = self.border_outline.swatch
         self.border_color_hex = self.border_outline.color
@@ -495,7 +501,7 @@ class OrganogramPanel(QWidget):
         self.border_position = self.border_outline.position
         self.border_position.setPlaceholderText(tr("Posições diferentes"))
         self.border_position.setToolTip(self.border_position.toolTip() + "\n" +
-                                       tr("A posição escolhida vale para os contornos habilitados nos blocos selecionados."))
+                                       tr("A posição escolhida vale somente para o contorno em edição."))
         self.border_position.activated.connect(
             lambda index: window.change_board_border_position(self.border_position.itemData(index)))
         self.border_color.clicked.connect(self.choose_border_color)
@@ -615,10 +621,8 @@ class OrganogramPanel(QWidget):
         scope = self.border_scope.itemData(index)
         if scope is None:
             return
-        enabled = self.border_enabled.isChecked()
-        self.window.change_board_border(
-            target=scope, cards=enabled and scope in ('cards', 'both'),
-            group=enabled and scope in ('group', 'both'))
+        # Trocar o contorno em edição não desabilita nem altera o outro.
+        self.window.change_board_border(target=scope)
 
     def apply_border_corner(self, key):
         # Como nas formas, vincular afeta a próxima edição, sem zerar cantos.
@@ -724,7 +728,8 @@ class OrganogramPanel(QWidget):
         scopes = {style['target'] for style in styles}
         with QSignalBlocker(self.border_scope):
             self.border_scope.setCurrentIndex(self.border_scope.findData(next(iter(scopes))) if len(scopes) == 1 else -1)
-        enabled = any(style['cards'] or style['group'] for style in styles)
+        enabled = any(style[key] for style in styles
+                      for key in ('cards', 'group') if style['target'] in (key, 'both'))
         with QSignalBlocker(self.border_enabled):
             self.border_enabled.setChecked(enabled)
         self.border_enabled.setText(tr('Desabilitar contorno') if enabled else tr('Habilitar contorno'))
@@ -745,7 +750,8 @@ class OrganogramPanel(QWidget):
             with QSignalBlocker(control):
                 control.setValue(value)
         positions = {style[key] for style in styles
-                     for enabled, key in (("cards", "cards_position"), ("group", "group_position")) if style[enabled]}
+                     for target, key in (("cards", "cards_position"), ("group", "group_position"))
+                     if style[target] and style['target'] in (target, 'both')}
         with QSignalBlocker(self.border_position):
             self.border_position.setCurrentIndex(
                 self.border_position.findData(next(iter(positions))) if len(positions) == 1 else -1)
@@ -753,7 +759,7 @@ class OrganogramPanel(QWidget):
         self.border_outline.join_straight.setChecked(joins == {"miter"})
         self.border_outline.join_round.setChecked(joins == {"round"})
         self.border_outline.setEnabled(enabled)
-        self.border_padding_field.setVisible(any(style['group'] for style in styles))
+        self.border_padding_field.setVisible(any(style['target'] in ('group', 'both') for style in styles))
         self.routing_hint.setText(tr("Algumas conexões não têm espaço livre. Afaste os blocos ou permita outros lados de entrada e saída.")
                                   if getattr(window, "_board_routes_crowded", False) else "")
         self.routing_hint.setVisible(bool(self.routing_hint.text()))
@@ -782,21 +788,10 @@ class OrganogramPanel(QWidget):
 
 class OrganogramEditorMixin:
     def change_board_corner_radii(self, changes, *, linked):
-        selected = [item for item in self.scene.selectedItems() if isinstance(item, BoardGroupItem)]
-        radii_by_id = {}
-        for item in selected:
-            style = border_style(item.data)
-            radii = {key: style.get('corner_radii_mm', {}).get(key, style['radius_mm'])
-                     for key in ('top_left', 'top_right', 'bottom_left', 'bottom_right')}
-            radii_by_id[item.data['id']] = {**radii, **changes}
-        self.change_board_border(corner_radii_linked=linked, _radii_by_id=radii_by_id)
+        self.change_board_border(corner_radii_linked=linked, _corner_changes=changes)
 
     def change_board_border_position(self, position):
-        styles = [border_style(item.data) for item in self.scene.selectedItems() if isinstance(item, BoardGroupItem)]
-        changes = {key: position for enabled, key in (("cards", "cards_position"), ("group", "group_position"))
-                   if any(style[enabled] for style in styles)}
-        if changes:
-            self.change_board_border(**changes)
+        self.change_board_border(_position=position)
 
     def _board_artwork_roots(self):
         from .canvas_items import DesignerBox, ImageItem, BackgroundItem, RectangleItem
@@ -841,7 +836,7 @@ class OrganogramEditorMixin:
         self.save_snapshot()
         self.organogram_panel.refresh()
 
-    def change_board_border(self, *, _radii_by_id=None, _enabled=None, **changes):
+    def change_board_border(self, *, _corner_changes=None, _enabled=None, _position=None, **changes):
         if self._active_page_id != "organogram" or getattr(self, "_board_connection_sources", None):
             return
         selected = [item for item in self.scene.selectedItems() if isinstance(item, BoardGroupItem)]
@@ -852,17 +847,40 @@ class OrganogramEditorMixin:
         updated = {}
         for group in candidate["groups"]:
             if group["id"] in identifiers:
-                style = {**border_style(group), **changes}
+                # Materializa os dois estilos antes de mudar a aparência comum
+                # de um arquivo antigo; editar um nunca muda o outro.
+                previous = border_style(group)
+                appearances = {target: {key: deepcopy(value) for key, value in border_style(group, target).items()
+                                        if key in APPEARANCE_KEYS}
+                               for target in ('cards', 'group')}
+                style = {**previous, **changes}
                 if _enabled is not None:
-                    style['cards'] = _enabled and style['target'] in ('cards', 'both')
-                    style['group'] = _enabled and style['target'] in ('group', 'both')
+                    for target in ('cards', 'group'):
+                        if style['target'] in (target, 'both'):
+                            style[target] = _enabled
                 if 'target' not in changes and ('cards' in changes or 'group' in changes):
                     if style['cards'] or style['group']:
                         style['target'] = 'both' if style['cards'] and style['group'] else 'cards' if style['cards'] else 'group'
-                if 'radius_mm' in changes:
-                    style.pop('corner_radii_mm', None)
-                if _radii_by_id is not None:
-                    style['corner_radii_mm'] = _radii_by_id[group['id']]
+                edited_targets = ('cards', 'group') if style['target'] == 'both' else (style['target'],)
+                if _position is not None:
+                    for target in edited_targets:
+                        style[target + '_position'] = _position
+                for target in edited_targets:
+                    appearance = appearances[target]
+                    appearance.update({key: deepcopy(value) for key, value in changes.items() if key in APPEARANCE_KEYS})
+                    if 'radius_mm' in changes:
+                        appearance.pop('corner_radii_mm', None)
+                    if _corner_changes is not None:
+                        radii = {key: appearance.get('corner_radii_mm', {}).get(key, appearance['radius_mm'])
+                                 for key in ('top_left', 'top_right', 'bottom_left', 'bottom_right')}
+                        appearance['corner_radii_mm'] = {**radii, **_corner_changes}
+                for target, appearance in appearances.items():
+                    style[target + '_style'] = appearance
+                # Conserva os atributos legados como representação dos controles
+                # ativos. A pintura usa sempre os estilos individuais acima.
+                for key in APPEARANCE_KEYS:
+                    style.pop(key, None)
+                style.update(deepcopy(appearances[edited_targets[0]]))
                 group["border"] = style
                 updated[group["id"]] = group["border"]
         validate_organogram(candidate)

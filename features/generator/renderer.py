@@ -600,7 +600,11 @@ class NativeRenderer:
                 continue
 
             try:
-                html_resolved = self.resolve_html(html_processado, row_rich)
+                # Modelos legados também precisam herdar a formatação do
+                # placeholder, sem inserir o estilo padrão da célula sobre ela.
+                html_resolved = resolve_rich_text({**box, 'html': html_processado}, row_rich)
+                if html_resolved is None:
+                    continue
                 painter.setOpacity(box.get("opacity", 1.0))
                 self._draw_html_box(painter, box, html_resolved, row_rich, out_links, row_plain)
                 painter.setOpacity(1.0)

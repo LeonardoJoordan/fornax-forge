@@ -905,14 +905,21 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             or self._fornax_save_as_required
         ):
             return
-        current = self._capture_document_history_state()
-        if self._states_equal_for_close(current, self._last_saved_document_state):
+        # O timer não deve encerrar uma edição ou confirmar um gesto parcial.
+        # Texto já é sincronizado em contentsChanged; gestos serão capturados
+        # na próxima gravação, depois de sua conclusão pelo usuário.
+        if (
+            self.view._pointer_buttons or self.scene.mouseGrabberItem() is not None
+            or self._mask_edit_session or self._group_resize_session
+            or getattr(getattr(self, 'shape_drawing', None), 'start', None) is not None
+        ):
             return
-        self._finish_page_interaction()
-        data = self.get_current_scene_state()
-        document = replace_model_page(self._model_document, data, self._active_page_id)
-        document["name"] = self._current_model_name
         try:
+            current = self._capture_document_history_state()
+            if self._states_equal_for_close(current, self._last_saved_document_state):
+                return
+            document = current["document"]
+            document["name"] = self._current_model_name
             self._fornax_session_manager.write_recovery(
                 document, self.fornax_recovery_path(self._fornax_path),
                 path=self._fornax_path, asset_provider=self._save_asset_provider,

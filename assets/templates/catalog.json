@@ -23,11 +23,11 @@
       "file": "models/identification-prism.fornax"
     },
     {
-      "id": "certificate",
+      "id": "formal-invitation",
       "kind": "model",
-      "title": "Certificado",
-      "description": "Nome, descrição, local e data em uma página A4.",
-      "file": "models/certificate.json"
+      "title": "Convite institucional",
+      "description": "Convite em A5 horizontal, com destinatário, evento, diretor e links personalizáveis.",
+      "file": "models/formal-invitation.fornax"
     },
     {
       "id": "class",
@@ -58,6 +58,14 @@
       "title": "Hierarquia em três níveis",
       "description": "Direção, coordenações e quatro equipes.",
       "file": "organograms/hierarchy.json",
+      "configurable_grid": false
+    },
+    {
+      "id": "school",
+      "kind": "organogram",
+      "title": "Organograma escolar",
+      "description": "Direção, coordenações e equipes de professores, atendimento e apoio. 12 cartões em três níveis.",
+      "file": "organograms/school.json",
       "configurable_grid": false
     },
     {

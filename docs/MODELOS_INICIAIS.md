@@ -18,11 +18,25 @@ antes de entrar no editor. Depois, os blocos e conectores podem ser alterados
 normalmente, inclusive seus nomes para a coluna **Bloco** da tabela.
 
 Os exemplos são locais e acompanham a instalação. O catálogo inicial contém
-cinco modelos (cartão de aniversário de pessoal, certificado de estágio, prisma de identificação, certificado
-e identificação de turma) e quatro estruturas (grade, responsável e equipe,
-hierarquia em três níveis e setores e equipes). Os espaços de foto são formas
+cinco modelos (cartão de aniversário de pessoal, certificado de estágio, prisma de identificação, convite institucional
+e identificação de turma) e cinco estruturas (grade, responsável e equipe,
+hierarquia em três níveis, organograma escolar e setores e equipes). Os espaços de foto são formas
 com imagem variável ligada ao campo **Foto**; selecione a pasta de imagens ao
 preencher a tabela. Os textos fixos, como “INSTITUIÇÃO”, podem ser editados.
+
+O **Organograma escolar** oferece 12 cartões em três níveis: Direção;
+Coordenação pedagógica, Secretaria e Coordenação administrativa; e equipes de
+Professores (quatro cartões), Atendimento (dois) e Apoio escolar (dois).
+Cada equipe se conecta ao seu responsável. A estrutura usa o cartão da Página 1;
+na tabela, preencha a coluna **Bloco** com o nome do grupo correspondente.
+Os nomes, a quantidade de cartões e as conexões podem ser ajustados no editor.
+
+Nas propriedades do organograma, **Editar contorno** alterna entre cartão,
+conjunto ou ambos. Cartão e conjunto conservam cor, espessura, transparência,
+posição e cantos próprios; alternar a opção não desabilita o outro contorno.
+As conexões têm sua própria cor na seção **Conectores**. Arredondar um cartão
+recorta seu conteúdo nos cantos. O raio do conjunto respeita a folga até os
+cartões, e seu contorno não cobre o conteúdo nem os contornos deles.
 
 ## Substituir pelos seus próprios exemplos
 
@@ -68,4 +82,8 @@ incorporadas em `models/internship-certificate.fornax`.
 O terceiro exemplo, **Prisma de identificação**, usa uma folha A4 horizontal
 (**297 × 210 mm**) com os campos **nome**, **tratamento** e **funcao**, e imagens
 incorporadas em `models/identification-prism.fornax`.
+O quarto exemplo, **Convite institucional**, vem do modelo **006 - Convite**,
+em A5 horizontal (**210 × 148 mm**), com os campos **tratamento**, **convidado**,
+**evento**, **nome_diretor**, **Link Whats**, **Link Mapa** e **Link E-mail**,
+e imagens incorporadas em `models/formal-invitation.fornax`.
 Os demais exemplos iniciais usam textos e formas vetoriais criados para o projeto.
