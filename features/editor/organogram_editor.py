@@ -491,8 +491,8 @@ class OrganogramPanel(QWidget):
         self.border_scope.addItem(tr("Ao redor do conjunto"), 'group')
         self.border_scope.addItem(tr("Cartões e conjunto"), 'both')
         self.border_scope.activated.connect(self.change_border_scope)
-        self.border_scope.setToolTip(tr("Escolha qual contorno editar. Cartão e conjunto mantêm cores e configurações independentes. A opção Cartões e conjunto aplica as alterações a ambos."))
-        border_form.addWidget(field(tr("Editar contorno"), self.border_scope))
+        self.border_scope.setToolTip(tr("Escolha onde mostrar o contorno. Cartão e conjunto mantêm suas cores e configurações ao alternar. A opção Cartões e conjunto mostra ambos."))
+        border_form.addWidget(field(tr("Aplicar em"), self.border_scope))
         self.border_outline = outline_controls('boardBorder')
         self.border_color = self.border_outline.swatch
         self.border_color_hex = self.border_outline.color
@@ -621,8 +621,7 @@ class OrganogramPanel(QWidget):
         scope = self.border_scope.itemData(index)
         if scope is None:
             return
-        # Trocar o contorno em edição não desabilita nem altera o outro.
-        self.window.change_board_border(target=scope)
+        self.window.change_board_border(_scope=scope)
 
     def apply_border_corner(self, key):
         # Como nas formas, vincular afeta a próxima edição, sem zerar cantos.
@@ -728,8 +727,7 @@ class OrganogramPanel(QWidget):
         scopes = {style['target'] for style in styles}
         with QSignalBlocker(self.border_scope):
             self.border_scope.setCurrentIndex(self.border_scope.findData(next(iter(scopes))) if len(scopes) == 1 else -1)
-        enabled = any(style[key] for style in styles
-                      for key in ('cards', 'group') if style['target'] in (key, 'both'))
+        enabled = any(style['cards'] or style['group'] for style in styles)
         with QSignalBlocker(self.border_enabled):
             self.border_enabled.setChecked(enabled)
         self.border_enabled.setText(tr('Desabilitar contorno') if enabled else tr('Habilitar contorno'))
@@ -836,7 +834,7 @@ class OrganogramEditorMixin:
         self.save_snapshot()
         self.organogram_panel.refresh()
 
-    def change_board_border(self, *, _corner_changes=None, _enabled=None, _position=None, **changes):
+    def change_board_border(self, *, _corner_changes=None, _enabled=None, _position=None, _scope=None, **changes):
         if self._active_page_id != "organogram" or getattr(self, "_board_connection_sources", None):
             return
         selected = [item for item in self.scene.selectedItems() if isinstance(item, BoardGroupItem)]
@@ -854,10 +852,16 @@ class OrganogramEditorMixin:
                                         if key in APPEARANCE_KEYS}
                                for target in ('cards', 'group')}
                 style = {**previous, **changes}
+                if _scope is not None:
+                    # A aplicação controla a exibição. As aparências individuais
+                    # continuam guardadas, inclusive quando um contorno se oculta.
+                    style['target'] = _scope
+                    enabled = previous['cards'] or previous['group']
+                    style['cards'] = enabled and _scope in ('cards', 'both')
+                    style['group'] = enabled and _scope in ('group', 'both')
                 if _enabled is not None:
                     for target in ('cards', 'group'):
-                        if style['target'] in (target, 'both'):
-                            style[target] = _enabled
+                        style[target] = _enabled and style['target'] in (target, 'both')
                 if 'target' not in changes and ('cards' in changes or 'group' in changes):
                     if style['cards'] or style['group']:
                         style['target'] = 'both' if style['cards'] and style['group'] else 'cards' if style['cards'] else 'group'

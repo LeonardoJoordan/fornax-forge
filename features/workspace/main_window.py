@@ -3206,12 +3206,20 @@ class MainWindow(QMainWindow):
         from features.generator.organogram import OrganogramRenderer
         try:
             plain, rich = self._scrape_table_data()
+            # Linhas vazias podem conter nome de bloco, quantidade e assinatura.
+            # Apenas conteúdo preenchido pelo usuário ativa a distribuição dos cartões.
+            layout_preview = not any(
+                str(value or "").strip()
+                for row in plain for key, value in row.items()
+                if key != "modelo" and not key.startswith("__")
+            )
             renderer = OrganogramRenderer(
                 self.cached_model_document, plain, rich,
                 asset_provider=self._fornax_asset_provider,
                 dynamic_image_dir=self.table_panel.txt_dynamic_image_dir.text().strip(),
+                layout_preview=layout_preview,
             )
-            if not renderer.slots:
+            if not renderer.slots and not layout_preview:
                 self.preview_panel.set_preview_text(tr("Preencha os dados para visualizar o quadro. Cartões sem informações válidas ficam ocultos."))
                 return
             self.preview_panel.set_preview_pixmap(QPixmap.fromImage(renderer.preview()))

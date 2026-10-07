@@ -17,6 +17,19 @@ usam a Página 1 atual. Na opção **Quadro em grade**, escolha colunas e linhas
 antes de entrar no editor. Depois, os blocos e conectores podem ser alterados
 normalmente, inclusive seus nomes para a coluna **Bloco** da tabela.
 
+Na visualização **Organograma**, a tabela sem dados mostra o layout completo,
+com todos os cartões, placeholders, contornos e conectores. Ao preencher a
+tabela, a prévia passa a mostrar os registros nos blocos correspondentes e oculta
+as posições sem informações válidas. A geração dos arquivos usa os registros
+preenchidos; a prévia do layout não cria dados na tabela.
+
+Na lista de camadas do editor do quadro, **Organograma** representa os cartões
+e conectores juntos. Arraste textos, imagens e formas para cima dessa camada
+para exibi-los à frente, ou para baixo para colocá-los atrás. Também é possível
+arrastar a própria camada **Organograma** entre esses elementos. Imagens ligadas
+a uma máscara acompanham sua forma, mantendo o conjunto no mesmo plano.
+A opção de posição nas propriedades continua disponível e acompanha essa ordem.
+
 Os exemplos são locais e acompanham a instalação. O catálogo inicial contém
 cinco modelos (cartão de aniversário de pessoal, certificado de estágio, prisma de identificação, convite institucional
 e identificação de turma) e cinco estruturas (grade, responsável e equipe,
@@ -31,9 +44,11 @@ Cada equipe se conecta ao seu responsável. A estrutura usa o cartão da Página
 na tabela, preencha a coluna **Bloco** com o nome do grupo correspondente.
 Os nomes, a quantidade de cartões e as conexões podem ser ajustados no editor.
 
-Nas propriedades do organograma, **Editar contorno** alterna entre cartão,
-conjunto ou ambos. Cartão e conjunto conservam cor, espessura, transparência,
-posição e cantos próprios; alternar a opção não desabilita o outro contorno.
+Nas propriedades do organograma, **Aplicar em** escolhe quais contornos exibir:
+somente cartão, somente conjunto ou ambos. Cartão e conjunto conservam cor,
+espessura, transparência, posição e cantos próprios mesmo quando ocultos.
+Se o contorno estiver desabilitado, a opção prepara sua aplicação para quando
+for habilitado; em uma seleção múltipla, cada bloco conserva esse estado.
 As conexões têm sua própria cor na seção **Conectores**. Arredondar um cartão
 recorta seu conteúdo nos cantos. O raio do conjunto respeita a folga até os
 cartões, e seu contorno não cobre o conteúdo nem os contornos deles.

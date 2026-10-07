@@ -35,6 +35,78 @@ class BoardBorderIndependenceTest(unittest.TestCase):
         panel.border_scope.setCurrentIndex(panel.border_scope.findData(target))
         panel.border_scope.activated.emit(panel.border_scope.currentIndex())
 
+    def test_scope_changes_actual_visible_borders_and_keeps_each_saved_appearance(self):
+        document = fixtures.board_document(1, 1)
+        group = document['organogram']['groups'][0]
+        group['border'] = {
+            'cards': True, 'group': True, 'target': 'both', 'padding_mm': 4,
+            'cards_position': 'outside', 'group_position': 'outside',
+            'cards_style': {'color': '#ff0000', 'width_mm': 1, 'radius_mm': 0},
+            'group_style': {'color': '#0000ff', 'width_mm': 1, 'radius_mm': 0},
+        }
+        appearance_keys = ('color', 'width_mm', 'radius_mm', 'opacity', 'join', 'corner_radii_mm')
+        expected_styles = {target: {key: border_style(group, target).get(key) for key in appearance_keys}
+                           for target in ('cards', 'group')}
+        window = self.editor(document)
+        window.switch_model_page('organogram')
+        item = window._board_items()[0]
+        identifier = item.data['id']
+        item.setSelected(True)
+        panel = window.organogram_panel
+
+        def verify(target):
+            item = next(item for item in window._board_items() if item.data['id'] == identifier)
+            item.setSelected(True)
+            self.assertEqual(item.data['border']['cards'], target in ('cards', 'both'))
+            self.assertEqual(item.data['border']['group'], target in ('group', 'both'))
+            self.assertEqual(panel.border_scope.currentData(), target)
+            for part in ('cards', 'group'):
+                actual = {key: border_style(item.data, part).get(key) for key in appearance_keys}
+                self.assertEqual(actual, expected_styles[part])
+            # Confere a saída real: vermelho no cartão e azul no conjunto.
+            renderer = OrganogramRenderer(window._model_document, [{'Nome': 'Ana'}])
+            image = renderer.preview(max_side=1600)
+            def pixel(x_mm):
+                x = round((x_mm * UNITS_PER_MM - renderer.bounds.left()) * image.width() / renderer.bounds.width())
+                y = round((item.data['card_h'] / 2 - renderer.bounds.top()) * image.height() / renderer.bounds.height())
+                return image.pixelColor(x, y)
+            self.assertEqual(pixel(-.5), QColor('red' if target in ('cards', 'both') else 'white'))
+            self.assertEqual(pixel(-4.5), QColor('blue' if target in ('group', 'both') else 'white'))
+
+        for target in ('cards', 'both', 'group', 'both'):
+            with self.subTest(target=target):
+                self.scope(panel, target)
+                verify(target)
+        window.undo()
+        verify('group')
+        window.redo()
+        verify('both')
+        path = self.root / 'aplicacao-contornos.fornax'
+        save_public_fornax(window._model_document, path)
+        window._load_document_into_scene(open_public_fornax(path).document())
+        window.switch_model_page('organogram')
+        window._board_items()[0].setSelected(True)
+        verify('both')
+
+    def test_scope_change_preserves_disabled_blocks_in_a_mixed_selection(self):
+        window, first, second, third = self.chart_with_three_blocks()
+        window.scene.clearSelection()
+        second.setSelected(True)
+        window.change_board_border(cards=True, color='#0000ff')
+        first.setSelected(True)
+        self.scope(window.organogram_panel, 'group')
+        self.assertFalse(first.data['border']['cards'])
+        self.assertFalse(first.data['border']['group'])
+        self.assertFalse(second.data['border']['cards'])
+        self.assertTrue(second.data['border']['group'])
+        self.assertNotIn('border', third.data)
+        self.scope(window.organogram_panel, 'both')
+        self.assertFalse(first.data['border']['cards'])
+        self.assertFalse(first.data['border']['group'])
+        self.assertTrue(second.data['border']['cards'])
+        self.assertTrue(second.data['border']['group'])
+        self.assertEqual(border_style(second.data, 'cards')['color'], '#0000ff')
+
     def test_sidebar_edits_three_colors_independently_and_preserves_them_in_files(self):
         window, parent, child, _other = self.chart_with_three_blocks()
         window.set_board_parent(child.data['id'], parent.data['id'])
@@ -47,9 +119,8 @@ class BoardBorderIndependenceTest(unittest.TestCase):
         window.change_board_border(width_mm=1, radius_mm=6)
         card = deepcopy(border_style(parent.data, 'cards'))
         self.scope(panel, 'group')
-        self.assertTrue(parent.data['border']['cards'])
-        self.assertFalse(parent.data['border']['group'])
-        panel.border_enabled.click()
+        self.assertFalse(parent.data['border']['cards'])
+        self.assertTrue(parent.data['border']['group'])
         panel.border_color_hex.setText('#0000ff')
         panel.border_color_hex.editingFinished.emit()
         window.change_board_border(width_mm=2, opacity=.6, radius_mm=20, padding_mm=5)
@@ -62,8 +133,9 @@ class BoardBorderIndependenceTest(unittest.TestCase):
         self.assertEqual(panel.border_width.value(), 1)
         panel.border_enabled.click()
         self.assertFalse(parent.data['border']['cards'])
-        self.assertTrue(parent.data['border']['group'])
+        self.assertFalse(parent.data['border']['group'])
         panel.border_enabled.click()
+        self.scope(panel, 'both')
         expected = deepcopy(parent.data['border'])
         window.change_board_border(color='#ffff00')
         window.undo()
@@ -107,7 +179,6 @@ class BoardBorderIndependenceTest(unittest.TestCase):
         window.change_board_border(radius_mm=4, corner_radii_linked=False)
         window.change_board_corner_radii({'top_left': 8}, linked=False)
         self.scope(panel, 'group')
-        panel.border_enabled.click()
         window.change_board_border(opacity=.25, radius_mm=12)
         window.change_board_corner_radii({'bottom_right': 3}, linked=False)
         window.change_board_border_position('center')

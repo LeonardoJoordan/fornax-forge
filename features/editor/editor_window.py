@@ -30,7 +30,7 @@ from core.template_manager import slugify_model_name
 from core.history_manager import HistoryManager
 from core.paths import get_models_dir
 from core.render_cache import ensure_background_proxy, publish_thumbnail_cache
-from core.resources import action_icon_path, app_icon_path, state_icon_path, navigation_icon_path
+from core.resources import action_icon_path, app_icon_path, state_icon_path, navigation_icon_path, object_icon_path
 from core.theme_icons import themed_svg_icon
 from core.themes import themed_style, theme_color
 from core.i18n import tr
@@ -58,6 +58,7 @@ from core.model_document import (
 
 
 _VISIBILITY_ICONS = {}
+_BOARD_LAYER_ROLE = Qt.ItemDataRole.UserRole + 1
 
 
 def _scaled_rich_text_html(html, factor):
@@ -2628,16 +2629,17 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self.update_position_ui()
 
         # Sincroniza a seleção na lista de camadas (UI) — suporta múltipla seleção
-        self.layer_list.blockSignals(True)
-        if sel:
-            sel_set = set(sel)
-            for i in range(self.layer_list.count()):
-                list_item = self.layer_list.item(i)
-                is_selected = list_item.data(Qt.ItemDataRole.UserRole) in sel_set
-                list_item.setSelected(is_selected)
-        else:
-            self.layer_list.clearSelection()
-        self.layer_list.blockSignals(False)
+        if not getattr(self, '_selecting_board_layer', False):
+            self.layer_list.blockSignals(True)
+            if sel:
+                sel_set = set(sel)
+                for i in range(self.layer_list.count()):
+                    list_item = self.layer_list.item(i)
+                    is_selected = list_item.data(Qt.ItemDataRole.UserRole) in sel_set
+                    list_item.setSelected(is_selected)
+            else:
+                self.layer_list.clearSelection()
+            self.layer_list.blockSignals(False)
 
         if len(valid_items) >= 2:
             target = valid_items[0]
@@ -2823,6 +2825,9 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             for entry in selected_list_items
             if entry.data(Qt.ItemDataRole.UserRole) is not None
         ]
+        selecting_board_layer = not target_items and any(
+            entry.data(_BOARD_LAYER_ROLE) for entry in selected_list_items
+        )
 
         if self._mask_edit_session and not self._changing_mask_selection:
             active = self._mask_edit_session['image']
@@ -2831,6 +2836,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 self.finish_mask_edit(True)
 
         self._selecting_from_layer_list = True
+        self._selecting_board_layer = selecting_board_layer
         try:
             self.scene.blockSignals(True)
             self.scene.clearSelection()
@@ -2844,6 +2850,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             self.on_selection_changed()
         finally:
             self._selecting_from_layer_list = False
+            self._selecting_board_layer = False
 
         self.view.setFocus()
 
@@ -2946,12 +2953,17 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
     def _on_layer_reordered(self, parent, start, end, destination, row):
         count = self.layer_list.count()
         items_in_order = []
+        board_row = None
+        object_rows = {}
         
         for i in range(count):
             list_item = self.layer_list.item(i)
+            if list_item.data(_BOARD_LAYER_ROLE):
+                board_row = i
             target = list_item.data(Qt.ItemDataRole.UserRole)
             if target:
                 items_in_order.append(target)
+                object_rows[target] = i
                 
         for shape in self._mask_shapes():
             displayed_children = [item for item in items_in_order if item.parentItem() is shape]
@@ -2965,10 +2977,15 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             and not isinstance(item.parentItem(), RectangleItem)
         ]
         for index, item in enumerate(reversed(objects)):
+            if self._active_page_id == 'organogram' and board_row is not None:
+                item.board_behind = object_rows[item] > board_row
             item.setZValue(index)
         
         # Redesenha forçadamente para que o item "pule" de volta para a sua seção correta caso tenha sido arrastado pra fora dela
         self.refresh_layer_list()
+        if self._active_page_id == 'organogram':
+            self._update_board_connections()
+            self.organogram_panel.refresh()
         self.save_snapshot()
 
     @staticmethod
@@ -3484,16 +3501,46 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 self.layer_list.addItem(list_item)
                 self.layer_list.setItemWidget(list_item, w)
 
+        def add_board_layer():
+            # Referência da composição inteira; não é um objeto da Página 1.
+            list_item = QListWidgetItem()
+            list_item.setData(Qt.ItemDataRole.AccessibleTextRole, tr("Organograma"))
+            list_item.setData(_BOARD_LAYER_ROLE, True)
+            list_item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled |
+                               Qt.ItemFlag.ItemIsDragEnabled)
+            tooltip = tr("Cartões e conectores do organograma. Camadas acima aparecem à frente; camadas abaixo ficam atrás.")
+            list_item.setToolTip(tooltip)
+            widget = QWidget()
+            layout = QHBoxLayout(widget)
+            layout.setContentsMargins(5, 0, 5, 0)
+            layout.setSpacing(2)
+            icon = QLabel()
+            icon.setFixedSize(24, 24)
+            icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            icon.setPixmap(themed_svg_icon(object_icon_path('organogram')).pixmap(16, 16))
+            layout.addWidget(icon)
+            layout.addWidget(ElidedLayerLabel(tr("Organograma")), 1)
+            widget.setToolTip(tooltip)
+            list_item.setSizeHint(QSize(widget.sizeHint().width(), max(24, widget.sizeHint().height())))
+            self.layer_list.addItem(list_item)
+            self.layer_list.setItemWidget(list_item, widget)
+
         objects = [
             item for item in assinaturas + textos + imagens
             if not isinstance(item.parentItem(), RectangleItem)
         ]
+        board_layer_added = self._active_page_id != 'organogram'
         for item in sorted(objects, key=lambda value: (value.zValue(), -(value.layer_id or 0)), reverse=True):
+            if not board_layer_added and getattr(item, 'board_behind', False):
+                add_board_layer()
+                board_layer_added = True
             add_items([item])
             if isinstance(item, RectangleItem):
                 add_items(sorted(item.masked_images(),
                                  key=lambda child: child.mask_order,
                                  reverse=True))
+        if not board_layer_added:
+            add_board_layer()
         if fundo:
             # A base branca é parte do documento e nunca um objeto editável.
             fundo.setVisible(False)

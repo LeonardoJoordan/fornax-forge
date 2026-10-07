@@ -7,7 +7,8 @@ from PySide6.QtCore import Qt, QRectF, QThread, Signal, QMarginsF
 from PySide6.QtGui import QPainter, QImage, QPen, QColor, QPdfWriter, QPageLayout
 
 from core.model_document import adapt_model_page, normalize_model_document, validate_raster_dimensions
-from core.organogram import assignment_plan, assignment_issue_text, board_bounds, UNITS_PER_MM
+from core.organogram import assignment_plan, assignment_issue_text, board_bounds, slot_rect, UNITS_PER_MM
+from core.text_layout import variables_in_html
 from core.board_connectors import connector_style, connector_pen, connector_paths, text_cutouts, connector_clip
 from core.board_borders import paint_group_borders, card_clip_path
 from core.i18n import tr
@@ -18,13 +19,26 @@ from .pdf_links import inject_pdf_links
 
 
 class OrganogramRenderer:
-    def __init__(self, document, rows_plain, rows_rich=None, *, asset_provider=None, dynamic_image_dir=None):
+    def __init__(self, document, rows_plain, rows_rich=None, *, asset_provider=None, dynamic_image_dir=None,
+                 layout_preview=False):
         self.document = normalize_model_document(document)
         self.board = self.document["organogram"]
         self.paths = connector_paths(self.board)
         self.card = NativeRenderer(adapt_model_page(self.document), asset_provider=asset_provider)
         self.card.set_dynamic_image_directory(dynamic_image_dir)
-        self.slots, self.assignment_issues = assignment_plan(self.document, rows_plain, rows_rich, dynamic_image_dir)
+        self.layout_preview = layout_preview
+        self.layout_values = {name: f"{{{name}}}" for name in self.card.tpl.get("placeholders", [])}
+        if layout_preview:
+            # Mostra o desenho sem inventar registros nem alterar a distribuição da exportação.
+            for box in self.board.get("boxes", []):
+                for name in variables_in_html(box.get("html", "")):
+                    self.layout_values[name] = f"{{{name}}}"
+            self.slots = [(group["id"], index, slot_rect(group, index), self.layout_values, self.layout_values)
+                          for group in self.board["groups"]
+                          for index in range(group["rows"] * group["columns"])]
+            self.assignment_issues = []
+        else:
+            self.slots, self.assignment_issues = assignment_plan(self.document, rows_plain, rows_rich, dynamic_image_dir)
         self.group_slots = {}
         for slot in self.slots:
             self.group_slots.setdefault(slot[0], []).append(slot)
@@ -55,7 +69,8 @@ class OrganogramRenderer:
             painter.setClipRect(region, Qt.ClipOperation.IntersectClip)
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-            self.artwork_planes[True].paint_card(painter, {}, {}, out_links)
+            artwork_values = self.layout_values if self.layout_preview else {}
+            self.artwork_planes[True].paint_card(painter, artwork_values, artwork_values, out_links)
             visible = {slot[0] for slot in self.slots}
             painter.save()
             try:
@@ -88,7 +103,7 @@ class OrganogramRenderer:
                 # Vagas não ganham bordas; conjuntos totalmente vazios ficam ocultos.
                 if slots:
                     paint_group_borders(painter, group, (slot[2] for slot in slots))
-            self.artwork_planes[False].paint_card(painter, {}, {}, out_links)
+            self.artwork_planes[False].paint_card(painter, artwork_values, artwork_values, out_links)
         finally:
             painter.restore()
 
