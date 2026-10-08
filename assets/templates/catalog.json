@@ -30,43 +30,43 @@
       "file": "models/formal-invitation.fornax"
     },
     {
-      "id": "grid",
+      "id": "personnel-board",
       "kind": "organogram",
-      "title": "Quadro em grade",
-      "description": "Uma grade para turma, equipe ou quadro de pessoal.",
-      "file": "organograms/grid.json",
+      "title": "Quadro de pessoal",
+      "description": "Reconheça quem faz parte da instituição, turma ou equipe. Grade ajustável, cartões arredondados e contorno do conjunto, sem relações de chefia.",
+      "file": "organograms/personnel-board.json",
       "configurable_grid": true
     },
     {
-      "id": "team",
+      "id": "command-responsibilities",
       "kind": "organogram",
-      "title": "Responsável e equipe",
-      "description": "Um responsável ligado a três integrantes.",
-      "file": "organograms/team.json",
+      "title": "Comando e responsáveis",
+      "description": "Responsável principal ao centro, com substituto e três responsáveis distribuídos ao redor. Estrutura revisada no editor, com contornos suaves e conexões pelos lados de cada cartão.",
+      "file": "organograms/command-responsibilities.json",
       "configurable_grid": false
     },
     {
-      "id": "hierarchy",
-      "kind": "organogram",
-      "title": "Hierarquia em três níveis",
-      "description": "Direção, coordenações e quatro equipes.",
-      "file": "organograms/hierarchy.json",
-      "configurable_grid": false
-    },
-    {
-      "id": "school",
-      "kind": "organogram",
-      "title": "Organograma escolar",
-      "description": "Direção, coordenações e equipes de professores, atendimento e apoio. 12 cartões em três níveis.",
-      "file": "organograms/school.json",
-      "configurable_grid": false
-    },
-    {
-      "id": "sectors",
+      "id": "sectors-teams",
       "kind": "organogram",
       "title": "Setores e equipes",
-      "description": "Uma direção ligada a três grupos de seis pessoas.",
-      "file": "organograms/sectors.json",
+      "description": "Mostre a distribuição por setor. Responsável geral, três chefias e três equipes de seis posições, com contornos nos cartões e conjuntos.",
+      "file": "organograms/sectors-teams.json",
+      "configurable_grid": false
+    },
+    {
+      "id": "classes-groups",
+      "kind": "organogram",
+      "title": "Turmas e grupos",
+      "description": "Organize participantes por turma ou grupo. Três responsáveis junto aos seus conjuntos de seis posições, sem impor conexões de subordinação.",
+      "file": "organograms/classes-groups.json",
+      "configurable_grid": false
+    },
+    {
+      "id": "activity-team",
+      "kind": "organogram",
+      "title": "Equipe de atividade",
+      "description": "Distribua uma atividade entre coordenação, recepção, logística e execução. Três conjuntos de seis posições conectados à coordenação.",
+      "file": "organograms/activity-team.json",
       "configurable_grid": false
     },
     {

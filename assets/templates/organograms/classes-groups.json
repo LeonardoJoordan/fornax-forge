@@ -1,0 +1,205 @@
+{
+  "preset_version": 2,
+  "card_width_mm": 50,
+  "gap_mm": 8,
+  "column_gap_mm": 30,
+  "level_gap_mm": 30,
+  "margin_mm": 12,
+  "border": {
+    "cards": true,
+    "group": false,
+    "target": "cards",
+    "cards_position": "inside",
+    "group_position": "outside",
+    "color": "#333333",
+    "width_mm": 1.0,
+    "opacity": 1.0,
+    "radius_mm": 5.0,
+    "padding_mm": 5.0,
+    "join": "round",
+    "corner_radii_linked": true,
+    "corner_radii_mm": {
+      "top_left": 5.0,
+      "top_right": 5.0,
+      "bottom_left": 5.0,
+      "bottom_right": 5.0
+    }
+  },
+  "connector_style": {
+    "color": "#333333",
+    "width_mm": 1.25,
+    "opacity": 1.0,
+    "radius_mm": 15.0
+  },
+  "title": {
+    "text": "TURMAS E GRUPOS",
+    "font_size": 90,
+    "height_mm": 20,
+    "gap_mm": 12
+  },
+  "groups": [
+    {
+      "name": "Responsável do grupo 1",
+      "level": 0,
+      "column": 0,
+      "columns": 1,
+      "rows": 1,
+      "border": {
+        "cards": true,
+        "group": false,
+        "target": "cards",
+        "cards_position": "inside",
+        "group_position": "outside",
+        "color": "#333333",
+        "width_mm": 1.0,
+        "opacity": 1.0,
+        "radius_mm": 5.0,
+        "padding_mm": 5.0,
+        "join": "round",
+        "corner_radii_linked": true,
+        "corner_radii_mm": {
+          "top_left": 5.0,
+          "top_right": 5.0,
+          "bottom_left": 5.0,
+          "bottom_right": 5.0
+        }
+      }
+    },
+    {
+      "name": "Responsável do grupo 2",
+      "level": 0,
+      "column": 1,
+      "columns": 1,
+      "rows": 1,
+      "border": {
+        "cards": true,
+        "group": false,
+        "target": "cards",
+        "cards_position": "inside",
+        "group_position": "outside",
+        "color": "#333333",
+        "width_mm": 1.0,
+        "opacity": 1.0,
+        "radius_mm": 5.0,
+        "padding_mm": 5.0,
+        "join": "round",
+        "corner_radii_linked": true,
+        "corner_radii_mm": {
+          "top_left": 5.0,
+          "top_right": 5.0,
+          "bottom_left": 5.0,
+          "bottom_right": 5.0
+        }
+      }
+    },
+    {
+      "name": "Responsável do grupo 3",
+      "level": 0,
+      "column": 2,
+      "columns": 1,
+      "rows": 1,
+      "border": {
+        "cards": true,
+        "group": false,
+        "target": "cards",
+        "cards_position": "inside",
+        "group_position": "outside",
+        "color": "#333333",
+        "width_mm": 1.0,
+        "opacity": 1.0,
+        "radius_mm": 5.0,
+        "padding_mm": 5.0,
+        "join": "round",
+        "corner_radii_linked": true,
+        "corner_radii_mm": {
+          "top_left": 5.0,
+          "top_right": 5.0,
+          "bottom_left": 5.0,
+          "bottom_right": 5.0
+        }
+      }
+    },
+    {
+      "name": "Grupo 1",
+      "level": 1,
+      "column": 0,
+      "columns": 2,
+      "rows": 3,
+      "border": {
+        "cards": true,
+        "group": true,
+        "target": "both",
+        "cards_position": "inside",
+        "group_position": "outside",
+        "color": "#333333",
+        "width_mm": 1.0,
+        "opacity": 1.0,
+        "radius_mm": 5.0,
+        "padding_mm": 5.0,
+        "join": "round",
+        "corner_radii_linked": true,
+        "corner_radii_mm": {
+          "top_left": 5.0,
+          "top_right": 5.0,
+          "bottom_left": 5.0,
+          "bottom_right": 5.0
+        }
+      }
+    },
+    {
+      "name": "Grupo 2",
+      "level": 1,
+      "column": 1,
+      "columns": 2,
+      "rows": 3,
+      "border": {
+        "cards": true,
+        "group": true,
+        "target": "both",
+        "cards_position": "inside",
+        "group_position": "outside",
+        "color": "#333333",
+        "width_mm": 1.0,
+        "opacity": 1.0,
+        "radius_mm": 5.0,
+        "padding_mm": 5.0,
+        "join": "round",
+        "corner_radii_linked": true,
+        "corner_radii_mm": {
+          "top_left": 5.0,
+          "top_right": 5.0,
+          "bottom_left": 5.0,
+          "bottom_right": 5.0
+        }
+      }
+    },
+    {
+      "name": "Grupo 3",
+      "level": 1,
+      "column": 2,
+      "columns": 2,
+      "rows": 3,
+      "border": {
+        "cards": true,
+        "group": true,
+        "target": "both",
+        "cards_position": "inside",
+        "group_position": "outside",
+        "color": "#333333",
+        "width_mm": 1.0,
+        "opacity": 1.0,
+        "radius_mm": 5.0,
+        "padding_mm": 5.0,
+        "join": "round",
+        "corner_radii_linked": true,
+        "corner_radii_mm": {
+          "top_left": 5.0,
+          "top_right": 5.0,
+          "bottom_left": 5.0,
+          "bottom_right": 5.0
+        }
+      }
+    }
+  ],
+  "connections": []
+}

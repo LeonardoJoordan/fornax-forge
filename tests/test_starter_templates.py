@@ -3,17 +3,19 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from copy import deepcopy
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QRectF
 from PySide6.QtGui import QImage, QColor
 from PySide6.QtWidgets import QApplication, QDialog, QMainWindow
 from core.fornax_container import save_public_fornax, open_public_fornax
 from core.model_document import add_blank_back_page, ModelValidationError
 from core.organogram import group_rect
+from core.board_borders import bordered_group_bounds, border_style
 from core.starter_templates import starter_catalog, model_from_starter, organogram_from_starter, StarterTemplate
 from features.editor.starter_dialog import StarterDialog, starter_thumbnail
 from features.workspace.main_window import MainWindow
@@ -112,7 +114,7 @@ class StarterTemplatesTest(unittest.TestCase):
     def test_grid_selection_creates_configured_block_and_undo_redo_preserve_card(self):
         window = self.editor(fixtures.card_document())
         front = deepcopy(window._model_document["pages"])
-        self.pick("grid", columns=4, rows=10)
+        self.pick("personnel-board", columns=4, rows=10)
         window.add_model_organogram()
         self.assertEqual(window._active_page_id, "organogram")
         self.assertEqual(len(window._board_items()), 1)
@@ -126,6 +128,106 @@ class StarterTemplatesTest(unittest.TestCase):
         window.redo()
         self.assertEqual(window._active_page_id, "organogram")
         self.assertEqual(len(window._board_items()), 1)
+        self.assertEqual(len(window._model_document["organogram"]["boxes"]), 1)
+
+    def test_new_structures_offer_distinct_purposes_and_styles_survive_editor_and_save(self):
+        expected = {
+            "personnel-board": (20, 0), "command-responsibilities": (5, 4),
+            "sectors-teams": (22, 6), "classes-groups": (21, 0),
+            "activity-team": (19, 3),
+        }
+        self.assertEqual([template.id for template in starter_catalog("organogram")], list(expected))
+        for template in starter_catalog("organogram"):
+            with self.subTest(template=template.id):
+                document = organogram_from_starter(fixtures.card_document(), template)
+                board = document["organogram"]
+                slots = sum(group["columns"] * group["rows"] for group in board["groups"])
+                self.assertEqual((slots, len(board["connections"])), expected[template.id])
+                self.assertEqual(board["connector_style"]["width_mm"], 1.25)
+                self.assertEqual(board["connector_style"]["radius_mm"], 15)
+                self.assertEqual(len(board["boxes"]), 1)
+                title = board["boxes"][0]
+                self.assertFalse(title["locked"])
+                self.assertIn(title["object_id"], board["layer_order"])
+                for group in board["groups"]:
+                    outline = border_style(group)
+                    self.assertTrue(outline["cards"])
+                    self.assertEqual(border_style(group, "cards")["width_mm"], 1)
+                    self.assertEqual(outline["group"], group["columns"] * group["rows"] > 1)
+                window = self.editor(document)
+                window.switch_model_page("organogram")
+                current = window._document_with_active_page()
+                # O editor acrescenta metadados opcionais à caixa de texto;
+                # o conteúdo, a geometria e o acabamento precisam permanecer.
+                for key, value in board.items():
+                    if key == "connections":
+                        self.assertCountEqual(current["organogram"][key], value)
+                    elif key != "boxes":
+                        self.assertEqual(current["organogram"][key], value)
+                self.assertEqual(len(current["organogram"]["boxes"]), 1)
+                for key, value in title.items():
+                    self.assertEqual(current["organogram"]["boxes"][0][key], value)
+                self.assertEqual(starter_thumbnail(current).toImage(), starter_thumbnail(document).toImage())
+                current["name"] = "Minha estrutura"
+                destination = self.root / f"{template.id}.fornax"
+                save_public_fornax(current, destination)
+                self.assertEqual(open_public_fornax(destination).document()["organogram"], current["organogram"])
+
+    def test_decorated_layouts_keep_titles_and_outlines_clear_for_different_card_ratios(self):
+        for dimensions in ((590, 826), (826, 590), (590, 1770)):
+            document = fixtures.card_document()
+            document["canvas_size"].update(w=dimensions[0], h=dimensions[1])
+            for template in starter_catalog("organogram"):
+                with self.subTest(dimensions=dimensions, template=template.id):
+                    board = organogram_from_starter(document, template)["organogram"]
+                    title = board["boxes"][0]
+                    title_rect = QRectF(title["x"], title["y"], title["w"], title["h"])
+                    for index, group in enumerate(board["groups"]):
+                        bounds = bordered_group_bounds(group)
+                        self.assertFalse(title_rect.intersects(bounds))
+                        self.assertFalse(any(bounds.intersects(bordered_group_bounds(other))
+                                             for other in board["groups"][index + 1:]))
+        template = starter_catalog("organogram")[0]
+        small = organogram_from_starter(document, template, columns=1, rows=1)
+        self.assertLess(small["organogram"]["boxes"][0]["font_size"], 90)
+        self.assertFalse(starter_thumbnail(small).isNull())
+
+    def test_external_version_one_structure_remains_supported(self):
+        source = self.root / "legacy.json"
+        source.write_text(json.dumps({"preset_version": 1,
+            "groups": [{"name": "Equipe", "columns": 2, "rows": 2, "level": 0, "column": 0}],
+            "connections": []}), encoding="utf-8")
+        template = StarterTemplate("legacy", "organogram", "Estrutura antiga", "", source)
+        board = organogram_from_starter(fixtures.card_document(), template)["organogram"]
+        self.assertEqual(board["groups"][0]["name"], "Equipe")
+        self.assertEqual(board["boxes"], [])
+
+    def test_revised_command_structure_has_central_responsible_and_four_surrounding_cards(self):
+        template = next(t for t in starter_catalog("organogram") if t.id == "command-responsibilities")
+        board = organogram_from_starter(fixtures.card_document(), template)["organogram"]
+        groups = {group["name"]: group for group in board["groups"]}
+        principal = groups["Responsável principal"]
+        center = group_rect(principal).center()
+        left = group_rect(groups["Responsável da área 1"]).center()
+        below = group_rect(groups["Responsável da área 2"]).center()
+        above = group_rect(groups["Responsável da área 3"]).center()
+        right = group_rect(groups["Substituto"]).center()
+        self.assertLess(left.x(), center.x())
+        self.assertGreater(right.x(), center.x())
+        self.assertAlmostEqual(left.y(), center.y())
+        self.assertAlmostEqual(right.y(), center.y())
+        self.assertLess(above.y(), center.y())
+        self.assertGreater(below.y(), center.y())
+        self.assertAlmostEqual(above.x(), center.x())
+        self.assertAlmostEqual(below.x(), center.x())
+        self.assertCountEqual(principal["entry_sides"], ["top", "right", "bottom", "left"])
+        self.assertEqual(groups["Substituto"]["exit_sides"], ["left"])
+        self.assertCountEqual(groups["Responsável da área 3"]["exit_sides"], ["top", "bottom"])
+        self.assertTrue(all(edge["source"] == principal["id"] for edge in board["connections"]))
+        title = board["boxes"][0]
+        outer_width = max(bordered_group_bounds(g).right() for g in groups.values()) - min(
+            bordered_group_bounds(g).left() for g in groups.values())
+        self.assertGreater(title["w"], outer_width)
 
     def test_cancel_does_not_add_composition_and_blank_remains_available(self):
         window = self.editor(fixtures.card_document())

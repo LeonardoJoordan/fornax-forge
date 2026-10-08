@@ -6,6 +6,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 ICONS_DIR = PROJECT_ROOT / "assets" / "icons"
 TRANSLATIONS_DIR = PROJECT_ROOT / "assets" / "translations"
+HELP_DIR = PROJECT_ROOT / "assets" / "help"
 
 
 def app_icon_path(size: int = 256) -> Path:

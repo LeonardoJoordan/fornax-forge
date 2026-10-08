@@ -1,0 +1,232 @@
+{
+  "preset_version": 2,
+  "card_width_mm": 50,
+  "gap_mm": 8,
+  "column_gap_mm": 25.000000029333325,
+  "level_gap_mm": 19.530892430512587,
+  "margin_mm": 12,
+  "border": {
+    "cards": true,
+    "cards_position": "inside",
+    "color": "#333333",
+    "corner_radii_linked": true,
+    "corner_radii_mm": {
+      "bottom_left": 5.0,
+      "bottom_right": 5.0,
+      "top_left": 5.0,
+      "top_right": 5.0
+    },
+    "group": false,
+    "group_position": "outside",
+    "join": "round",
+    "opacity": 1.0,
+    "padding_mm": 5.0,
+    "radius_mm": 5.0,
+    "target": "cards",
+    "width_mm": 1.0
+  },
+  "connector_style": {
+    "color": "#333333",
+    "opacity": 1.0,
+    "radius_mm": 15.0,
+    "width_mm": 1.25
+  },
+  "title": {
+    "text": "COMANDO E RESPONSÁVEIS",
+    "font_size": 90,
+    "height_mm": 19.999959999999998,
+    "gap_mm": 4.7651195575896255,
+    "padding_mm": 4.99978999999998
+  },
+  "groups": [
+    {
+      "name": "Responsável principal",
+      "level": 1,
+      "column": 0,
+      "columns": 1,
+      "rows": 1,
+      "border": {
+        "cards": true,
+        "cards_position": "inside",
+        "color": "#333333",
+        "corner_radii_linked": true,
+        "corner_radii_mm": {
+          "bottom_left": 5.0,
+          "bottom_right": 5.0,
+          "top_left": 5.0,
+          "top_right": 5.0
+        },
+        "group": false,
+        "group_position": "outside",
+        "join": "round",
+        "opacity": 1.0,
+        "padding_mm": 5.0,
+        "radius_mm": 5.0,
+        "target": "cards",
+        "width_mm": 1.0
+      },
+      "entry_sides": [
+        "top",
+        "right",
+        "bottom",
+        "left"
+      ],
+      "exit_sides": [
+        "top"
+      ]
+    },
+    {
+      "name": "Substituto",
+      "level": 1,
+      "column": 1,
+      "columns": 1,
+      "rows": 1,
+      "border": {
+        "cards": true,
+        "cards_position": "inside",
+        "color": "#333333",
+        "corner_radii_linked": true,
+        "corner_radii_mm": {
+          "bottom_left": 5.0,
+          "bottom_right": 5.0,
+          "top_left": 5.0,
+          "top_right": 5.0
+        },
+        "group": false,
+        "group_position": "outside",
+        "join": "round",
+        "opacity": 1.0,
+        "padding_mm": 5.0,
+        "radius_mm": 5.0,
+        "target": "cards",
+        "width_mm": 1.0
+      },
+      "entry_sides": [
+        "bottom"
+      ],
+      "exit_sides": [
+        "left"
+      ]
+    },
+    {
+      "name": "Responsável da área 1",
+      "level": 1,
+      "column": -1,
+      "columns": 1,
+      "rows": 1,
+      "border": {
+        "cards": true,
+        "cards_position": "inside",
+        "color": "#333333",
+        "corner_radii_linked": true,
+        "corner_radii_mm": {
+          "bottom_left": 5.0,
+          "bottom_right": 5.0,
+          "top_left": 5.0,
+          "top_right": 5.0
+        },
+        "group": false,
+        "group_position": "outside",
+        "join": "round",
+        "opacity": 1.0,
+        "padding_mm": 5.0,
+        "radius_mm": 5.0,
+        "target": "cards",
+        "width_mm": 1.0
+      },
+      "entry_sides": [
+        "right",
+        "bottom"
+      ],
+      "exit_sides": [
+        "top",
+        "right"
+      ]
+    },
+    {
+      "name": "Responsável da área 2",
+      "level": 2,
+      "column": 0,
+      "columns": 1,
+      "rows": 1,
+      "border": {
+        "cards": true,
+        "cards_position": "inside",
+        "color": "#333333",
+        "corner_radii_linked": true,
+        "corner_radii_mm": {
+          "bottom_left": 5.0,
+          "bottom_right": 5.0,
+          "top_left": 5.0,
+          "top_right": 5.0
+        },
+        "group": false,
+        "group_position": "outside",
+        "join": "round",
+        "opacity": 1.0,
+        "padding_mm": 5.0,
+        "radius_mm": 5.0,
+        "target": "cards",
+        "width_mm": 1.0
+      },
+      "entry_sides": [
+        "bottom"
+      ],
+      "exit_sides": [
+        "top"
+      ]
+    },
+    {
+      "name": "Responsável da área 3",
+      "level": 0,
+      "column": 0,
+      "columns": 1,
+      "rows": 1,
+      "border": {
+        "cards": true,
+        "cards_position": "inside",
+        "color": "#333333",
+        "corner_radii_linked": true,
+        "corner_radii_mm": {
+          "bottom_left": 5.0,
+          "bottom_right": 5.0,
+          "top_left": 5.0,
+          "top_right": 5.0
+        },
+        "group": false,
+        "group_position": "outside",
+        "join": "round",
+        "opacity": 1.0,
+        "padding_mm": 5.0,
+        "radius_mm": 5.0,
+        "target": "cards",
+        "width_mm": 1.0
+      },
+      "entry_sides": [
+        "bottom"
+      ],
+      "exit_sides": [
+        "top",
+        "bottom"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "source": "Responsável principal",
+      "target": "Responsável da área 1"
+    },
+    {
+      "source": "Responsável principal",
+      "target": "Responsável da área 2"
+    },
+    {
+      "source": "Responsável principal",
+      "target": "Substituto"
+    },
+    {
+      "source": "Responsável principal",
+      "target": "Responsável da área 3"
+    }
+  ]
+}

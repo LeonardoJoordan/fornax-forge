@@ -16,6 +16,7 @@ from core.theme_icons import themed_svg_icon
 from core.i18n import SUPPORTED_LANGUAGES, current_locale, set_preferred_locale, tr
 from core.dialog_buttons import style_message_box
 from features.tutorial.first_steps import start_first_steps_tutorial
+from features.help.help_dialog import add_help_action
 
 
 def _restart_application(window):
@@ -539,6 +540,7 @@ def install_frontend(window):
     first_steps_tutorial_action.triggered.connect(
         lambda: start_first_steps_tutorial(window)
     )
+    add_help_action(ajuda, window)
     ajuda.addSeparator()
     ajuda.addAction(tr('Sobre o FORNAX Forge'), lambda: QMessageBox.about(
         window, tr('Sobre o FORNAX Forge'),

@@ -1,0 +1,5695 @@
+{
+  "version": 1,
+  "locale": "pt_BR",
+  "categories": [
+    {
+      "id": "editor-01",
+      "title": "Pontos de partida e modelos prontos"
+    },
+    {
+      "id": "editor-02",
+      "title": "Organização da interface"
+    },
+    {
+      "id": "editor-03",
+      "title": "Navegação e visualização do desenho"
+    },
+    {
+      "id": "editor-04",
+      "title": "Seleção e operações sobre objetos"
+    },
+    {
+      "id": "editor-05",
+      "title": "Posição, tamanho, rotação e opacidade"
+    },
+    {
+      "id": "editor-06",
+      "title": "Réguas, guias e magnetismo"
+    },
+    {
+      "id": "editor-07",
+      "title": "Camadas e ordem visual"
+    },
+    {
+      "id": "editor-08",
+      "title": "Texto e tipografia"
+    },
+    {
+      "id": "editor-09",
+      "title": "Campos variáveis e trechos opcionais"
+    },
+    {
+      "id": "editor-10",
+      "title": "Formas, preenchimento e contorno"
+    },
+    {
+      "id": "editor-11",
+      "title": "Imagens e assinaturas"
+    },
+    {
+      "id": "editor-12",
+      "title": "Máscaras de imagem"
+    },
+    {
+      "id": "editor-13",
+      "title": "Imagem variável"
+    },
+    {
+      "id": "editor-14",
+      "title": "Links clicáveis"
+    },
+    {
+      "id": "editor-15",
+      "title": "Documento e páginas"
+    },
+    {
+      "id": "editor-16",
+      "title": "Estruturas prontas de organograma"
+    },
+    {
+      "id": "editor-17",
+      "title": "Blocos, conjuntos e dados do organograma"
+    },
+    {
+      "id": "editor-18",
+      "title": "Hierarquia e criação de conexões"
+    },
+    {
+      "id": "editor-19",
+      "title": "Lados permitidos e aparência dos conectores"
+    },
+    {
+      "id": "editor-20",
+      "title": "Contornos de cartões e conjuntos"
+    },
+    {
+      "id": "editor-21",
+      "title": "Arte adicional e dimensões do organograma"
+    },
+    {
+      "id": "editor-22",
+      "title": "Histórico, salvamento e proteção"
+    },
+    {
+      "id": "editor-23",
+      "title": "Atalhos registrados que precisam de revisão de acesso"
+    }
+  ],
+  "topics": [
+    {
+      "id": "INI-01",
+      "title": "Painel “Escolha um ponto de partida” ao criar novo modelo.",
+      "category": "editor-01",
+      "keywords": [
+        "modelos prontos",
+        "exemplos",
+        "galeria",
+        "novo modelo",
+        "ponto de partida"
+      ],
+      "file": "escolha-ponto-de-partida.md",
+      "status": "published"
+    },
+    {
+      "id": "INI-02",
+      "title": "Começar em branco.",
+      "category": "editor-01",
+      "keywords": [
+        "modelos prontos",
+        "exemplos",
+        "galeria",
+        "página vazia",
+        "modelo em branco"
+      ],
+      "file": "comecar-em-branco.md",
+      "status": "published"
+    },
+    {
+      "id": "INI-03",
+      "title": "Miniaturas e seleção de modelo pronto.",
+      "category": "editor-01",
+      "keywords": [
+        "modelos prontos",
+        "exemplos",
+        "galeria",
+        "prévia",
+        "seleção",
+        "duplo clique"
+      ],
+      "file": "miniaturas-modelos-prontos.md",
+      "status": "published"
+    },
+    {
+      "id": "INI-04",
+      "title": "Nome e descrição do modelo pronto.",
+      "category": "editor-01",
+      "keywords": [
+        "modelos prontos",
+        "exemplos",
+        "galeria",
+        "título",
+        "descrição",
+        "nome do exemplo"
+      ],
+      "file": "nome-descricao-modelo-pronto.md",
+      "status": "published"
+    },
+    {
+      "id": "INI-05",
+      "title": "Dimensões em milímetros e identificação do formato da folha.",
+      "category": "editor-01",
+      "keywords": [
+        "modelos prontos",
+        "exemplos",
+        "galeria",
+        "tamanho",
+        "milímetros",
+        "formato",
+        "A4",
+        "A6"
+      ],
+      "file": "dimensoes-modelos-prontos.md",
+      "status": "published"
+    },
+    {
+      "id": "INI-06",
+      "title": "Usar modelo.",
+      "category": "editor-01",
+      "keywords": [
+        "modelos prontos",
+        "exemplos",
+        "galeria",
+        "confirmar escolha",
+        "abrir exemplo"
+      ],
+      "file": "usar-modelo.md",
+      "status": "published"
+    },
+    {
+      "id": "INI-07",
+      "title": "Cancelar a escolha de modelo.",
+      "category": "editor-01",
+      "keywords": [
+        "modelos prontos",
+        "exemplos",
+        "galeria",
+        "cancelar",
+        "desistir",
+        "fechar galeria"
+      ],
+      "file": "cancelar-escolha-modelo.md",
+      "status": "published"
+    },
+    {
+      "id": "INI-08",
+      "title": "Personalização e independência da cópia de um modelo pronto.",
+      "category": "editor-01",
+      "keywords": [
+        "modelos prontos",
+        "exemplos",
+        "galeria",
+        "personalizar",
+        "cópia independente",
+        "adaptar modelo"
+      ],
+      "file": "personalizar-copia-modelo-pronto.md",
+      "status": "published"
+    },
+    {
+      "id": "INI-09",
+      "title": "Cartão de aniversário de pessoal.",
+      "category": "editor-01",
+      "keywords": [
+        "modelos prontos",
+        "exemplos",
+        "galeria",
+        "parabenização",
+        "aniversariante",
+        "cumprimentos"
+      ],
+      "file": "cartao-aniversario-pessoal.md",
+      "status": "published"
+    },
+    {
+      "id": "INI-10",
+      "title": "Certificado de estágio.",
+      "category": "editor-01",
+      "keywords": [
+        "modelos prontos",
+        "exemplos",
+        "galeria",
+        "certificado",
+        "estágio",
+        "carga horária",
+        "artigo"
+      ],
+      "file": "certificado-estagio.md",
+      "status": "published"
+    },
+    {
+      "id": "INI-11",
+      "title": "Prisma de identificação.",
+      "category": "editor-01",
+      "keywords": [
+        "modelos prontos",
+        "exemplos",
+        "galeria",
+        "prisma",
+        "identificação de mesa",
+        "dobra",
+        "tratamento"
+      ],
+      "file": "prisma-identificacao.md",
+      "status": "published"
+    },
+    {
+      "id": "INI-12",
+      "title": "Convite institucional.",
+      "category": "editor-01",
+      "keywords": [
+        "modelos prontos",
+        "exemplos",
+        "galeria",
+        "convite",
+        "cerimônia",
+        "evento",
+        "WhatsApp"
+      ],
+      "file": "convite-institucional.md",
+      "status": "published"
+    },
+    {
+      "id": "INI-13",
+      "title": "Organograma institucional.",
+      "category": "editor-01",
+      "keywords": [
+        "modelos prontos",
+        "exemplos",
+        "galeria",
+        "carômetro",
+        "hierarquia",
+        "equipes",
+        "foto"
+      ],
+      "file": "organograma-institucional.md",
+      "status": "published"
+    },
+    {
+      "id": "UI-01",
+      "title": "Nome do modelo no cabeçalho do editor.",
+      "category": "editor-02",
+      "keywords": [
+        "cabeçalho",
+        "nome do modelo",
+        "novo modelo"
+      ],
+      "file": "nome-modelo-cabecalho.md",
+      "status": "published"
+    },
+    {
+      "id": "UI-02",
+      "title": "Barra superior de transformação, guias e histórico.",
+      "category": "editor-02",
+      "keywords": [
+        "chefe",
+        "responsável",
+        "barra de ferramentas",
+        "transformação",
+        "guias",
+        "histórico"
+      ],
+      "file": "barra-superior-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "UI-03",
+      "title": "Resumo “Seleção” e identificação do objeto selecionado.",
+      "category": "editor-02",
+      "keywords": [
+        "objeto selecionado",
+        "resumo",
+        "seleção"
+      ],
+      "file": "resumo-selecao-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "UI-04",
+      "title": "Painel esquerdo “Adicionar ao modelo”.",
+      "category": "editor-02",
+      "keywords": [
+        "inserir elementos",
+        "painel esquerdo",
+        "blocos"
+      ],
+      "file": "painel-adicionar-modelo.md",
+      "status": "published"
+    },
+    {
+      "id": "UI-05",
+      "title": "Painel esquerdo “Camadas”.",
+      "category": "editor-02",
+      "keywords": [
+        "camadas",
+        "sobreposição",
+        "olho",
+        "cadeado"
+      ],
+      "file": "painel-camadas-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "UI-06",
+      "title": "Área de desenho (canvas, prancheta, página).",
+      "category": "editor-02",
+      "keywords": [
+        "canvas",
+        "prancheta",
+        "área de desenho",
+        "zoom"
+      ],
+      "file": "area-desenho-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "UI-07",
+      "title": "Painel direito “Documento”.",
+      "category": "editor-02",
+      "keywords": [
+        "documento",
+        "dimensões",
+        "campos da tabela",
+        "saída do quadro"
+      ],
+      "file": "painel-documento-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "UI-08",
+      "title": "Painel direito “Propriedades”.",
+      "category": "editor-02",
+      "keywords": [
+        "propriedades",
+        "máscara",
+        "contorno",
+        "preenchimento"
+      ],
+      "file": "painel-propriedades-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "UI-09",
+      "title": "Painel direito “Texto”.",
+      "category": "editor-02",
+      "keywords": [
+        "tipografia",
+        "formatação",
+        "fonte",
+        "entrelinha"
+      ],
+      "file": "painel-texto-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "UI-10",
+      "title": "Painel direito “Estrutura do quadro” no organograma.",
+      "category": "editor-02",
+      "keywords": [
+        "hierarquia",
+        "subordinação",
+        "superior",
+        "árvore"
+      ],
+      "file": "painel-estrutura-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "UI-11",
+      "title": "Expandir e recolher seções da barra lateral.",
+      "category": "editor-02",
+      "keywords": [
+        "recolher",
+        "expandir",
+        "abrir painel",
+        "fechar seção"
+      ],
+      "file": "expandir-recolher-secoes.md",
+      "status": "published"
+    },
+    {
+      "id": "UI-12",
+      "title": "Controles disponíveis conforme o tipo de seleção.",
+      "category": "editor-02",
+      "keywords": [
+        "desabilitado",
+        "indisponível",
+        "seleção múltipla",
+        "contexto"
+      ],
+      "file": "controles-conforme-selecao.md",
+      "status": "published"
+    },
+    {
+      "id": "UI-13",
+      "title": "Redimensionar painéis pelas divisórias laterais.",
+      "category": "editor-02",
+      "keywords": [
+        "divisórias",
+        "largura dos painéis",
+        "espaço do canvas"
+      ],
+      "file": "redimensionar-paineis-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "UI-14",
+      "title": "Rolagem das barras e painéis quando faltar espaço.",
+      "category": "editor-02",
+      "keywords": [
+        "rolagem",
+        "barra horizontal",
+        "barra vertical",
+        "roda do mouse"
+      ],
+      "file": "rolagem-barras-paineis.md",
+      "status": "published"
+    },
+    {
+      "id": "UI-15",
+      "title": "Dicas dos controles ao passar o mouse sobre ícones.",
+      "category": "editor-02",
+      "keywords": [
+        "tooltip",
+        "dica",
+        "ícone",
+        "atalho"
+      ],
+      "file": "dicas-controles-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "UI-16",
+      "title": "Aparência dos controles nos temas claro e escuro.",
+      "category": "editor-02",
+      "keywords": [
+        "tema",
+        "aparência",
+        "claro",
+        "escuro",
+        "contraste"
+      ],
+      "file": "temas-controles-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "NAV-01",
+      "title": "Ajustar à janela.",
+      "category": "editor-03",
+      "keywords": [
+        "navegação",
+        "visualização",
+        "canvas",
+        "enquadrar",
+        "visão geral",
+        "zoom",
+        "ajustar à tela"
+      ],
+      "file": "ajustar-a-janela.md",
+      "status": "published"
+    },
+    {
+      "id": "NAV-02",
+      "title": "Ampliar e reduzir com Ctrl + roda do mouse.",
+      "category": "editor-03",
+      "keywords": [
+        "navegação",
+        "visualização",
+        "canvas",
+        "Ctrl scroll",
+        "ampliar",
+        "reduzir",
+        "roda do mouse"
+      ],
+      "file": "zoom-ctrl-roda.md",
+      "status": "published"
+    },
+    {
+      "id": "NAV-03",
+      "title": "Zoom por gesto de pinça no touchpad.",
+      "category": "editor-03",
+      "keywords": [
+        "navegação",
+        "visualização",
+        "canvas",
+        "ampliar",
+        "reduzir",
+        "pinça",
+        "touchpad",
+        "notebook",
+        "gesto"
+      ],
+      "file": "zoom-pinca-touchpad.md",
+      "status": "published"
+    },
+    {
+      "id": "NAV-04",
+      "title": "Ponto de referência do zoom junto ao cursor.",
+      "category": "editor-03",
+      "keywords": [
+        "navegação",
+        "visualização",
+        "canvas",
+        "ampliar",
+        "reduzir",
+        "ponteiro",
+        "âncora do zoom",
+        "foco do zoom"
+      ],
+      "file": "referencia-zoom-cursor.md",
+      "status": "published"
+    },
+    {
+      "id": "NAV-05",
+      "title": "Deslocar a visualização segurando Espaço (mãozinha).",
+      "category": "editor-03",
+      "keywords": [
+        "navegação",
+        "visualização",
+        "canvas",
+        "mãozinha",
+        "pan",
+        "Espaço",
+        "arrastar visualização"
+      ],
+      "file": "deslocar-visualizacao-espaco.md",
+      "status": "published"
+    },
+    {
+      "id": "NAV-06",
+      "title": "Deslocar a visualização com o botão do meio do mouse.",
+      "category": "editor-03",
+      "keywords": [
+        "navegação",
+        "visualização",
+        "canvas",
+        "botão do meio",
+        "pressionar roda",
+        "pan"
+      ],
+      "file": "deslocar-visualizacao-botao-meio.md",
+      "status": "published"
+    },
+    {
+      "id": "NAV-07",
+      "title": "Barras de rolagem horizontal e vertical.",
+      "category": "editor-03",
+      "keywords": [
+        "navegação",
+        "visualização",
+        "canvas",
+        "barra horizontal",
+        "barra vertical",
+        "percorrer desenho"
+      ],
+      "file": "barras-rolagem-canvas.md",
+      "status": "published"
+    },
+    {
+      "id": "NAV-08",
+      "title": "Encerrar uma interação de arraste ou navegação com Esc.",
+      "category": "editor-03",
+      "keywords": [
+        "navegação",
+        "visualização",
+        "canvas",
+        "esc",
+        "escape",
+        "cancelar",
+        "arraste preso",
+        "touchpad"
+      ],
+      "file": "encerrar-interacao-esc.md",
+      "status": "published"
+    },
+    {
+      "id": "NAV-09",
+      "title": "Área externa à página e conteúdo exibido com aparência atenuada.",
+      "category": "editor-03",
+      "keywords": [
+        "navegação",
+        "visualização",
+        "canvas",
+        "fora da página",
+        "área externa",
+        "atenuado",
+        "limites"
+      ],
+      "file": "area-externa-pagina.md",
+      "status": "published"
+    },
+    {
+      "id": "NAV-10",
+      "title": "Fundo quadriculado e indicação visual de transparência.",
+      "category": "editor-03",
+      "keywords": [
+        "navegação",
+        "visualização",
+        "canvas",
+        "opacidade",
+        "transparente",
+        "background",
+        "quadriculado",
+        "transparência",
+        "fundo",
+        "xadrez"
+      ],
+      "file": "fundo-quadriculado-transparencia.md",
+      "status": "published"
+    },
+    {
+      "id": "NAV-11",
+      "title": "Diferença entre zoom da visualização e tamanho físico do documento.",
+      "category": "editor-03",
+      "keywords": [
+        "navegação",
+        "visualização",
+        "canvas",
+        "ampliar",
+        "reduzir",
+        "zoom",
+        "tamanho físico",
+        "milímetros",
+        "dimensões"
+      ],
+      "file": "zoom-tamanho-fisico.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-01",
+      "title": "Selecionar um objeto no canvas.",
+      "category": "editor-04",
+      "keywords": [
+        "selecionar",
+        "objeto",
+        "clique",
+        "canvas"
+      ],
+      "file": "selecionar-objeto-canvas.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-02",
+      "title": "Selecionar objetos pelas camadas.",
+      "category": "editor-04",
+      "keywords": [
+        "selecionar",
+        "camadas",
+        "lista",
+        "intervalo"
+      ],
+      "file": "selecionar-objetos-camadas.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-03",
+      "title": "Seleção de vários objetos com modificadores de teclado.",
+      "category": "editor-04",
+      "keywords": [
+        "seleção múltipla",
+        "ctrl",
+        "shift",
+        "modificadores"
+      ],
+      "file": "selecao-multipla-modificadores.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-04",
+      "title": "Seleção por área ao clicar e arrastar no espaço vazio.",
+      "category": "editor-04",
+      "keywords": [
+        "seleção por área",
+        "arrastar",
+        "retângulo de seleção",
+        "conectores"
+      ],
+      "file": "selecao-por-area.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-05",
+      "title": "Limpar a seleção ao clicar no espaço vazio.",
+      "category": "editor-04",
+      "keywords": [
+        "limpar seleção",
+        "desselecionar",
+        "espaço vazio"
+      ],
+      "file": "limpar-selecao-canvas.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-06",
+      "title": "Selecionar tudo na página ativa (Ctrl+A).",
+      "category": "editor-04",
+      "keywords": [
+        "selecionar tudo",
+        "ctrl+a",
+        "página ativa"
+      ],
+      "file": "selecionar-tudo-pagina.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-07",
+      "title": "Mover objetos por arraste.",
+      "category": "editor-04",
+      "keywords": [
+        "mover",
+        "arraste",
+        "magnetismo",
+        "centro"
+      ],
+      "file": "mover-objetos-arraste.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-08",
+      "title": "Mover a seleção com as setas do teclado.",
+      "category": "editor-04",
+      "keywords": [
+        "setas",
+        "teclado",
+        "mover",
+        "passo"
+      ],
+      "file": "mover-selecao-setas.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-09",
+      "title": "Movimento ampliado com Shift + setas.",
+      "category": "editor-04",
+      "keywords": [
+        "shift",
+        "setas",
+        "movimento ampliado",
+        "dez vezes"
+      ],
+      "file": "movimento-ampliado-shift-setas.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-10",
+      "title": "Alças de redimensionamento dos objetos.",
+      "category": "editor-04",
+      "keywords": [
+        "alças",
+        "redimensionar",
+        "proporção",
+        "tamanho"
+      ],
+      "file": "alcas-redimensionamento.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-11",
+      "title": "Moldura e alças de transformação da seleção múltipla.",
+      "category": "editor-04",
+      "keywords": [
+        "moldura",
+        "seleção múltipla",
+        "escala",
+        "redimensionar"
+      ],
+      "file": "moldura-selecao-multipla.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-12",
+      "title": "Transformação conjunta preservando a disposição dos objetos.",
+      "category": "editor-04",
+      "keywords": [
+        "transformação conjunta",
+        "escala",
+        "proporção",
+        "disposição"
+      ],
+      "file": "transformacao-conjunta-objetos.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-13",
+      "title": "Copiar objetos (Ctrl+C).",
+      "category": "editor-04",
+      "keywords": [
+        "copiar",
+        "ctrl+c",
+        "objetos",
+        "memória interna"
+      ],
+      "file": "copiar-objetos-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-14",
+      "title": "Colar objetos (Ctrl+V).",
+      "category": "editor-04",
+      "keywords": [
+        "colar",
+        "ctrl+v",
+        "cópia",
+        "sobreposição"
+      ],
+      "file": "colar-objetos-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-15",
+      "title": "Copiar e colar objetos entre páginas do modelo.",
+      "category": "editor-04",
+      "keywords": [
+        "copiar",
+        "colar",
+        "entre páginas",
+        "frente e verso"
+      ],
+      "file": "copiar-objetos-entre-paginas.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-16",
+      "title": "Duplicar objetos (Duplicar / Ctrl+D).",
+      "category": "editor-04",
+      "keywords": [
+        "duplicar",
+        "ctrl+d",
+        "duplicação",
+        "cópia"
+      ],
+      "file": "duplicar-objetos-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-17",
+      "title": "Nomes e identidades das cópias e duplicações.",
+      "category": "editor-04",
+      "keywords": [
+        "nome",
+        "identificador",
+        "duplicação",
+        "cópia",
+        "renomear"
+      ],
+      "file": "nomes-identidades-copias.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-18",
+      "title": "Excluir objetos (Excluir / Delete).",
+      "category": "editor-04",
+      "keywords": [
+        "excluir",
+        "delete",
+        "apagar",
+        "remover"
+      ],
+      "file": "excluir-objetos-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-19",
+      "title": "Agrupar objetos (Agrupar / Ctrl+G).",
+      "category": "editor-04",
+      "keywords": [
+        "agrupar",
+        "ctrl+g",
+        "grupo",
+        "reunir"
+      ],
+      "file": "agrupar-objetos-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-20",
+      "title": "Desagrupar objetos (Ctrl+Shift+G).",
+      "category": "editor-04",
+      "keywords": [
+        "desagrupar",
+        "ctrl+shift+g",
+        "separar",
+        "grupo"
+      ],
+      "file": "desagrupar-objetos-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-21",
+      "title": "Selecionar, mover e redimensionar um grupo.",
+      "category": "editor-04",
+      "keywords": [
+        "grupo",
+        "selecionar",
+        "mover",
+        "redimensionar"
+      ],
+      "file": "selecionar-mover-redimensionar-grupo.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-22",
+      "title": "Diferença entre seleção múltipla, grupo de objetos e conjunto de cartões.",
+      "category": "editor-04",
+      "keywords": [
+        "seleção múltipla",
+        "grupo",
+        "conjunto",
+        "cartões",
+        "bloco"
+      ],
+      "file": "selecao-grupo-conjunto-cartoes.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-23",
+      "title": "Diferença entre copiar objetos e copiar texto durante a edição.",
+      "category": "editor-04",
+      "keywords": [
+        "copiar",
+        "colar",
+        "texto",
+        "ctrl+c",
+        "ctrl+v",
+        "foco"
+      ],
+      "file": "copiar-objetos-ou-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "OBJ-24",
+      "title": "Objetos ocultos, bloqueados e especiais nas operações de seleção.",
+      "category": "editor-04",
+      "keywords": [
+        "oculto",
+        "bloqueado",
+        "cadeado",
+        "seleção",
+        "especial"
+      ],
+      "file": "objetos-ocultos-bloqueados-especiais.md",
+      "status": "published"
+    },
+    {
+      "id": "TRA-01",
+      "title": "Posição X, em milímetros.",
+      "category": "editor-05",
+      "keywords": [
+        "transformação",
+        "dimensões do objeto",
+        "posição x",
+        "horizontal",
+        "milímetros",
+        "coordenadas",
+        "centro"
+      ],
+      "file": "posicao-x-milimetros.md",
+      "status": "published"
+    },
+    {
+      "id": "TRA-02",
+      "title": "Posição Y, em milímetros.",
+      "category": "editor-05",
+      "keywords": [
+        "transformação",
+        "dimensões do objeto",
+        "posição y",
+        "vertical",
+        "milímetros",
+        "coordenadas",
+        "centro"
+      ],
+      "file": "posicao-y-milimetros.md",
+      "status": "published"
+    },
+    {
+      "id": "TRA-03",
+      "title": "Referência das coordenadas em páginas comuns e no organograma.",
+      "category": "editor-05",
+      "keywords": [
+        "transformação",
+        "dimensões do objeto",
+        "coordenadas",
+        "origem",
+        "centro",
+        "canto superior esquerdo"
+      ],
+      "file": "referencia-coordenadas-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "TRA-04",
+      "title": "Coordenadas de uma seleção múltipla.",
+      "category": "editor-05",
+      "keywords": [
+        "transformação",
+        "dimensões do objeto",
+        "coordenadas",
+        "seleção múltipla",
+        "centro",
+        "grupo"
+      ],
+      "file": "coordenadas-selecao-multipla.md",
+      "status": "published"
+    },
+    {
+      "id": "TRA-05",
+      "title": "Largura (L), em milímetros.",
+      "category": "editor-05",
+      "keywords": [
+        "transformação",
+        "dimensões do objeto",
+        "largura",
+        "L",
+        "milímetros",
+        "redimensionar"
+      ],
+      "file": "largura-objeto-milimetros.md",
+      "status": "published"
+    },
+    {
+      "id": "TRA-06",
+      "title": "Altura (A), em milímetros.",
+      "category": "editor-05",
+      "keywords": [
+        "transformação",
+        "dimensões do objeto",
+        "altura",
+        "A",
+        "milímetros",
+        "redimensionar"
+      ],
+      "file": "altura-objeto-milimetros.md",
+      "status": "published"
+    },
+    {
+      "id": "TRA-07",
+      "title": "Manter ou liberar proporção ao redimensionar um objeto.",
+      "category": "editor-05",
+      "keywords": [
+        "transformação",
+        "dimensões do objeto",
+        "proporção",
+        "aspect ratio",
+        "cadeado",
+        "deformar",
+        "largura",
+        "altura"
+      ],
+      "file": "manter-liberar-proporcao-objeto.md",
+      "status": "published"
+    },
+    {
+      "id": "TRA-08",
+      "title": "Proporção e redimensionamento de grupos e seleções múltiplas.",
+      "category": "editor-05",
+      "keywords": [
+        "transformação",
+        "dimensões do objeto",
+        "proporção",
+        "aspect ratio",
+        "grupo",
+        "seleção múltipla",
+        "escala uniforme"
+      ],
+      "file": "proporcao-grupos-selecoes.md",
+      "status": "published"
+    },
+    {
+      "id": "TRA-09",
+      "title": "Girar 90° no sentido anti-horário.",
+      "category": "editor-05",
+      "keywords": [
+        "transformação",
+        "dimensões do objeto",
+        "rotacionar",
+        "rotação",
+        "girar",
+        "90",
+        "anti-horário",
+        "esquerda"
+      ],
+      "file": "girar-90-anti-horario.md",
+      "status": "published"
+    },
+    {
+      "id": "TRA-10",
+      "title": "Girar 90° no sentido horário.",
+      "category": "editor-05",
+      "keywords": [
+        "transformação",
+        "dimensões do objeto",
+        "rotacionar",
+        "rotação",
+        "girar",
+        "90",
+        "horário",
+        "direita"
+      ],
+      "file": "girar-90-horario.md",
+      "status": "published"
+    },
+    {
+      "id": "TRA-11",
+      "title": "Ângulo de rotação em graus.",
+      "category": "editor-05",
+      "keywords": [
+        "transformação",
+        "dimensões do objeto",
+        "ângulo",
+        "rotação",
+        "graus",
+        "inclinar",
+        "girar"
+      ],
+      "file": "angulo-rotacao-graus.md",
+      "status": "published"
+    },
+    {
+      "id": "TRA-12",
+      "title": "Opacidade geral do objeto.",
+      "category": "editor-05",
+      "keywords": [
+        "transformação",
+        "dimensões do objeto",
+        "transparência",
+        "transparente",
+        "opacidade",
+        "percentual",
+        "objeto"
+      ],
+      "file": "opacidade-geral-objeto.md",
+      "status": "published"
+    },
+    {
+      "id": "TRA-13",
+      "title": "Diferença entre opacidade geral, do texto, do preenchimento e do contorno.",
+      "category": "editor-05",
+      "keywords": [
+        "transformação",
+        "dimensões do objeto",
+        "transparência",
+        "transparente",
+        "borda",
+        "outline",
+        "opacidade",
+        "texto",
+        "preenchimento",
+        "contorno"
+      ],
+      "file": "tipos-opacidade-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "TRA-14",
+      "title": "Restaurar original: tamanho e rotação de imagens e assinaturas.",
+      "category": "editor-05",
+      "keywords": [
+        "transformação",
+        "dimensões do objeto",
+        "restaurar original",
+        "imagem",
+        "assinatura",
+        "tamanho nativo",
+        "rotação"
+      ],
+      "file": "restaurar-original-imagens-assinaturas.md",
+      "status": "published"
+    },
+    {
+      "id": "TRA-15",
+      "title": "Cálculos nos campos numéricos que aceitam expressões matemáticas.",
+      "category": "editor-05",
+      "keywords": [
+        "transformação",
+        "dimensões do objeto",
+        "cálculos",
+        "expressão matemática",
+        "somar",
+        "dividir",
+        "calculadora"
+      ],
+      "file": "calculos-campos-numericos.md",
+      "status": "published"
+    },
+    {
+      "id": "TRA-16",
+      "title": "Unidades, casas decimais e limites dos campos de transformação.",
+      "category": "editor-05",
+      "keywords": [
+        "transformação",
+        "dimensões do objeto",
+        "unidades",
+        "casas decimais",
+        "limites",
+        "milímetros",
+        "graus",
+        "percentual"
+      ],
+      "file": "unidades-precisao-limites-transformacao.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-01",
+      "title": "Régua horizontal.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "régua horizontal",
+        "medidas",
+        "milímetros",
+        "guia",
+        "topo"
+      ],
+      "file": "regua-horizontal-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-02",
+      "title": "Régua vertical.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "régua vertical",
+        "lateral",
+        "milímetros",
+        "altura"
+      ],
+      "file": "regua-vertical-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-03",
+      "title": "Origem, escala e medidas em milímetros nas réguas.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "régua",
+        "origem",
+        "escala",
+        "milímetros",
+        "zoom"
+      ],
+      "file": "origem-escala-medidas-reguas.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-04",
+      "title": "Criar guia horizontal arrastando a régua superior.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "chefe",
+        "responsável",
+        "guia horizontal",
+        "arrastar",
+        "régua superior",
+        "criar guia"
+      ],
+      "file": "criar-guia-regua-superior.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-05",
+      "title": "Criar guia vertical arrastando a régua lateral.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "guia vertical",
+        "arrastar",
+        "régua lateral",
+        "criar guia"
+      ],
+      "file": "criar-guia-regua-lateral.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-06",
+      "title": "Adicionar guia horizontal pelo botão da barra superior.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "chefe",
+        "responsável",
+        "guia horizontal",
+        "botão",
+        "centro",
+        "barra superior"
+      ],
+      "file": "adicionar-guia-horizontal-botao.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-07",
+      "title": "Adicionar guia vertical pelo botão da barra superior.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "chefe",
+        "responsável",
+        "guia vertical",
+        "botão",
+        "centro",
+        "barra superior"
+      ],
+      "file": "adicionar-guia-vertical-botao.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-08",
+      "title": "Prévia da guia durante a criação e cancelamento com Esc.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "prévia",
+        "guia",
+        "esc",
+        "cancelar",
+        "arraste"
+      ],
+      "file": "previa-guia-cancelar-esc.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-09",
+      "title": "Selecionar e mover uma guia.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "guia",
+        "selecionar",
+        "mover",
+        "posição",
+        "x",
+        "y"
+      ],
+      "file": "selecionar-mover-guia.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-10",
+      "title": "Exibir ou ocultar guias.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "guia",
+        "visibilidade",
+        "olho",
+        "ocultar",
+        "magnetismo"
+      ],
+      "file": "exibir-ocultar-guias.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-11",
+      "title": "Bloquear ou desbloquear a movimentação das guias.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "guia",
+        "bloquear",
+        "cadeado",
+        "desbloquear",
+        "magnetismo"
+      ],
+      "file": "bloquear-desbloquear-guias.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-12",
+      "title": "Remover uma guia selecionada.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "guia",
+        "remover",
+        "excluir",
+        "delete"
+      ],
+      "file": "remover-guia-selecionada.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-13",
+      "title": "Remover uma guia arrastando-a de volta para a régua.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "guia",
+        "remover",
+        "arrastar",
+        "régua",
+        "excluir"
+      ],
+      "file": "remover-guia-volta-regua.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-14",
+      "title": "Encaixe das guias no centro e nos limites da página.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "guia",
+        "encaixe",
+        "centro",
+        "limites",
+        "página"
+      ],
+      "file": "encaixe-guias-centro-limites.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-15",
+      "title": "Magnetismo de objetos em guias e referências da página.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "magnetismo",
+        "encaixe",
+        "guia",
+        "limites"
+      ],
+      "file": "magnetismo-objetos-guias-pagina.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-16",
+      "title": "Magnetismo no redimensionamento por alças.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "magnetismo",
+        "alças",
+        "redimensionar",
+        "guia",
+        "proporção"
+      ],
+      "file": "magnetismo-redimensionamento-alcas.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-17",
+      "title": "Magnetismo de seleções múltiplas.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "magnetismo",
+        "seleção múltipla",
+        "grupo",
+        "distância",
+        "arraste"
+      ],
+      "file": "magnetismo-selecoes-multiplas.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-18",
+      "title": "Grade de magnetismo do organograma.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "grade",
+        "magnetismo",
+        "organograma",
+        "encaixe",
+        "quadro"
+      ],
+      "file": "grade-magnetismo-organograma.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-19",
+      "title": "Passo de 5 mm para blocos e de 2,5 mm para textos no organograma.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "5 mm",
+        "2,5 mm",
+        "passo",
+        "grade",
+        "texto",
+        "bloco"
+      ],
+      "file": "passos-blocos-textos-organograma.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-20",
+      "title": "Ancoragem pelo centro dos elementos no organograma.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "ancoragem",
+        "centro",
+        "simetria",
+        "grade"
+      ],
+      "file": "ancoragem-centro-organograma.md",
+      "status": "published"
+    },
+    {
+      "id": "GUI-21",
+      "title": "Diferença entre guia de edição, limite da página e elemento da arte.",
+      "category": "editor-06",
+      "keywords": [
+        "linhas guia",
+        "linhas de referência",
+        "alinhamento",
+        "guia",
+        "limite",
+        "página",
+        "arte",
+        "linha",
+        "impressão"
+      ],
+      "file": "guia-limite-pagina-elemento-arte.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-01",
+      "title": "Lista de camadas e tipos de objeto.",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "camadas tipos selecao"
+      ],
+      "file": "camadas-tipos-selecao.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-02",
+      "title": "Seleção múltipla na lista de camadas.",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "camadas tipos selecao"
+      ],
+      "file": "camadas-tipos-selecao.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-03",
+      "title": "Ordem das camadas e sobreposição de objetos.",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "ordem camadas arrastar"
+      ],
+      "file": "ordem-camadas-arrastar.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-04",
+      "title": "Reordenar camadas por arrastar e soltar.",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "ordem camadas arrastar"
+      ],
+      "file": "ordem-camadas-arrastar.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-05",
+      "title": "Renomear camada (Renomear / F2 / duplo clique na lista).",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "renomear camada"
+      ],
+      "file": "renomear-camada.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-06",
+      "title": "Exibir ou ocultar camada pelo ícone de olho.",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "visibilidade bloqueio camadas"
+      ],
+      "file": "visibilidade-bloqueio-camadas.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-07",
+      "title": "Bloquear ou desbloquear camada pelo cadeado.",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "visibilidade bloqueio camadas"
+      ],
+      "file": "visibilidade-bloqueio-camadas.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-08",
+      "title": "Identificação e seleção de grupos pelos indicadores da lista.",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "indicadores grupo camadas"
+      ],
+      "file": "indicadores-grupo-camadas.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-09",
+      "title": "Reordenar um grupo pelo indicador de grupo.",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "indicadores grupo camadas"
+      ],
+      "file": "indicadores-grupo-camadas.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-10",
+      "title": "Identificação de máscaras e imagens vinculadas na lista.",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "camadas mascara imagens vinculadas"
+      ],
+      "file": "camadas-mascara-imagens-vinculadas.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-11",
+      "title": "Selecionar o grupo de uma máscara pelo indicador.",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "camadas mascara imagens vinculadas"
+      ],
+      "file": "camadas-mascara-imagens-vinculadas.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-12",
+      "title": "Ordem das imagens dentro de uma máscara.",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "camadas mascara imagens vinculadas"
+      ],
+      "file": "camadas-mascara-imagens-vinculadas.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-13",
+      "title": "Camada especial do plano de fundo do documento.",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "background",
+        "camada plano fundo documento"
+      ],
+      "file": "camada-plano-fundo-documento.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-14",
+      "title": "Restrições de movimentação, duplicação e exclusão do plano de fundo.",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "background",
+        "camada plano fundo documento"
+      ],
+      "file": "camada-plano-fundo-documento.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-15",
+      "title": "Camada especial “Organograma”.",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "camada organograma frente tras"
+      ],
+      "file": "camada-organograma-frente-tras.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-16",
+      "title": "Reordenar a camada Organograma em relação a textos, imagens e formas.",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "camada organograma frente tras"
+      ],
+      "file": "camada-organograma-frente-tras.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-17",
+      "title": "Elementos à frente ou atrás do organograma.",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "camada organograma frente tras"
+      ],
+      "file": "camada-organograma-frente-tras.md",
+      "status": "published"
+    },
+    {
+      "id": "CAM-18",
+      "title": "Diferença entre camadas da arte e hierarquia de subordinação.",
+      "category": "editor-07",
+      "keywords": [
+        "camadas",
+        "ordem visual",
+        "sobreposição",
+        "camadas hierarquia diferenca"
+      ],
+      "file": "camadas-hierarquia-diferenca.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-01",
+      "title": "Adicionar uma caixa de texto (Texto / Campo dinâmico).",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "adicionar caixa texto"
+      ],
+      "file": "adicionar-caixa-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-02",
+      "title": "Iniciar a edição por duplo clique no texto.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "editar texto canvas"
+      ],
+      "file": "editar-texto-canvas.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-03",
+      "title": "Iniciar a edição de uma caixa selecionada com Enter.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "editar texto canvas"
+      ],
+      "file": "editar-texto-canvas.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-04",
+      "title": "Selecionar caracteres, palavras e trechos de texto no canvas.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "editar texto canvas"
+      ],
+      "file": "editar-texto-canvas.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-05",
+      "title": "Encerrar a edição do texto com Esc ou mudança de seleção.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "editar texto canvas"
+      ],
+      "file": "editar-texto-canvas.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-06",
+      "title": "Selecionar a família da fonte.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "fonte tamanho texto"
+      ],
+      "file": "fonte-tamanho-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-07",
+      "title": "Tamanho da fonte.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "fonte tamanho texto"
+      ],
+      "file": "fonte-tamanho-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-08",
+      "title": "Negrito (Ctrl+B).",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "bold",
+        "enfase formatacao trechos"
+      ],
+      "file": "enfase-formatacao-trechos.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-09",
+      "title": "Itálico (Ctrl+I).",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "italic",
+        "enfase formatacao trechos"
+      ],
+      "file": "enfase-formatacao-trechos.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-10",
+      "title": "Sublinhado (Ctrl+U).",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "underline",
+        "enfase formatacao trechos"
+      ],
+      "file": "enfase-formatacao-trechos.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-11",
+      "title": "Formatação de um trecho e formatação da caixa de texto.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "enfase formatacao trechos"
+      ],
+      "file": "enfase-formatacao-trechos.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-12",
+      "title": "Cor do texto pelo seletor de cor.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "cor opacidade texto"
+      ],
+      "file": "cor-opacidade-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-13",
+      "title": "Cor do texto pelo código hexadecimal.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "cor opacidade texto"
+      ],
+      "file": "cor-opacidade-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-14",
+      "title": "Opacidade da cor do texto.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "transparência",
+        "transparente",
+        "cor opacidade texto"
+      ],
+      "file": "cor-opacidade-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-15",
+      "title": "Alinhar texto à esquerda.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "alinhamento horizontal texto"
+      ],
+      "file": "alinhamento-horizontal-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-16",
+      "title": "Centralizar texto horizontalmente.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "alinhamento horizontal texto"
+      ],
+      "file": "alinhamento-horizontal-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-17",
+      "title": "Alinhar texto à direita.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "alinhamento horizontal texto"
+      ],
+      "file": "alinhamento-horizontal-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-18",
+      "title": "Justificar texto.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "alinhamento horizontal texto"
+      ],
+      "file": "alinhamento-horizontal-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-19",
+      "title": "Alinhar texto ao topo da caixa.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "alinhamento vertical texto"
+      ],
+      "file": "alinhamento-vertical-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-20",
+      "title": "Alinhar texto ao meio da caixa.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "alinhamento vertical texto"
+      ],
+      "file": "alinhamento-vertical-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-21",
+      "title": "Alinhar texto à base da caixa.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "alinhamento vertical texto"
+      ],
+      "file": "alinhamento-vertical-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-22",
+      "title": "Entrelinha (espaçamento entre linhas).",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "entrelinha texto"
+      ],
+      "file": "entrelinha-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-23",
+      "title": "Recuo da primeira linha do parágrafo.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "recuo primeira linha"
+      ],
+      "file": "recuo-primeira-linha.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-24",
+      "title": "Quebras de linha e parágrafos.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "quebras espaco caixa texto"
+      ],
+      "file": "quebras-espaco-caixa-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-25",
+      "title": "Quebra automática e espaço disponível na caixa de texto.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "quebras espaco caixa texto"
+      ],
+      "file": "quebras-espaco-caixa-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-26",
+      "title": "Copiar, recortar e colar texto durante a edição.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "clipboard historico texto"
+      ],
+      "file": "clipboard-historico-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-27",
+      "title": "Colagem de texto externo e tratamento da formatação recebida.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "clipboard historico texto"
+      ],
+      "file": "clipboard-historico-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-28",
+      "title": "Desfazer e refazer durante a edição de texto.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "clipboard historico texto"
+      ],
+      "file": "clipboard-historico-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "TXT-29",
+      "title": "Disponibilidade de fontes e fidelidade entre editor, prévia e arquivo gerado.",
+      "category": "editor-08",
+      "keywords": [
+        "texto",
+        "tipografia",
+        "fontes fidelidade documento"
+      ],
+      "file": "fontes-fidelidade-documento.md",
+      "status": "published"
+    },
+    {
+      "id": "VAR-01",
+      "title": "Placeholder de texto (variável / campo dinâmico / `{campo}`).",
+      "category": "editor-09",
+      "keywords": [
+        "placeholder",
+        "variável",
+        "campos da tabela",
+        "campos placeholder texto"
+      ],
+      "file": "campos-placeholder-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "VAR-02",
+      "title": "Texto fixo e texto variável na mesma caixa.",
+      "category": "editor-09",
+      "keywords": [
+        "placeholder",
+        "variável",
+        "campos da tabela",
+        "campos placeholder texto"
+      ],
+      "file": "campos-placeholder-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "VAR-03",
+      "title": "Nomes de placeholders e identificação dos campos.",
+      "category": "editor-09",
+      "keywords": [
+        "placeholder",
+        "variável",
+        "campos da tabela",
+        "campos placeholder texto"
+      ],
+      "file": "campos-placeholder-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "VAR-04",
+      "title": "Reutilização de um campo em várias caixas e páginas.",
+      "category": "editor-09",
+      "keywords": [
+        "placeholder",
+        "variável",
+        "campos da tabela",
+        "campos placeholder texto"
+      ],
+      "file": "campos-placeholder-texto.md",
+      "status": "published"
+    },
+    {
+      "id": "VAR-05",
+      "title": "Formatação aplicada ao placeholder e ao conteúdo substituído.",
+      "category": "editor-09",
+      "keywords": [
+        "placeholder",
+        "variável",
+        "campos da tabela",
+        "formatacao herdada placeholder"
+      ],
+      "file": "formatacao-herdada-placeholder.md",
+      "status": "published"
+    },
+    {
+      "id": "VAR-06",
+      "title": "Trecho opcional delimitado por barras verticais (`|trecho|`).",
+      "category": "editor-09",
+      "keywords": [
+        "placeholder",
+        "variável",
+        "campos da tabela",
+        "trechos opcionais campos vazios"
+      ],
+      "file": "trechos-opcionais-campos-vazios.md",
+      "status": "published"
+    },
+    {
+      "id": "VAR-07",
+      "title": "Trechos opcionais com uma ou mais variáveis.",
+      "category": "editor-09",
+      "keywords": [
+        "placeholder",
+        "variável",
+        "campos da tabela",
+        "trechos opcionais campos vazios"
+      ],
+      "file": "trechos-opcionais-campos-vazios.md",
+      "status": "published"
+    },
+    {
+      "id": "VAR-08",
+      "title": "Campos vazios e regras de exibição do texto preenchido.",
+      "category": "editor-09",
+      "keywords": [
+        "placeholder",
+        "variável",
+        "campos da tabela",
+        "trechos opcionais campos vazios"
+      ],
+      "file": "trechos-opcionais-campos-vazios.md",
+      "status": "published"
+    },
+    {
+      "id": "VAR-09",
+      "title": "Lista “Campos da tabela” no painel Documento.",
+      "category": "editor-09",
+      "keywords": [
+        "placeholder",
+        "variável",
+        "campos da tabela",
+        "campos tabela documento"
+      ],
+      "file": "campos-tabela-documento.md",
+      "status": "published"
+    },
+    {
+      "id": "VAR-10",
+      "title": "Reordenar campos da tabela por arrastar e soltar.",
+      "category": "editor-09",
+      "keywords": [
+        "placeholder",
+        "variável",
+        "campos da tabela",
+        "campos tabela documento"
+      ],
+      "file": "campos-tabela-documento.md",
+      "status": "published"
+    },
+    {
+      "id": "VAR-11",
+      "title": "Campos de texto, de link e de imagem variável na lista do documento.",
+      "category": "editor-09",
+      "keywords": [
+        "placeholder",
+        "variável",
+        "campos da tabela",
+        "campos tabela documento"
+      ],
+      "file": "campos-tabela-documento.md",
+      "status": "published"
+    },
+    {
+      "id": "VAR-12",
+      "title": "Relação dos campos do modelo com as colunas da tabela de dados.",
+      "category": "editor-09",
+      "keywords": [
+        "placeholder",
+        "variável",
+        "campos da tabela",
+        "campos tabela documento"
+      ],
+      "file": "campos-tabela-documento.md",
+      "status": "published"
+    },
+    {
+      "id": "VAR-13",
+      "title": "Placeholders visíveis no desenho sem dados preenchidos.",
+      "category": "editor-09",
+      "keywords": [
+        "placeholder",
+        "variável",
+        "campos da tabela",
+        "placeholder layout sem dados"
+      ],
+      "file": "placeholder-layout-sem-dados.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-01",
+      "title": "Menu Formas.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "formas desenhar canvas"
+      ],
+      "file": "formas-desenhar-canvas.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-02",
+      "title": "Quadrado / retângulo.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "formas desenhar canvas"
+      ],
+      "file": "formas-desenhar-canvas.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-03",
+      "title": "Círculo / elipse.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "formas desenhar canvas"
+      ],
+      "file": "formas-desenhar-canvas.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-04",
+      "title": "Linha.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "formas desenhar canvas"
+      ],
+      "file": "formas-desenhar-canvas.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-05",
+      "title": "Desenhar uma forma clicando e arrastando no canvas.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "proteção",
+        "segurança",
+        "formas desenhar canvas"
+      ],
+      "file": "formas-desenhar-canvas.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-06",
+      "title": "Restringir proporções com Shift durante o desenho.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "proporção",
+        "aspect ratio",
+        "formas shift cancelar"
+      ],
+      "file": "formas-shift-cancelar.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-07",
+      "title": "Restringir o ângulo da linha com Shift durante o desenho.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "formas shift cancelar"
+      ],
+      "file": "formas-shift-cancelar.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-08",
+      "title": "Cancelar o desenho de uma forma com Esc.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "formas shift cancelar"
+      ],
+      "file": "formas-shift-cancelar.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-09",
+      "title": "Cor de preenchimento pelo seletor.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "preenchimento formas"
+      ],
+      "file": "preenchimento-formas.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-10",
+      "title": "Cor de preenchimento pelo código hexadecimal.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "preenchimento formas"
+      ],
+      "file": "preenchimento-formas.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-11",
+      "title": "Opacidade do preenchimento.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "transparência",
+        "transparente",
+        "preenchimento formas"
+      ],
+      "file": "preenchimento-formas.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-12",
+      "title": "Arredondamento do canto superior esquerdo.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "raio",
+        "curva",
+        "chefe",
+        "responsável",
+        "raios cantos forma"
+      ],
+      "file": "raios-cantos-forma.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-13",
+      "title": "Arredondamento do canto superior direito.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "raio",
+        "curva",
+        "chefe",
+        "responsável",
+        "raios cantos forma"
+      ],
+      "file": "raios-cantos-forma.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-14",
+      "title": "Arredondamento do canto inferior esquerdo.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "raio",
+        "curva",
+        "raios cantos forma"
+      ],
+      "file": "raios-cantos-forma.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-15",
+      "title": "Arredondamento do canto inferior direito.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "raio",
+        "curva",
+        "raios cantos forma"
+      ],
+      "file": "raios-cantos-forma.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-16",
+      "title": "Sincronizar ou liberar os quatro raios de arredondamento.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "raio",
+        "curva",
+        "raios cantos forma"
+      ],
+      "file": "raios-cantos-forma.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-17",
+      "title": "Habilitar ou desabilitar contorno.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "borda",
+        "outline",
+        "contorno forma cor espessura"
+      ],
+      "file": "contorno-forma-cor-espessura.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-18",
+      "title": "Cor do contorno pelo seletor.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "borda",
+        "outline",
+        "contorno forma cor espessura"
+      ],
+      "file": "contorno-forma-cor-espessura.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-19",
+      "title": "Cor do contorno pelo código hexadecimal.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "borda",
+        "outline",
+        "contorno forma cor espessura"
+      ],
+      "file": "contorno-forma-cor-espessura.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-20",
+      "title": "Opacidade do contorno.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "transparência",
+        "transparente",
+        "borda",
+        "outline",
+        "contorno forma cor espessura"
+      ],
+      "file": "contorno-forma-cor-espessura.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-21",
+      "title": "Espessura do contorno em milímetros.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "borda",
+        "outline",
+        "contorno forma cor espessura"
+      ],
+      "file": "contorno-forma-cor-espessura.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-22",
+      "title": "Posição do contorno: Interno.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "borda",
+        "outline",
+        "posicao contorno forma"
+      ],
+      "file": "posicao-contorno-forma.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-23",
+      "title": "Posição do contorno: Centralizado.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "borda",
+        "outline",
+        "posicao contorno forma"
+      ],
+      "file": "posicao-contorno-forma.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-24",
+      "title": "Posição do contorno: Externo.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "borda",
+        "outline",
+        "posicao contorno forma"
+      ],
+      "file": "posicao-contorno-forma.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-25",
+      "title": "Cantos retos do contorno.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "borda",
+        "outline",
+        "cantos contorno versus raio"
+      ],
+      "file": "cantos-contorno-versus-raio.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-26",
+      "title": "Cantos arredondados do contorno.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "raio",
+        "curva",
+        "borda",
+        "outline",
+        "cantos contorno versus raio"
+      ],
+      "file": "cantos-contorno-versus-raio.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-27",
+      "title": "Diferença entre arredondar a forma e arredondar a junção do contorno.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "raio",
+        "curva",
+        "borda",
+        "outline",
+        "cantos contorno versus raio"
+      ],
+      "file": "cantos-contorno-versus-raio.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-28",
+      "title": "Particularidades de preenchimento e contorno em linhas e elipses.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "borda",
+        "outline",
+        "linhas elipses estilo"
+      ],
+      "file": "linhas-elipses-estilo.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-29",
+      "title": "Preenchimento, transparência e contorno do plano de fundo.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "opacidade",
+        "transparente",
+        "borda",
+        "outline",
+        "background",
+        "estilo plano fundo documento"
+      ],
+      "file": "estilo-plano-fundo-documento.md",
+      "status": "published"
+    },
+    {
+      "id": "FOR-30",
+      "title": "Contorno interno do plano de fundo e vínculo com as dimensões da página.",
+      "category": "editor-10",
+      "keywords": [
+        "formas",
+        "borda",
+        "outline",
+        "background",
+        "estilo plano fundo documento"
+      ],
+      "file": "estilo-plano-fundo-documento.md",
+      "status": "published"
+    },
+    {
+      "id": "IMG-01",
+      "title": "Adicionar imagem (Imagens / Foto, logo ou QR).",
+      "category": "editor-11",
+      "keywords": [
+        "imagens",
+        "foto",
+        "logotipo",
+        "importar imagem"
+      ],
+      "file": "importar-imagem.md",
+      "status": "published"
+    },
+    {
+      "id": "IMG-02",
+      "title": "Selecionar arquivo de imagem e formatos aceitos.",
+      "category": "editor-11",
+      "keywords": [
+        "imagens",
+        "foto",
+        "logotipo",
+        "importar imagem"
+      ],
+      "file": "importar-imagem.md",
+      "status": "published"
+    },
+    {
+      "id": "IMG-03",
+      "title": "Tamanho inicial e proporção da imagem importada.",
+      "category": "editor-11",
+      "keywords": [
+        "imagens",
+        "foto",
+        "logotipo",
+        "proporção",
+        "aspect ratio",
+        "importar imagem"
+      ],
+      "file": "importar-imagem.md",
+      "status": "published"
+    },
+    {
+      "id": "IMG-04",
+      "title": "Orientação da imagem importada.",
+      "category": "editor-11",
+      "keywords": [
+        "imagens",
+        "foto",
+        "logotipo",
+        "importar imagem"
+      ],
+      "file": "importar-imagem.md",
+      "status": "published"
+    },
+    {
+      "id": "IMG-05",
+      "title": "Redimensionamento, rotação e opacidade de imagens.",
+      "category": "editor-11",
+      "keywords": [
+        "imagens",
+        "foto",
+        "logotipo",
+        "transparência",
+        "transparente",
+        "transformar restaurar imagem"
+      ],
+      "file": "transformar-restaurar-imagem.md",
+      "status": "published"
+    },
+    {
+      "id": "IMG-06",
+      "title": "Restaurar original de uma imagem.",
+      "category": "editor-11",
+      "keywords": [
+        "imagens",
+        "foto",
+        "logotipo",
+        "transformar restaurar imagem"
+      ],
+      "file": "transformar-restaurar-imagem.md",
+      "status": "published"
+    },
+    {
+      "id": "IMG-07",
+      "title": "Usar imagens como fundo pela ordem das camadas.",
+      "category": "editor-11",
+      "keywords": [
+        "imagens",
+        "foto",
+        "logotipo",
+        "background",
+        "imagem como fundo"
+      ],
+      "file": "imagem-como-fundo.md",
+      "status": "published"
+    },
+    {
+      "id": "IMG-08",
+      "title": "Adicionar assinatura opcional.",
+      "category": "editor-11",
+      "keywords": [
+        "imagens",
+        "foto",
+        "logotipo",
+        "assinaturas opcionais"
+      ],
+      "file": "assinaturas-opcionais.md",
+      "status": "published"
+    },
+    {
+      "id": "IMG-09",
+      "title": "Diferença entre imagem comum e assinatura opcional.",
+      "category": "editor-11",
+      "keywords": [
+        "imagens",
+        "foto",
+        "logotipo",
+        "assinaturas opcionais"
+      ],
+      "file": "assinaturas-opcionais.md",
+      "status": "published"
+    },
+    {
+      "id": "IMG-10",
+      "title": "Nome da assinatura e sua identificação na tabela de dados.",
+      "category": "editor-11",
+      "keywords": [
+        "imagens",
+        "foto",
+        "logotipo",
+        "assinaturas opcionais"
+      ],
+      "file": "assinaturas-opcionais.md",
+      "status": "published"
+    },
+    {
+      "id": "IMG-11",
+      "title": "Restaurar original de uma assinatura.",
+      "category": "editor-11",
+      "keywords": [
+        "imagens",
+        "foto",
+        "logotipo",
+        "transformar restaurar imagem"
+      ],
+      "file": "transformar-restaurar-imagem.md",
+      "status": "published"
+    },
+    {
+      "id": "IMG-12",
+      "title": "Relação entre assinatura do modelo e marcação na tabela.",
+      "category": "editor-11",
+      "keywords": [
+        "imagens",
+        "foto",
+        "logotipo",
+        "assinaturas opcionais"
+      ],
+      "file": "assinaturas-opcionais.md",
+      "status": "published"
+    },
+    {
+      "id": "IMG-13",
+      "title": "Assinaturas em modelos com duas páginas.",
+      "category": "editor-11",
+      "keywords": [
+        "imagens",
+        "foto",
+        "logotipo",
+        "assinaturas opcionais"
+      ],
+      "file": "assinaturas-opcionais.md",
+      "status": "published"
+    },
+    {
+      "id": "IMG-14",
+      "title": "Disponibilidade da ferramenta Assinatura na página comum e sua troca por Blocos no organograma.",
+      "category": "editor-11",
+      "keywords": [
+        "imagens",
+        "foto",
+        "logotipo",
+        "assinaturas opcionais"
+      ],
+      "file": "assinaturas-opcionais.md",
+      "status": "published"
+    },
+    {
+      "id": "IMG-15",
+      "title": "Arquivos de imagem incorporados ao modelo salvo.",
+      "category": "editor-11",
+      "keywords": [
+        "imagens",
+        "foto",
+        "logotipo",
+        "imagens incorporadas qualidade"
+      ],
+      "file": "imagens-incorporadas-qualidade.md",
+      "status": "published"
+    },
+    {
+      "id": "IMG-16",
+      "title": "Qualidade da imagem original, visualização no editor e resultado final.",
+      "category": "editor-11",
+      "keywords": [
+        "imagens",
+        "foto",
+        "logotipo",
+        "imagens incorporadas qualidade"
+      ],
+      "file": "imagens-incorporadas-qualidade.md",
+      "status": "published"
+    },
+    {
+      "id": "MAS-01",
+      "title": "Usar como máscara / Aplicar máscara.",
+      "category": "editor-12",
+      "keywords": [
+        "máscara",
+        "mascaras",
+        "recorte",
+        "cortar foto",
+        "enquadramento",
+        "aplicar mascara imagem"
+      ],
+      "file": "aplicar-mascara-imagem.md",
+      "status": "published"
+    },
+    {
+      "id": "MAS-02",
+      "title": "Formas compatíveis e formas indisponíveis para máscara.",
+      "category": "editor-12",
+      "keywords": [
+        "máscara",
+        "mascaras",
+        "recorte",
+        "cortar foto",
+        "enquadramento",
+        "aplicar mascara imagem"
+      ],
+      "file": "aplicar-mascara-imagem.md",
+      "status": "published"
+    },
+    {
+      "id": "MAS-03",
+      "title": "Aplicar uma forma a uma imagem já existente.",
+      "category": "editor-12",
+      "keywords": [
+        "máscara",
+        "mascaras",
+        "recorte",
+        "cortar foto",
+        "enquadramento",
+        "aplicar mascara imagem"
+      ],
+      "file": "aplicar-mascara-imagem.md",
+      "status": "published"
+    },
+    {
+      "id": "MAS-04",
+      "title": "Adicionar imagem a uma forma pelo botão “+ Imagem”.",
+      "category": "editor-12",
+      "keywords": [
+        "máscara",
+        "mascaras",
+        "recorte",
+        "cortar foto",
+        "enquadramento",
+        "adicionar escolher imagens mascara"
+      ],
+      "file": "adicionar-escolher-imagens-mascara.md",
+      "status": "published"
+    },
+    {
+      "id": "MAS-05",
+      "title": "Escolher a imagem ou a forma de destino no menu da máscara.",
+      "category": "editor-12",
+      "keywords": [
+        "máscara",
+        "mascaras",
+        "recorte",
+        "cortar foto",
+        "enquadramento",
+        "aplicar mascara imagem"
+      ],
+      "file": "aplicar-mascara-imagem.md",
+      "status": "published"
+    },
+    {
+      "id": "MAS-06",
+      "title": "Confirmar a aplicação da máscara.",
+      "category": "editor-12",
+      "keywords": [
+        "máscara",
+        "mascaras",
+        "recorte",
+        "cortar foto",
+        "enquadramento",
+        "aplicar mascara imagem"
+      ],
+      "file": "aplicar-mascara-imagem.md",
+      "status": "published"
+    },
+    {
+      "id": "MAS-07",
+      "title": "Várias imagens vinculadas à mesma máscara.",
+      "category": "editor-12",
+      "keywords": [
+        "máscara",
+        "mascaras",
+        "recorte",
+        "cortar foto",
+        "enquadramento",
+        "adicionar escolher imagens mascara"
+      ],
+      "file": "adicionar-escolher-imagens-mascara.md",
+      "status": "published"
+    },
+    {
+      "id": "MAS-08",
+      "title": "Escolher a imagem vinculada para editar.",
+      "category": "editor-12",
+      "keywords": [
+        "máscara",
+        "mascaras",
+        "recorte",
+        "cortar foto",
+        "enquadramento",
+        "adicionar escolher imagens mascara"
+      ],
+      "file": "adicionar-escolher-imagens-mascara.md",
+      "status": "published"
+    },
+    {
+      "id": "MAS-09",
+      "title": "Editar máscara.",
+      "category": "editor-12",
+      "keywords": [
+        "máscara",
+        "mascaras",
+        "recorte",
+        "cortar foto",
+        "enquadramento",
+        "enquadrar mascara"
+      ],
+      "file": "enquadrar-mascara.md",
+      "status": "published"
+    },
+    {
+      "id": "MAS-10",
+      "title": "Mover e redimensionar a imagem dentro da máscara.",
+      "category": "editor-12",
+      "keywords": [
+        "máscara",
+        "mascaras",
+        "recorte",
+        "cortar foto",
+        "enquadramento",
+        "enquadrar mascara"
+      ],
+      "file": "enquadrar-mascara.md",
+      "status": "published"
+    },
+    {
+      "id": "MAS-11",
+      "title": "Visualização atenuada da imagem fora da máscara durante o enquadramento.",
+      "category": "editor-12",
+      "keywords": [
+        "máscara",
+        "mascaras",
+        "recorte",
+        "cortar foto",
+        "enquadramento",
+        "enquadrar mascara"
+      ],
+      "file": "enquadrar-mascara.md",
+      "status": "published"
+    },
+    {
+      "id": "MAS-12",
+      "title": "Concluir o enquadramento (Concluir / Enter).",
+      "category": "editor-12",
+      "keywords": [
+        "máscara",
+        "mascaras",
+        "recorte",
+        "cortar foto",
+        "enquadramento",
+        "enquadrar mascara"
+      ],
+      "file": "enquadrar-mascara.md",
+      "status": "published"
+    },
+    {
+      "id": "MAS-13",
+      "title": "Cancelar o enquadramento (Cancelar / Esc).",
+      "category": "editor-12",
+      "keywords": [
+        "máscara",
+        "mascaras",
+        "recorte",
+        "cortar foto",
+        "enquadramento",
+        "enquadrar mascara"
+      ],
+      "file": "enquadrar-mascara.md",
+      "status": "published"
+    },
+    {
+      "id": "MAS-14",
+      "title": "Remover máscara.",
+      "category": "editor-12",
+      "keywords": [
+        "máscara",
+        "mascaras",
+        "recorte",
+        "cortar foto",
+        "enquadramento",
+        "remover transformar mascara"
+      ],
+      "file": "remover-transformar-mascara.md",
+      "status": "published"
+    },
+    {
+      "id": "MAS-15",
+      "title": "Mover, redimensionar, copiar e duplicar uma máscara com suas imagens.",
+      "category": "editor-12",
+      "keywords": [
+        "máscara",
+        "mascaras",
+        "recorte",
+        "cortar foto",
+        "enquadramento",
+        "remover transformar mascara"
+      ],
+      "file": "remover-transformar-mascara.md",
+      "status": "published"
+    },
+    {
+      "id": "MAS-16",
+      "title": "Relação entre recorte da máscara, preenchimento, contorno e arredondamento.",
+      "category": "editor-12",
+      "keywords": [
+        "máscara",
+        "mascaras",
+        "recorte",
+        "cortar foto",
+        "enquadramento",
+        "raio",
+        "curva",
+        "borda",
+        "outline",
+        "mascara estilo recorte"
+      ],
+      "file": "mascara-estilo-recorte.md",
+      "status": "published"
+    },
+    {
+      "id": "DIN-01",
+      "title": "Usar imagem variável em uma forma.",
+      "category": "editor-13",
+      "keywords": [
+        "imagem variável",
+        "foto por pessoa",
+        "foto por registro",
+        "configurar imagem variavel"
+      ],
+      "file": "configurar-imagem-variavel.md",
+      "status": "published"
+    },
+    {
+      "id": "DIN-02",
+      "title": "Nome do campo da tabela para a imagem variável.",
+      "category": "editor-13",
+      "keywords": [
+        "imagem variável",
+        "foto por pessoa",
+        "foto por registro",
+        "configurar imagem variavel"
+      ],
+      "file": "configurar-imagem-variavel.md",
+      "status": "published"
+    },
+    {
+      "id": "DIN-03",
+      "title": "Enquadramento: Preencher e cortar.",
+      "category": "editor-13",
+      "keywords": [
+        "imagem variável",
+        "foto por pessoa",
+        "foto por registro",
+        "enquadramento imagem variavel"
+      ],
+      "file": "enquadramento-imagem-variavel.md",
+      "status": "published"
+    },
+    {
+      "id": "DIN-04",
+      "title": "Enquadramento: Ajustar imagem inteira.",
+      "category": "editor-13",
+      "keywords": [
+        "imagem variável",
+        "foto por pessoa",
+        "foto por registro",
+        "enquadramento imagem variavel"
+      ],
+      "file": "enquadramento-imagem-variavel.md",
+      "status": "published"
+    },
+    {
+      "id": "DIN-05",
+      "title": "Relação entre valor da célula, nome do arquivo e pasta de imagens.",
+      "category": "editor-13",
+      "keywords": [
+        "imagem variável",
+        "foto por pessoa",
+        "foto por registro",
+        "arquivos fotos variaveis"
+      ],
+      "file": "arquivos-fotos-variaveis.md",
+      "status": "published"
+    },
+    {
+      "id": "DIN-06",
+      "title": "Forma de recorte da imagem variável.",
+      "category": "editor-13",
+      "keywords": [
+        "imagem variável",
+        "foto por pessoa",
+        "foto por registro",
+        "enquadramento imagem variavel"
+      ],
+      "file": "enquadramento-imagem-variavel.md",
+      "status": "published"
+    },
+    {
+      "id": "DIN-07",
+      "title": "Imagem variável em cartões replicados no organograma.",
+      "category": "editor-13",
+      "keywords": [
+        "imagem variável",
+        "foto por pessoa",
+        "foto por registro",
+        "arquivos fotos variaveis"
+      ],
+      "file": "arquivos-fotos-variaveis.md",
+      "status": "published"
+    },
+    {
+      "id": "DIN-08",
+      "title": "Disponibilidade do recurso em formas e relação com máscaras de imagens fixas.",
+      "category": "editor-13",
+      "keywords": [
+        "imagem variável",
+        "foto por pessoa",
+        "foto por registro",
+        "configurar imagem variavel"
+      ],
+      "file": "configurar-imagem-variavel.md",
+      "status": "published"
+    },
+    {
+      "id": "DIN-09",
+      "title": "Imagens ausentes, campos vazios e representação no layout de edição.",
+      "category": "editor-13",
+      "keywords": [
+        "imagem variável",
+        "foto por pessoa",
+        "foto por registro",
+        "arquivos fotos variaveis"
+      ],
+      "file": "arquivos-fotos-variaveis.md",
+      "status": "published"
+    },
+    {
+      "id": "LNK-01",
+      "title": "Habilitar ou desabilitar link.",
+      "category": "editor-14",
+      "keywords": [
+        "link",
+        "hiperlink",
+        "URL",
+        "endereço clicável",
+        "habilitar link objeto"
+      ],
+      "file": "habilitar-link-objeto.md",
+      "status": "published"
+    },
+    {
+      "id": "LNK-02",
+      "title": "Nome do “Campo da tabela” para o link.",
+      "category": "editor-14",
+      "keywords": [
+        "link",
+        "hiperlink",
+        "URL",
+        "endereço clicável",
+        "habilitar link objeto"
+      ],
+      "file": "habilitar-link-objeto.md",
+      "status": "published"
+    },
+    {
+      "id": "LNK-03",
+      "title": "Link em uma caixa de texto.",
+      "category": "editor-14",
+      "keywords": [
+        "link",
+        "hiperlink",
+        "URL",
+        "endereço clicável",
+        "habilitar link objeto"
+      ],
+      "file": "habilitar-link-objeto.md",
+      "status": "published"
+    },
+    {
+      "id": "LNK-04",
+      "title": "Link em imagem ou assinatura.",
+      "category": "editor-14",
+      "keywords": [
+        "link",
+        "hiperlink",
+        "URL",
+        "endereço clicável",
+        "link imagem assinatura limite"
+      ],
+      "file": "link-imagem-assinatura-limite.md",
+      "status": "published"
+    },
+    {
+      "id": "LNK-05",
+      "title": "Link em forma ou máscara.",
+      "category": "editor-14",
+      "keywords": [
+        "link",
+        "hiperlink",
+        "URL",
+        "endereço clicável",
+        "habilitar link objeto"
+      ],
+      "file": "habilitar-link-objeto.md",
+      "status": "published"
+    },
+    {
+      "id": "LNK-06",
+      "title": "Área clicável do objeto no PDF.",
+      "category": "editor-14",
+      "keywords": [
+        "link",
+        "hiperlink",
+        "URL",
+        "endereço clicável",
+        "area clicavel pdf"
+      ],
+      "file": "area-clicavel-pdf.md",
+      "status": "published"
+    },
+    {
+      "id": "LNK-07",
+      "title": "Links variáveis por registro e em cartões do organograma.",
+      "category": "editor-14",
+      "keywords": [
+        "link",
+        "hiperlink",
+        "URL",
+        "endereço clicável",
+        "area clicavel pdf"
+      ],
+      "file": "area-clicavel-pdf.md",
+      "status": "published"
+    },
+    {
+      "id": "LNK-08",
+      "title": "Tipos de endereço e validação dos links fornecidos.",
+      "category": "editor-14",
+      "keywords": [
+        "link",
+        "hiperlink",
+        "URL",
+        "endereço clicável",
+        "enderecos links qr"
+      ],
+      "file": "enderecos-links-qr.md",
+      "status": "published"
+    },
+    {
+      "id": "LNK-09",
+      "title": "Diferença entre imagem de QR code importada e link clicável.",
+      "category": "editor-14",
+      "keywords": [
+        "link",
+        "hiperlink",
+        "URL",
+        "endereço clicável",
+        "enderecos links qr"
+      ],
+      "file": "enderecos-links-qr.md",
+      "status": "published"
+    },
+    {
+      "id": "LNK-10",
+      "title": "Disponibilidade do link no PDF e nos demais formatos de saída.",
+      "category": "editor-14",
+      "keywords": [
+        "link",
+        "hiperlink",
+        "URL",
+        "endereço clicável",
+        "area clicavel pdf"
+      ],
+      "file": "area-clicavel-pdf.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-01",
+      "title": "Largura do documento (L), em milímetros.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "dimensoes documento paginas"
+      ],
+      "file": "dimensoes-documento-paginas.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-02",
+      "title": "Altura do documento (A), em milímetros.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "dimensoes documento paginas"
+      ],
+      "file": "dimensoes-documento-paginas.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-03",
+      "title": "Manter ou liberar proporção do documento.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "proporção",
+        "aspect ratio",
+        "dimensoes documento paginas"
+      ],
+      "file": "dimensoes-documento-paginas.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-04",
+      "title": "Alteração da página em relação aos objetos já posicionados.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "dimensoes documento paginas"
+      ],
+      "file": "dimensoes-documento-paginas.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-05",
+      "title": "Limites de tamanho da página comum.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "dimensoes documento paginas"
+      ],
+      "file": "dimensoes-documento-paginas.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-06",
+      "title": "Botão “+” para adicionar página ou organograma.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "adicionar pagina ou organograma"
+      ],
+      "file": "adicionar-pagina-ou-organograma.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-07",
+      "title": "Adicionar página.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "adicionar pagina ou organograma"
+      ],
+      "file": "adicionar-pagina-ou-organograma.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-08",
+      "title": "Alternar entre Página 1 e Página 2.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "alternar paginas campos"
+      ],
+      "file": "alternar-paginas-campos.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-09",
+      "title": "Ações da página pelo botão de três pontos.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "limpar remover pagina"
+      ],
+      "file": "limpar-remover-pagina.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-10",
+      "title": "Limpar página.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "limpar remover pagina"
+      ],
+      "file": "limpar-remover-pagina.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-11",
+      "title": "Remover página.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "limpar remover pagina"
+      ],
+      "file": "limpar-remover-pagina.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-12",
+      "title": "Conteúdo próprio e dimensões compartilhadas entre páginas.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "dimensoes documento paginas"
+      ],
+      "file": "dimensoes-documento-paginas.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-13",
+      "title": "Campos compartilhados entre as páginas do modelo.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "alternar paginas campos"
+      ],
+      "file": "alternar-paginas-campos.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-14",
+      "title": "Exclusividade entre segunda página e organograma.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "adicionar pagina ou organograma"
+      ],
+      "file": "adicionar-pagina-ou-organograma.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-15",
+      "title": "Adicionar organograma.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "organograma cartao pagina um"
+      ],
+      "file": "organograma-cartao-pagina-um.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-16",
+      "title": "Alternar entre Página 1 e Organograma.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "alternar paginas campos"
+      ],
+      "file": "alternar-paginas-campos.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-17",
+      "title": "Limpar ou remover o organograma pelas ações da página.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "limpar remover pagina"
+      ],
+      "file": "limpar-remover-pagina.md",
+      "status": "published"
+    },
+    {
+      "id": "DOC-18",
+      "title": "Página 1 como modelo de cartão do organograma.",
+      "category": "editor-15",
+      "keywords": [
+        "documento",
+        "página",
+        "organograma cartao pagina um"
+      ],
+      "file": "organograma-cartao-pagina-um.md",
+      "status": "published"
+    },
+    {
+      "id": "EST-01",
+      "title": "Painel de escolha de estrutura ao adicionar organograma.",
+      "category": "editor-16",
+      "keywords": [
+        "estrutura pronta",
+        "organograma",
+        "escolher estrutura organograma"
+      ],
+      "file": "escolher-estrutura-organograma.md",
+      "status": "published"
+    },
+    {
+      "id": "EST-02",
+      "title": "Começar organograma em branco.",
+      "category": "editor-16",
+      "keywords": [
+        "estrutura pronta",
+        "organograma",
+        "escolher estrutura organograma"
+      ],
+      "file": "escolher-estrutura-organograma.md",
+      "status": "published"
+    },
+    {
+      "id": "EST-03",
+      "title": "Miniaturas, nomes e descrições das estruturas.",
+      "category": "editor-16",
+      "keywords": [
+        "estrutura pronta",
+        "organograma",
+        "escolher estrutura organograma"
+      ],
+      "file": "escolher-estrutura-organograma.md",
+      "status": "published"
+    },
+    {
+      "id": "EST-04",
+      "title": "Quadro de pessoal.",
+      "category": "editor-16",
+      "keywords": [
+        "estrutura pronta",
+        "organograma",
+        "carômetro",
+        "grade",
+        "pessoal",
+        "turma"
+      ],
+      "file": "estrutura-quadro-pessoal.md",
+      "status": "published"
+    },
+    {
+      "id": "EST-05",
+      "title": "Colunas e linhas do quadro de pessoal.",
+      "category": "editor-16",
+      "keywords": [
+        "estrutura pronta",
+        "organograma",
+        "carômetro",
+        "grade",
+        "pessoal",
+        "turma"
+      ],
+      "file": "estrutura-quadro-pessoal.md",
+      "status": "published"
+    },
+    {
+      "id": "EST-06",
+      "title": "Comando e responsáveis.",
+      "category": "editor-16",
+      "keywords": [
+        "estrutura pronta",
+        "organograma",
+        "comando",
+        "responsáveis",
+        "substituto",
+        "chefia"
+      ],
+      "file": "estrutura-comando-responsaveis.md",
+      "status": "published"
+    },
+    {
+      "id": "EST-07",
+      "title": "Setores e equipes.",
+      "category": "editor-16",
+      "keywords": [
+        "estrutura pronta",
+        "organograma",
+        "setores",
+        "equipes",
+        "seções",
+        "hierarquia"
+      ],
+      "file": "estrutura-setores-equipes.md",
+      "status": "published"
+    },
+    {
+      "id": "EST-08",
+      "title": "Turmas e grupos.",
+      "category": "editor-16",
+      "keywords": [
+        "estrutura pronta",
+        "organograma",
+        "turmas",
+        "grupos",
+        "escola",
+        "igreja",
+        "instrutores"
+      ],
+      "file": "estrutura-turmas-grupos.md",
+      "status": "published"
+    },
+    {
+      "id": "EST-09",
+      "title": "Equipe de atividade.",
+      "category": "editor-16",
+      "keywords": [
+        "estrutura pronta",
+        "organograma",
+        "atividade",
+        "evento",
+        "comissão",
+        "logística",
+        "recepção"
+      ],
+      "file": "estrutura-equipe-atividade.md",
+      "status": "published"
+    },
+    {
+      "id": "EST-10",
+      "title": "Usar estrutura.",
+      "category": "editor-16",
+      "keywords": [
+        "estrutura pronta",
+        "organograma",
+        "escolher estrutura organograma"
+      ],
+      "file": "escolher-estrutura-organograma.md",
+      "status": "published"
+    },
+    {
+      "id": "EST-11",
+      "title": "Cancelar a escolha de estrutura.",
+      "category": "editor-16",
+      "keywords": [
+        "estrutura pronta",
+        "organograma",
+        "escolher estrutura organograma"
+      ],
+      "file": "escolher-estrutura-organograma.md",
+      "status": "published"
+    },
+    {
+      "id": "EST-12",
+      "title": "Diferença entre um modelo completo pronto e uma estrutura aplicada ao cartão atual.",
+      "category": "editor-16",
+      "keywords": [
+        "estrutura pronta",
+        "organograma",
+        "escolher estrutura organograma"
+      ],
+      "file": "escolher-estrutura-organograma.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-01",
+      "title": "Menu Blocos e conexões do quadro.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "adicionar editar bloco"
+      ],
+      "file": "adicionar-editar-bloco.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-02",
+      "title": "Adicionar bloco.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "adicionar editar bloco"
+      ],
+      "file": "adicionar-editar-bloco.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-03",
+      "title": "Editar bloco selecionado.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "adicionar editar bloco"
+      ],
+      "file": "adicionar-editar-bloco.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-04",
+      "title": "Abrir a edição de um bloco por duplo clique.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "adicionar editar bloco"
+      ],
+      "file": "adicionar-editar-bloco.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-05",
+      "title": "Nome do bloco e identificador de destino dos dados.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "nome unico bloco"
+      ],
+      "file": "nome-unico-bloco.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-06",
+      "title": "Regra de nomes únicos e aviso de nome já utilizado.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "nome unico bloco"
+      ],
+      "file": "nome-unico-bloco.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-07",
+      "title": "Nomes automáticos de blocos novos, copiados e duplicados.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "nome unico bloco"
+      ],
+      "file": "nome-unico-bloco.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-08",
+      "title": "Número de colunas do conjunto.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "capacidade linhas colunas bloco"
+      ],
+      "file": "capacidade-linhas-colunas-bloco.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-09",
+      "title": "Número de linhas do conjunto.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "capacidade linhas colunas bloco"
+      ],
+      "file": "capacidade-linhas-colunas-bloco.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-10",
+      "title": "Capacidade do conjunto (quantidade de cartões / posições).",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "capacidade linhas colunas bloco"
+      ],
+      "file": "capacidade-linhas-colunas-bloco.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-11",
+      "title": "Largura do cartão em milímetros.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "tamanho espacamento cartoes"
+      ],
+      "file": "tamanho-espacamento-cartoes.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-12",
+      "title": "Altura proporcional ao modelo da Página 1.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "proporção",
+        "aspect ratio",
+        "tamanho espacamento cartoes"
+      ],
+      "file": "tamanho-espacamento-cartoes.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-13",
+      "title": "Espaçamento horizontal entre cartões.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "tamanho espacamento cartoes"
+      ],
+      "file": "tamanho-espacamento-cartoes.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-14",
+      "title": "Espaçamento vertical entre cartões.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "tamanho espacamento cartoes"
+      ],
+      "file": "tamanho-espacamento-cartoes.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-15",
+      "title": "Confirmar ou cancelar a criação e a edição do bloco.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "adicionar editar bloco"
+      ],
+      "file": "adicionar-editar-bloco.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-16",
+      "title": "Selecionar e mover um ou vários blocos no canvas.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "mover duplicar excluir blocos"
+      ],
+      "file": "mover-duplicar-excluir-blocos.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-17",
+      "title": "Copiar, colar e duplicar blocos e suas conexões internas.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "mover duplicar excluir blocos"
+      ],
+      "file": "mover-duplicar-excluir-blocos.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-18",
+      "title": "Excluir um bloco e relação com suas conexões.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "mover duplicar excluir blocos"
+      ],
+      "file": "mover-duplicar-excluir-blocos.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-19",
+      "title": "Relação entre nome do bloco e coluna Bloco da tabela de dados.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "distribuir dados bloco"
+      ],
+      "file": "distribuir-dados-bloco.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-20",
+      "title": "Ordem dos registros dentro de cada conjunto.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "distribuir dados bloco"
+      ],
+      "file": "distribuir-dados-bloco.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-21",
+      "title": "Cartões vazios, informação válida e ocultação de posições sem dados.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "posicoes vazias layout preenchido"
+      ],
+      "file": "posicoes-vazias-layout-preenchido.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-22",
+      "title": "Capacidade insuficiente e dados sem destino correspondente.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "posicoes vazias layout preenchido"
+      ],
+      "file": "posicoes-vazias-layout-preenchido.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-23",
+      "title": "Atualizar a Página 1 e refletir o layout nos cartões.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "atualizar cartao replicado"
+      ],
+      "file": "atualizar-cartao-replicado.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-24",
+      "title": "Diferença entre representação do layout e organograma preenchido.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "posicoes vazias layout preenchido"
+      ],
+      "file": "posicoes-vazias-layout-preenchido.md",
+      "status": "published"
+    },
+    {
+      "id": "BLO-25",
+      "title": "Diferença entre nome do bloco e título visível na arte.",
+      "category": "editor-17",
+      "keywords": [
+        "bloco",
+        "conjunto",
+        "cartão",
+        "card",
+        "organograma",
+        "nome unico bloco"
+      ],
+      "file": "nome-unico-bloco.md",
+      "status": "published"
+    },
+    {
+      "id": "HIE-01",
+      "title": "Árvore “Hierarquia” em Estrutura do quadro.",
+      "category": "editor-18",
+      "keywords": [
+        "hierarquia",
+        "subordinação",
+        "organograma",
+        "arvore estrutura quadro"
+      ],
+      "file": "arvore-estrutura-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "HIE-02",
+      "title": "Nomes e dimensões dos conjuntos na árvore.",
+      "category": "editor-18",
+      "keywords": [
+        "hierarquia",
+        "subordinação",
+        "organograma",
+        "arvore estrutura quadro"
+      ],
+      "file": "arvore-estrutura-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "HIE-03",
+      "title": "Seleção de um ou vários blocos pela árvore.",
+      "category": "editor-18",
+      "keywords": [
+        "hierarquia",
+        "subordinação",
+        "organograma",
+        "arvore estrutura quadro"
+      ],
+      "file": "arvore-estrutura-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "HIE-04",
+      "title": "Expandir e recolher ramos da hierarquia.",
+      "category": "editor-18",
+      "keywords": [
+        "hierarquia",
+        "subordinação",
+        "organograma",
+        "arvore estrutura quadro"
+      ],
+      "file": "arvore-estrutura-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "HIE-05",
+      "title": "Arrastar blocos na árvore para alterar o superior.",
+      "category": "editor-18",
+      "keywords": [
+        "hierarquia",
+        "subordinação",
+        "organograma",
+        "chefe",
+        "responsável",
+        "alterar superior hierarquia"
+      ],
+      "file": "alterar-superior-hierarquia.md",
+      "status": "published"
+    },
+    {
+      "id": "HIE-06",
+      "title": "Campo “Superior”.",
+      "category": "editor-18",
+      "keywords": [
+        "hierarquia",
+        "subordinação",
+        "organograma",
+        "chefe",
+        "responsável",
+        "alterar superior hierarquia"
+      ],
+      "file": "alterar-superior-hierarquia.md",
+      "status": "published"
+    },
+    {
+      "id": "HIE-07",
+      "title": "Opção “Sem superior” e remoção da subordinação.",
+      "category": "editor-18",
+      "keywords": [
+        "hierarquia",
+        "subordinação",
+        "organograma",
+        "chefe",
+        "responsável",
+        "alterar superior hierarquia"
+      ],
+      "file": "alterar-superior-hierarquia.md",
+      "status": "published"
+    },
+    {
+      "id": "HIE-08",
+      "title": "Conectar a elemento pelo menu Blocos ou pelo painel da estrutura.",
+      "category": "editor-18",
+      "keywords": [
+        "hierarquia",
+        "subordinação",
+        "organograma",
+        "conectar blocos escolher superior"
+      ],
+      "file": "conectar-blocos-escolher-superior.md",
+      "status": "published"
+    },
+    {
+      "id": "HIE-09",
+      "title": "Escolher vários subordinados antes de iniciar uma conexão.",
+      "category": "editor-18",
+      "keywords": [
+        "hierarquia",
+        "subordinação",
+        "organograma",
+        "conectar blocos escolher superior"
+      ],
+      "file": "conectar-blocos-escolher-superior.md",
+      "status": "published"
+    },
+    {
+      "id": "HIE-10",
+      "title": "Estado atenuado e bloqueado dos blocos durante a escolha do superior.",
+      "category": "editor-18",
+      "keywords": [
+        "hierarquia",
+        "subordinação",
+        "organograma",
+        "chefe",
+        "responsável",
+        "conectar blocos escolher superior"
+      ],
+      "file": "conectar-blocos-escolher-superior.md",
+      "status": "published"
+    },
+    {
+      "id": "HIE-11",
+      "title": "Escolher o superior clicando no canvas.",
+      "category": "editor-18",
+      "keywords": [
+        "hierarquia",
+        "subordinação",
+        "organograma",
+        "chefe",
+        "responsável",
+        "conectar blocos escolher superior"
+      ],
+      "file": "conectar-blocos-escolher-superior.md",
+      "status": "published"
+    },
+    {
+      "id": "HIE-12",
+      "title": "Escolher o superior clicando na árvore.",
+      "category": "editor-18",
+      "keywords": [
+        "hierarquia",
+        "subordinação",
+        "organograma",
+        "chefe",
+        "responsável",
+        "conectar blocos escolher superior"
+      ],
+      "file": "conectar-blocos-escolher-superior.md",
+      "status": "published"
+    },
+    {
+      "id": "HIE-13",
+      "title": "Cancelar conexão pelo botão ou por Esc.",
+      "category": "editor-18",
+      "keywords": [
+        "hierarquia",
+        "subordinação",
+        "organograma",
+        "conectar blocos escolher superior"
+      ],
+      "file": "conectar-blocos-escolher-superior.md",
+      "status": "published"
+    },
+    {
+      "id": "HIE-14",
+      "title": "Diferença entre subordinado, superior, saída e entrada de conectores.",
+      "category": "editor-18",
+      "keywords": [
+        "hierarquia",
+        "subordinação",
+        "organograma",
+        "chefe",
+        "responsável",
+        "hierarquia entrada saida"
+      ],
+      "file": "hierarquia-entrada-saida.md",
+      "status": "published"
+    },
+    {
+      "id": "HIE-15",
+      "title": "Restrições de conexão ao próprio bloco e de ciclos na hierarquia.",
+      "category": "editor-18",
+      "keywords": [
+        "hierarquia",
+        "subordinação",
+        "organograma",
+        "regras ciclos hierarquia"
+      ],
+      "file": "regras-ciclos-hierarquia.md",
+      "status": "published"
+    },
+    {
+      "id": "HIE-16",
+      "title": "Alterar a hierarquia sem reposicionar automaticamente os blocos.",
+      "category": "editor-18",
+      "keywords": [
+        "hierarquia",
+        "subordinação",
+        "organograma",
+        "alterar superior hierarquia"
+      ],
+      "file": "alterar-superior-hierarquia.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-01",
+      "title": "Entrada: permitir pelo lado de cima.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "lados entrada conectores"
+      ],
+      "file": "lados-entrada-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-02",
+      "title": "Entrada: permitir pelo lado de baixo.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "lados entrada conectores"
+      ],
+      "file": "lados-entrada-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-03",
+      "title": "Entrada: permitir pelo lado esquerdo.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "lados entrada conectores"
+      ],
+      "file": "lados-entrada-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-04",
+      "title": "Entrada: permitir pelo lado direito.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "lados entrada conectores"
+      ],
+      "file": "lados-entrada-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-05",
+      "title": "Saída: permitir pelo lado de cima.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "lados saida conectores"
+      ],
+      "file": "lados-saida-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-06",
+      "title": "Saída: permitir pelo lado de baixo.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "lados saida conectores"
+      ],
+      "file": "lados-saida-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-07",
+      "title": "Saída: permitir pelo lado esquerdo.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "lados saida conectores"
+      ],
+      "file": "lados-saida-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-08",
+      "title": "Saída: permitir pelo lado direito.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "lados saida conectores"
+      ],
+      "file": "lados-saida-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-09",
+      "title": "Entrada por baixo e saída por cima como padrão.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "lados entrada conectores"
+      ],
+      "file": "lados-entrada-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-10",
+      "title": "Permitir vários lados e manter ao menos um lado permitido.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "lados entrada conectores"
+      ],
+      "file": "lados-entrada-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-11",
+      "title": "Estados diferentes dos lados permitidos em seleção múltipla.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "lados entrada conectores"
+      ],
+      "file": "lados-entrada-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-12",
+      "title": "Selecionar conector por clique.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "selecionar excluir conectores"
+      ],
+      "file": "selecionar-excluir-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-13",
+      "title": "Selecionar conectores por área de seleção.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "selecionar excluir conectores"
+      ],
+      "file": "selecionar-excluir-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-14",
+      "title": "Selecionar e editar vários conectores simultaneamente.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "selecionar excluir conectores"
+      ],
+      "file": "selecionar-excluir-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-15",
+      "title": "Excluir conectores selecionados.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "selecionar excluir conectores"
+      ],
+      "file": "selecionar-excluir-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-16",
+      "title": "Aparência de novas conexões e de conexões selecionadas.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "aparencia conectores"
+      ],
+      "file": "aparencia-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-17",
+      "title": "Cor do conector pelo seletor.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "aparencia conectores"
+      ],
+      "file": "aparencia-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-18",
+      "title": "Cor do conector pelo código hexadecimal.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "aparencia conectores"
+      ],
+      "file": "aparencia-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-19",
+      "title": "Espessura do conector em milímetros.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "aparencia conectores"
+      ],
+      "file": "aparencia-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-20",
+      "title": "Transparência do conector em porcentagem.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "opacidade",
+        "transparente",
+        "aparencia conectores"
+      ],
+      "file": "aparencia-conectores.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-21",
+      "title": "Raio de curva em milímetros.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "raio curva conector"
+      ],
+      "file": "raio-curva-conector.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-22",
+      "title": "Quinas retas com raio zero.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "raio curva conector"
+      ],
+      "file": "raio-curva-conector.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-23",
+      "title": "Limite do raio conforme o espaço disponível.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "raio curva conector"
+      ],
+      "file": "raio-curva-conector.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-24",
+      "title": "Roteamento automático e ajuste ao mover os blocos.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "roteamento conectores espaco"
+      ],
+      "file": "roteamento-conectores-espaco.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-25",
+      "title": "Conectores em relação ao contorno do cartão ou do conjunto.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "borda",
+        "outline",
+        "roteamento conectores espaco"
+      ],
+      "file": "roteamento-conectores-espaco.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-26",
+      "title": "Cruzamentos, desvios e trechos compartilhados de conectores.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "roteamento conectores espaco"
+      ],
+      "file": "roteamento-conectores-espaco.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-27",
+      "title": "Ocultação de trechos dos conectores sob caixas de texto.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "texto interrompe conector"
+      ],
+      "file": "texto-interrompe-conector.md",
+      "status": "published"
+    },
+    {
+      "id": "CON-28",
+      "title": "Aviso de falta de espaço para rotear conexões.",
+      "category": "editor-19",
+      "keywords": [
+        "conector",
+        "conexão",
+        "ligação",
+        "organograma",
+        "roteamento conectores espaco"
+      ],
+      "file": "roteamento-conectores-espaco.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-01",
+      "title": "Habilitar ou desabilitar contorno no bloco selecionado.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "outline",
+        "contornos cartoes conjunto"
+      ],
+      "file": "contornos-cartoes-conjunto.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-02",
+      "title": "Aplicar em: Em cada cartão.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "contornos cartoes conjunto"
+      ],
+      "file": "contornos-cartoes-conjunto.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-03",
+      "title": "Aplicar em: Ao redor do conjunto.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "contornos cartoes conjunto"
+      ],
+      "file": "contornos-cartoes-conjunto.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-04",
+      "title": "Aplicar em: Cartões e conjunto.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "contornos cartoes conjunto"
+      ],
+      "file": "contornos-cartoes-conjunto.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-05",
+      "title": "Configurações independentes para cartão, conjunto e conectores.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "contornos cartoes conjunto"
+      ],
+      "file": "contornos-cartoes-conjunto.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-06",
+      "title": "Preservação das configurações ao alternar o destino do contorno.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "outline",
+        "contornos cartoes conjunto"
+      ],
+      "file": "contornos-cartoes-conjunto.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-07",
+      "title": "Cor do contorno pelo seletor.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "outline",
+        "cor espessura contorno quadro"
+      ],
+      "file": "cor-espessura-contorno-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-08",
+      "title": "Cor do contorno pelo código hexadecimal.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "outline",
+        "cor espessura contorno quadro"
+      ],
+      "file": "cor-espessura-contorno-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-09",
+      "title": "Opacidade do contorno.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "transparência",
+        "transparente",
+        "outline",
+        "cor espessura contorno quadro"
+      ],
+      "file": "cor-espessura-contorno-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-10",
+      "title": "Espessura do contorno em milímetros.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "outline",
+        "cor espessura contorno quadro"
+      ],
+      "file": "cor-espessura-contorno-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-11",
+      "title": "Posição do contorno: Interno.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "outline",
+        "posicao contorno quadro"
+      ],
+      "file": "posicao-contorno-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-12",
+      "title": "Posição do contorno: Centralizado.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "outline",
+        "posicao contorno quadro"
+      ],
+      "file": "posicao-contorno-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-13",
+      "title": "Posição do contorno: Externo.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "outline",
+        "posicao contorno quadro"
+      ],
+      "file": "posicao-contorno-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-14",
+      "title": "Cantos retos do contorno.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "outline",
+        "juncoes contorno quadro"
+      ],
+      "file": "juncoes-contorno-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-15",
+      "title": "Cantos arredondados do contorno.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "raio",
+        "curva",
+        "outline",
+        "juncoes contorno quadro"
+      ],
+      "file": "juncoes-contorno-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-16",
+      "title": "Raio do canto superior esquerdo.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "chefe",
+        "responsável",
+        "raios cantos cartao conjunto"
+      ],
+      "file": "raios-cantos-cartao-conjunto.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-17",
+      "title": "Raio do canto superior direito.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "chefe",
+        "responsável",
+        "raios cantos cartao conjunto"
+      ],
+      "file": "raios-cantos-cartao-conjunto.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-18",
+      "title": "Raio do canto inferior esquerdo.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "raios cantos cartao conjunto"
+      ],
+      "file": "raios-cantos-cartao-conjunto.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-19",
+      "title": "Raio do canto inferior direito.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "raios cantos cartao conjunto"
+      ],
+      "file": "raios-cantos-cartao-conjunto.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-20",
+      "title": "Sincronizar ou liberar os quatro raios.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "raios cantos cartao conjunto"
+      ],
+      "file": "raios-cantos-cartao-conjunto.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-21",
+      "title": "Recorte do conteúdo do cartão com cantos arredondados.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "raio",
+        "curva",
+        "recorte cartao arredondado"
+      ],
+      "file": "recorte-cartao-arredondado.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-22",
+      "title": "Folga do conjunto em milímetros.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "folga raio seguro conjunto"
+      ],
+      "file": "folga-raio-seguro-conjunto.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-23",
+      "title": "Limite do arredondamento do conjunto em relação à folga dos cartões.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "raio",
+        "curva",
+        "folga raio seguro conjunto"
+      ],
+      "file": "folga-raio-seguro-conjunto.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-24",
+      "title": "Edição de contornos em vários blocos selecionados.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "outline",
+        "editar contornos multiplos"
+      ],
+      "file": "editar-contornos-multiplos.md",
+      "status": "published"
+    },
+    {
+      "id": "BOR-25",
+      "title": "Indicações “Contornos diferentes” e “Posições diferentes”.",
+      "category": "editor-20",
+      "keywords": [
+        "contorno",
+        "borda",
+        "cartão",
+        "conjunto",
+        "outline",
+        "editar contornos multiplos"
+      ],
+      "file": "editar-contornos-multiplos.md",
+      "status": "published"
+    },
+    {
+      "id": "QUA-01",
+      "title": "Adicionar texto livre ao quadro.",
+      "category": "editor-21",
+      "keywords": [
+        "quadro",
+        "organograma",
+        "elementos livres quadro"
+      ],
+      "file": "elementos-livres-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "QUA-02",
+      "title": "Adicionar imagem livre ao quadro.",
+      "category": "editor-21",
+      "keywords": [
+        "quadro",
+        "organograma",
+        "elementos livres quadro"
+      ],
+      "file": "elementos-livres-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "QUA-03",
+      "title": "Adicionar forma livre ao quadro.",
+      "category": "editor-21",
+      "keywords": [
+        "quadro",
+        "organograma",
+        "elementos livres quadro"
+      ],
+      "file": "elementos-livres-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "QUA-04",
+      "title": "Posição em Camadas do quadro: À frente do organograma.",
+      "category": "editor-21",
+      "keywords": [
+        "quadro",
+        "organograma",
+        "planos frente tras quadro"
+      ],
+      "file": "planos-frente-tras-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "QUA-05",
+      "title": "Posição em Camadas do quadro: Atrás do organograma.",
+      "category": "editor-21",
+      "keywords": [
+        "quadro",
+        "organograma",
+        "planos frente tras quadro"
+      ],
+      "file": "planos-frente-tras-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "QUA-06",
+      "title": "Imagem de fundo do quadro e relação com a camada Organograma.",
+      "category": "editor-21",
+      "keywords": [
+        "quadro",
+        "organograma",
+        "background",
+        "planos frente tras quadro"
+      ],
+      "file": "planos-frente-tras-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "QUA-07",
+      "title": "Área de montagem expansível do organograma.",
+      "category": "editor-21",
+      "keywords": [
+        "quadro",
+        "organograma",
+        "limites margem saida quadro"
+      ],
+      "file": "limites-margem-saida-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "QUA-08",
+      "title": "Saída do quadro: Margem de saída.",
+      "category": "editor-21",
+      "keywords": [
+        "quadro",
+        "organograma",
+        "limites margem saida quadro"
+      ],
+      "file": "limites-margem-saida-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "QUA-09",
+      "title": "Tamanho sugerido do quadro em milímetros.",
+      "category": "editor-21",
+      "keywords": [
+        "quadro",
+        "organograma",
+        "limites margem saida quadro"
+      ],
+      "file": "limites-margem-saida-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "QUA-10",
+      "title": "Dimensões calculadas a partir de cartões, contornos e arte adicional.",
+      "category": "editor-21",
+      "keywords": [
+        "quadro",
+        "organograma",
+        "borda",
+        "outline",
+        "limites margem saida quadro"
+      ],
+      "file": "limites-margem-saida-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "QUA-11",
+      "title": "Diferença entre dimensão do cartão, do quadro e da folha de impressão.",
+      "category": "editor-21",
+      "keywords": [
+        "quadro",
+        "organograma",
+        "cartao quadro folha impressao"
+      ],
+      "file": "cartao-quadro-folha-impressao.md",
+      "status": "published"
+    },
+    {
+      "id": "QUA-12",
+      "title": "Relação do quadro com a prévia do cartão e a prévia da composição completa.",
+      "category": "editor-21",
+      "keywords": [
+        "quadro",
+        "organograma",
+        "previas cartao quadro"
+      ],
+      "file": "previas-cartao-quadro.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-01",
+      "title": "Desfazer (Ctrl+Z).",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "historico desfazer refazer"
+      ],
+      "file": "historico-desfazer-refazer.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-02",
+      "title": "Refazer (Ctrl+Y / Ctrl+Shift+Z).",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "historico desfazer refazer"
+      ],
+      "file": "historico-desfazer-refazer.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-03",
+      "title": "Disponibilidade dos botões conforme o histórico.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "historico desfazer refazer"
+      ],
+      "file": "historico-desfazer-refazer.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-04",
+      "title": "Histórico de edição entre páginas e organograma.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "historico desfazer refazer"
+      ],
+      "file": "historico-desfazer-refazer.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-05",
+      "title": "Limites do histórico e diferença entre desfazer texto e desfazer objetos.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "historico desfazer refazer"
+      ],
+      "file": "historico-desfazer-refazer.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-06",
+      "title": "Salvar modelo (Ctrl+S).",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "salvar modelo arquivo"
+      ],
+      "file": "salvar-modelo-arquivo.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-07",
+      "title": "Nome solicitado no primeiro salvamento.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "salvar modelo arquivo"
+      ],
+      "file": "salvar-modelo-arquivo.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-08",
+      "title": "Modelo salvo em arquivo `.fornax` e recursos incorporados.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "salvar modelo arquivo"
+      ],
+      "file": "salvar-modelo-arquivo.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-09",
+      "title": "Salvamento de cópia quando a edição exigir um novo modelo.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "salvar copia conflito externo"
+      ],
+      "file": "salvar-copia-conflito-externo.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-10",
+      "title": "Arquivo alterado fora do editor: recarregar ou salvar nova cópia.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "salvar copia conflito externo"
+      ],
+      "file": "salvar-copia-conflito-externo.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-11",
+      "title": "Encerrar edição após salvar.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "salvar fechar continuar editor"
+      ],
+      "file": "salvar-fechar-continuar-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-12",
+      "title": "Continuar editando após salvar.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "salvar fechar continuar editor"
+      ],
+      "file": "salvar-fechar-continuar-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-13",
+      "title": "Fechar o editor com alterações não salvas.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "salvar fechar continuar editor"
+      ],
+      "file": "salvar-fechar-continuar-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-14",
+      "title": "Salvar, descartar alterações ou cancelar o fechamento.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "salvar fechar continuar editor"
+      ],
+      "file": "salvar-fechar-continuar-editor.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-15",
+      "title": "Cópia de recuperação automática e diferença em relação a salvar o modelo.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "recuperacao automatica modelo"
+      ],
+      "file": "recuperacao-automatica-modelo.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-16",
+      "title": "Menu de proteção ao lado de Salvar modelo.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "senha",
+        "segurança",
+        "menu niveis protecao"
+      ],
+      "file": "menu-niveis-protecao.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-17",
+      "title": "Sem proteção.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "senha",
+        "segurança",
+        "menu niveis protecao"
+      ],
+      "file": "menu-niveis-protecao.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-18",
+      "title": "Proteger assinaturas.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "proteger assinaturas"
+      ],
+      "file": "proteger-assinaturas.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-19",
+      "title": "Proteger modelo inteiro.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "proteger modelo inteiro"
+      ],
+      "file": "proteger-modelo-inteiro.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-20",
+      "title": "Definir e confirmar senha.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "proteção",
+        "segurança",
+        "definir alterar senha modelo"
+      ],
+      "file": "definir-alterar-senha-modelo.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-21",
+      "title": "Alterar senha: senha atual, nova senha e confirmação.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "proteção",
+        "segurança",
+        "definir alterar senha modelo"
+      ],
+      "file": "definir-alterar-senha-modelo.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-22",
+      "title": "Remover ou alterar o nível de proteção.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "senha",
+        "segurança",
+        "menu niveis protecao"
+      ],
+      "file": "menu-niveis-protecao.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-23",
+      "title": "Aviso ao salvar assinaturas sem proteção.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "senha",
+        "segurança",
+        "assinaturas sem protecao aviso"
+      ],
+      "file": "assinaturas-sem-protecao-aviso.md",
+      "status": "published"
+    },
+    {
+      "id": "SAL-24",
+      "title": "Autorização e disponibilidade da edição em modelos protegidos.",
+      "category": "editor-22",
+      "keywords": [
+        "salvar",
+        "salvamento",
+        "autorizacao edicao modelos protegidos"
+      ],
+      "file": "autorizacao-edicao-modelos-protegidos.md",
+      "status": "published"
+    },
+    {
+      "id": "REV-01",
+      "title": "Transformar seleção em placeholder (Ctrl+1).",
+      "category": "editor-23",
+      "keywords": [],
+      "file": null,
+      "status": "review"
+    },
+    {
+      "id": "REV-02",
+      "title": "Transformar seleção em trecho opcional (Ctrl+2).",
+      "category": "editor-23",
+      "keywords": [],
+      "file": null,
+      "status": "review"
+    }
+  ]
+}

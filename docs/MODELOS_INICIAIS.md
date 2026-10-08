@@ -13,7 +13,7 @@ As dimensões dos organogramas incluem a margem de saída e acompanham os
 ajustes de linhas e colunas da grade.
 
 No editor, **+ → Adicionar organograma** oferece estruturas prontas. Os cartões
-usam a Página 1 atual. Na opção **Quadro em grade**, escolha colunas e linhas
+usam a Página 1 atual. Na opção **Quadro de pessoal**, escolha colunas e linhas
 antes de entrar no editor. Depois, os blocos e conectores podem ser alterados
 normalmente, inclusive seus nomes para a coluna **Bloco** da tabela.
 
@@ -76,15 +76,35 @@ sem apagar suas configurações.
 
 Os exemplos são locais e acompanham a instalação. O catálogo inicial contém
 cinco modelos (cartão de aniversário de pessoal, certificado de estágio, prisma de identificação,
-convite institucional e organograma institucional) e cinco estruturas (grade, responsável e equipe,
-hierarquia em três níveis, organograma escolar e setores e equipes). Os espaços de foto são formas
+convite institucional e organograma institucional) e cinco estruturas por finalidade:
+Quadro de pessoal, Comando e responsáveis, Setores e equipes, Turmas e grupos e Equipe de atividade. Os espaços de foto são formas
 com imagem variável ligada ao campo **Foto**; selecione a pasta de imagens ao
 preencher a tabela. Os textos fixos, como “INSTITUIÇÃO”, podem ser editados.
 
-O **Organograma escolar** oferece 12 cartões em três níveis: Direção;
-Coordenação pedagógica, Secretaria e Coordenação administrativa; e equipes de
-Professores (quatro cartões), Atendimento (dois) e Apoio escolar (dois).
-Cada equipe se conecta ao seu responsável. A estrutura usa o cartão da Página 1;
+As estruturas de **Adicionar organograma** substituem os cinco exemplos anteriores,
+sem modificar modelos já salvos ou o modelo completo **Organograma institucional**
+de **Novo modelo**. Todas usam o cartão atual da Página 1 e um título genérico
+editável como caixa de texto comum. Os contornos dos cartões começam em **1 mm**,
+com cantos de **5 mm**; conjuntos com várias posições também têm contorno externo
+com folga. Os conectores começam em **1,25 mm**, com raio de **15 mm**,
+inspirados no acabamento do modelo institucional. Cores e demais propriedades
+continuam editáveis, separadamente para cartões, conjuntos e conectores.
+
+| Estrutura | Composição inicial | Finalidade |
+|---|---|---|
+| Quadro de pessoal | Grade de 5 × 4, configurável antes de abrir; sem conexões | Identificar integrantes de unidade, turma ou equipe |
+| Comando e responsáveis | Principal ao centro, substituto à direita e três responsáveis à esquerda, acima e abaixo; 5 cartões | Apresentar comando ou chefias |
+| Setores e equipes | Geral, três responsáveis e três equipes de seis; 22 cartões | Apresentar setores e seus integrantes |
+| Turmas e grupos | Três responsáveis e três grupos de seis; 21 cartões; sem conexões | Reunir pessoas por turma ou grupo, sem impor subordinação |
+| Equipe de atividade | Coordenação e três equipes de seis; 19 cartões | Organizar recepção, logística e execução de atividades temporárias |
+
+Os nomes, capacidades, posições e vínculos são pontos de partida editáveis,
+sem representar uma estrutura oficial de qualquer instituição. Os espaçamentos
+acompanham as proporções do cartão atual, incluindo os contornos dos conjuntos.
+**Comando e responsáveis** usa a composição revisada no modelo
+**comando e responsaveis alterado**, preservando os lados de entrada e saída
+dos cartões e o acabamento. O título conserva a folga lateral do modelo revisado.
+
 Na tabela, clique em uma célula da coluna **Bloco** para escolher o grupo
 correspondente no menu. Células vazias mostram **Selecione um bloco**, sem
 adicionar esse texto aos dados. O campo acompanha a altura da linha da tabela.
@@ -130,10 +150,13 @@ as posições verticais acompanham a proporção da Página 1 atual. Os textos e
 imagens adicionais do quadro podem ser inseridos depois no editor; esse tipo de
 exemplo contém a estrutura, enquanto os cartões vêm do modelo do usuário.
 
-As estruturas iniciais usam pequenos arquivos JSON com `preset_version: 1`,
-uma lista `groups` (nome, linhas, colunas, coluna de posicionamento e nível) e
-uma lista `connections` (nomes de superior e subordinado). O arquivo da grade
-tem `configurable_grid: true` na entrada do catálogo para habilitar os controles.
+As estruturas iniciais usam pequenos arquivos JSON com `preset_version: 2`,
+uma lista `groups` (nome, linhas, colunas, coluna de posicionamento e nível),
+`connections` (nomes de superior e subordinado), `border`, `connector_style`
+e `title`. Também definem espaçamento entre colunas/níveis e margem de saída.
+O Quadro de pessoal tem `configurable_grid: true` na entrada do catálogo para
+habilitar os controles. Arquivos externos com `preset_version: 1` continuam
+compatíveis; essa versão não adiciona automaticamente título ou decoração.
 
 Os arquivos em `assets/templates` fazem parte da seleção de recursos usada nas
 compilações. O primeiro exemplo é o **Cartão de aniversário de pessoal**, criado

@@ -215,7 +215,7 @@ class StarterDialog(QDialog):
         layout.addWidget(self.details)
         self.grid_controls = QHBoxLayout()
         self.columns, self.rows = QSpinBox(), QSpinBox()
-        for spin, value in ((self.columns, 4), (self.rows, 10)):
+        for spin, value in ((self.columns, 5), (self.rows, 4)):
             spin.setRange(1, 100)
             spin.setValue(value)
             spin.setKeyboardTracking(False)
