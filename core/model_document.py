@@ -462,6 +462,11 @@ def replace_model_page(document: dict, page_data: dict, page_id: str = "front") 
         for key in ("margin_mm", "grid_mm"):
             board[key] = page_data.get("__board_" + key, board[key])
         board["connector_style"] = deepcopy(page_data.get("__board_connector_style", board.get("connector_style", {})))
+        # Visibilidade e bloqueio das guias são comuns às páginas. O quadro
+        # também deve registrar essas ações, sem alterar o tamanho da página 1.
+        for key in ("guidelines_visible", "guidelines_locked"):
+            if key in page_data:
+                normalized[key] = page_data[key]
         _reconcile_document_fields(normalized, page_data.get("placeholders", []))
         validate_model_document(normalized)
         return normalized

@@ -1,0 +1,1 @@
+Rodada descartada: o alvo de reordenamento já estava no topo. moveRows não alterou nada e o driver aguardou uma pintura inexistente. O cenário oficial escolhe uma caixa fora do topo e foi repetido antes/depois.

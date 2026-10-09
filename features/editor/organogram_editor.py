@@ -1,4 +1,5 @@
 """Ferramentas de quadro integradas ao editor existente."""
+from contextlib import contextmanager
 from copy import deepcopy
 from pathlib import Path
 import math
@@ -30,6 +31,7 @@ from core.dialog_buttons import style_dialog_button_box
 from core.resources import object_icon_path, navigation_icon_path
 from core.theme_icons import themed_svg_icon
 from core.themes import theme_color, theme_manager, themed_style
+from shiboken6 import isValid
 from .canvas_items import _snap_board_position, _board_snap_step
 
 
@@ -67,7 +69,8 @@ class BoardGraphicsView(QGraphicsView):
     def mouseMoveEvent(self, event):
         self._pointer_position = event.position()
         if not self._connector_rubber_band:
-            super().mouseMoveEvent(event)
+            with self.window()._board_visual_batch():
+                super().mouseMoveEvent(event)
             return
         scene = self.scene()
         before = set(scene.selectedItems())
@@ -143,7 +146,8 @@ class BoardGroupItem(QGraphicsRectItem):
         self.setPos(data["x"], data["y"])
         self.setFlags(QGraphicsItem.GraphicsItemFlag.ItemIsMovable |
                       QGraphicsItem.GraphicsItemFlag.ItemIsSelectable |
-                      QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges)
+                      QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges |
+                      QGraphicsItem.GraphicsItemFlag.ItemUsesExtendedStyleOption)
         self.setZValue(-10)
         window._board_item_refs[id(self)] = self
 
@@ -161,10 +165,42 @@ class BoardGroupItem(QGraphicsRectItem):
             self.window._update_board_connections()
         return super().itemChange(change, value)
 
+    def _visible_card_indices(self, painter, exposed):
+        """Faixas da grade que alcançam a área exposta, inclusive contornos."""
+        columns, rows = self.data["columns"], self.data["rows"]
+        if exposed.isEmpty() or exposed.contains(self.boundingRect()):
+            return range(columns * rows)
+        inverse, invertible = painter.deviceTransform().inverted()
+        if not invertible:
+            return range(columns * rows)
+        # Três pixels de folga incluem traços cosméticos e antialiasing em
+        # qualquer zoom/DPI. A área chega em coordenadas locais do conjunto.
+        pixel_bounds = inverse.mapRect(QRectF(0, 0, 3, 3))
+        style = border_style(self.data, 'cards')
+        margin = 0
+        if style['cards'] and style['opacity'] > 0:
+            fraction = {'inside': 0, 'center': .5, 'outside': 1}[style['cards_position']]
+            margin = style['width_mm'] * UNITS_PER_MM * fraction
+        exposed = exposed.adjusted(-margin - pixel_bounds.width(), -margin - pixel_bounds.height(),
+                                   margin + pixel_bounds.width(), margin + pixel_bounds.height())
+        width, height = self.data['card_w'], self.data['card_h']
+        step_x, step_y = width + self.data['gap_x'], height + self.data['gap_y']
+        first_column = max(0, math.ceil((exposed.left() - width) / step_x))
+        last_column = min(columns - 1, math.floor(exposed.right() / step_x))
+        first_row = max(0, math.ceil((exposed.top() - height) / step_y))
+        last_row = min(rows - 1, math.floor(exposed.bottom() / step_y))
+        return tuple(row * columns + column
+                     for row in range(first_row, last_row + 1)
+                     for column in range(first_column, last_column + 1))
+
     def paint(self, painter, option, widget=None):
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-        for index in range(self.data["columns"] * self.data["rows"]):
+        # O recorte é exclusivo da view. Renderizações de cena continuam
+        # completas; a prévia/exportação usam o renderer compartilhado.
+        indices = (self._visible_card_indices(painter, option.exposedRect)
+                   if widget is not None else range(self.data["columns"] * self.data["rows"]))
+        for index in indices:
             x = index % self.data["columns"] * (self.data["card_w"] + self.data["gap_x"])
             y = index // self.data["columns"] * (self.data["card_h"] + self.data["gap_y"])
             rect = QRectF(x, y, self.data["card_w"], self.data["card_h"])
@@ -178,8 +214,7 @@ class BoardGroupItem(QGraphicsRectItem):
             painter.setPen(pen)
             painter.drawRect(rect)
         local = {**self.data, "x": 0, "y": 0}
-        paint_group_borders(painter, local, (slot_rect(local, index)
-                            for index in range(local["columns"] * local["rows"])))
+        paint_group_borders(painter, local, (slot_rect(local, index) for index in indices))
         if self.isSelected():
             pen = QPen(QColor(theme_color("accent")), 2)
             pen.setCosmetic(True)
@@ -216,23 +251,30 @@ class BoardConnectorItem(QGraphicsPathItem):
         window._board_item_refs[id(self)] = self
 
     def cutouts(self):
-        from .canvas_items import DesignerBox
-        cutouts = QPainterPath()
-        cutouts.setFillRule(Qt.FillRule.WindingFill)
-        for item in self.scene().items():
-            if (isinstance(item, DesignerBox) and item.isVisible() and item.opacity() > 0
-                    and not getattr(item, "board_behind", False)):
-                rectangle = QPainterPath()
-                rectangle.addPolygon(item.mapToScene(item.rect()))
-                rectangle.closeSubpath()
-                cutouts.addPath(rectangle)
-        return cutouts
+        return self.window._board_cutouts()
 
     def shape(self):
+        path = self.path()
+        width = max(self.pen().widthF(), 12)
+        revision = getattr(self.window, '_board_cutout_revision', 0)
+        cached = getattr(self, '_shape_cache', None)
+        if cached is not None and cached[:4] == (path, width, revision, bool(self.scene())):
+            return QPainterPath(cached[4])
         stroker = QPainterPathStroker()
-        stroker.setWidth(max(self.pen().widthF(), 12))
-        shape = stroker.createStroke(self.path())
-        return shape.subtracted(self.cutouts()) if self.scene() else shape
+        stroker.setWidth(width)
+        shape = stroker.createStroke(path)
+        if self.scene():
+            shape = shape.subtracted(self.cutouts())
+        self._shape_cache = (path, width, revision, bool(self.scene()), shape)
+        return QPainterPath(shape)
+
+    def _paint_clip(self):
+        bounds = self.boundingRect().adjusted(-12, -12, 12, 12)
+        revision = getattr(self.window, '_board_cutout_revision', 0)
+        cached = getattr(self, '_clip_cache', None)
+        if cached is None or cached[:2] != (bounds, revision):
+            cached = self._clip_cache = (bounds, revision, connector_clip(bounds, self.cutouts()))
+        return cached[2]
 
     def boundingRect(self):
         # Inclui a tolerância de clique e o realce da seleção no índice da cena.
@@ -241,7 +283,7 @@ class BoardConnectorItem(QGraphicsPathItem):
     def paint(self, painter, option, widget=None):
         painter.save()
         try:
-            painter.setClipPath(connector_clip(self.boundingRect().adjusted(-12, -12, 12, 12), self.cutouts()), Qt.ClipOperation.IntersectClip)
+            painter.setClipPath(self._paint_clip(), Qt.ClipOperation.IntersectClip)
             if self.isSelected():
                 highlight = QPen(QColor(theme_color('accent')), max(self.pen().widthF() + 6, 12))
                 highlight.setCapStyle(Qt.PenCapStyle.RoundCap)
@@ -586,11 +628,10 @@ class OrganogramPanel(QWidget):
         identifiers = {item.data(0, Qt.ItemDataRole.UserRole) for item in self.tree.selectedItems()}
         self._syncing = True
         try:
-            with QSignalBlocker(self.window.scene):
+            with self.window._selection_batch():
                 self.window.scene.clearSelection()
                 for item in self.window._board_items():
                     item.setSelected(item.data["id"] in identifiers)
-            self.window.on_selection_changed()
         finally:
             self._syncing = False
 
@@ -657,13 +698,15 @@ class OrganogramPanel(QWidget):
             self.window._update_board_extent()
             self.window.save_snapshot()
 
-    def refresh(self):
+    def refresh(self, *, refresh_inspector=True):
         window = self.window
+        if getattr(window, '_restoring_history', False):
+            return  # A seleção final atualiza o painel ao concluir a restauração.
         active = window._active_page_id == "organogram"
         self.output_settings.setVisible(active)
         self.properties.setVisible(self.properties_available())
         if not active:
-            if hasattr(window, "_refresh_board_inspector"):
+            if refresh_inspector and hasattr(window, "_refresh_board_inspector"):
                 window._refresh_board_inspector()
             return
         if getattr(window, "_loading_board", False):
@@ -777,10 +820,10 @@ class OrganogramPanel(QWidget):
         self.margin.blockSignals(True)
         self.margin.setValue(window._board_margin_mm)
         self.margin.blockSignals(False)
-        rect = board_bounds(window._board_state())
+        rect = window._board_geometry()[3]
         self.size_label.setText(tr("Tamanho sugerido: {largura:.1f} × {altura:.1f} mm").format(
             largura=rect.width() / UNITS_PER_MM, altura=rect.height() / UNITS_PER_MM))
-        if hasattr(window, "_refresh_board_inspector"):
+        if refresh_inspector and hasattr(window, "_refresh_board_inspector"):
             window._refresh_board_inspector()
 
 
@@ -809,6 +852,7 @@ class OrganogramEditorMixin:
         if self._active_page_id != "organogram":
             return
         roots = self._board_artwork_roots()
+        self._invalidate_board_cutouts()
         # Preserva as subclasses Python enquanto o Qt usa a ordem da pilha.
         self._board_artwork_refs = roots
         # Cada plano mantém a ordem das camadas. O fundo fica acima do papel
@@ -949,15 +993,14 @@ class OrganogramEditorMixin:
         step = _board_snap_step(self.scene, movable)
         requested = anchor + delta
         delta = QPointF(round(requested.x() / step) * step, round(requested.y() / step) * step) - anchor
+        previous_snap = getattr(self.scene, '_board_snap_suspended', False)
         self.scene._board_snap_suspended = True
-        self._board_defer_connections = True
         try:
-            for item in movable:
-                item.moveBy(delta.x(), delta.y())
+            with self._board_visual_batch():
+                for item in movable:
+                    item.moveBy(delta.x(), delta.y())
         finally:
-            self.scene._board_snap_suspended = False
-            self._board_defer_connections = False
-        self._update_board_connections()
+            self.scene._board_snap_suspended = previous_snap
 
     def _board_selected_connectors(self):
         direct = [item for item in self.scene.selectedItems() if isinstance(item, BoardConnectorItem)]
@@ -1025,6 +1068,9 @@ class OrganogramEditorMixin:
         # As subclasses têm métodos Python chamados pelo Qt. Mantém referências
         # fortes durante inserções em lote e substitui-as somente após limpar a cena.
         self._board_item_refs = {}
+        self._board_path_cache = None
+        self._board_bounds_cache = None
+        self._invalidate_board_cutouts()
         self._board_grid_mm = data.get("__board_grid_mm", 5)
         self._board_margin_mm = data.get("__board_margin_mm", 10)
         self._board_connector_style = {**connector_style(), **data.get("__board_connector_style", {})}
@@ -1039,8 +1085,10 @@ class OrganogramEditorMixin:
         template = adapt_model_page(self._model_document, "front")
         if self._current_model_dir:
             template["__model_dir"] = str(self._current_model_dir)
-        renderer = NativeRenderer(template, asset_provider=self._editor_asset_provider)
-        self._board_card_preview = renderer.render_preview_image(max_side=640)
+        self._board_card_preview = self._visual_cache.card_preview(
+            template, self._editor_asset_provider,
+            lambda provider: NativeRenderer(template, asset_provider=provider).render_preview_image(max_side=640),
+        )
         for index, group in enumerate(data.get("__board_groups", [])):
             group = {**group, "order": index}
             self.scene.addItem(BoardGroupItem(self, group, self._board_card_preview))
@@ -1057,21 +1105,28 @@ class OrganogramEditorMixin:
             path = self._current_model_dir / path
         return path.read_bytes()
 
-    def _update_board_extent(self):
+    def _update_board_extent(self, *, refresh_panel=True):
         if self._active_page_id != "organogram" or getattr(self, "_loading_board", False):
             return
-        rect = board_bounds(self._board_state())
-        self._set_document_rect(rect)
+        rect = self._board_geometry()[3]
+        changed = rect != self._get_document_rect()
+        if changed:
+            self._set_document_rect(rect)
+        elif refresh_panel or getattr(self, '_board_workspace_dirty', False):
+            self._update_workspace_scene_rect()
+        self._board_workspace_dirty = False
         if self.fallback_bg:
-            self.fallback_bg.setRect(rect)
-            self.fallback_bg.setBrush(QBrush(Qt.GlobalColor.white))
+            if self.fallback_bg.rect() != rect:
+                self.fallback_bg.setRect(rect)
+            brush = QBrush(Qt.GlobalColor.white)
+            if self.fallback_bg.brush() != brush:
+                self.fallback_bg.setBrush(brush)
         for control, value in ((self.spin_phys_w, rect.width() / UNITS_PER_MM),
                                (self.spin_phys_h, rect.height() / UNITS_PER_MM)):
-            control.blockSignals(True)
-            control.setValue(value)
-            control.blockSignals(False)
+            with QSignalBlocker(control):
+                control.setValue(value)
         panel = getattr(self, "organogram_panel", None)
-        if panel:
+        if panel and (refresh_panel or changed):
             panel.refresh()
 
     def _add_board_edge(self, edge):
@@ -1079,29 +1134,130 @@ class OrganogramEditorMixin:
         self.scene.addItem(item)
         return item
 
+    @contextmanager
+    def _board_visual_batch(self):
+        # O Qt move os itens selecionados um a um dentro do mesmo evento.
+        # Concluir a rota antes de devolver o evento evita geometria pendente
+        # na pintura, na soltura perdida, em Esc e nas capturas do histórico.
+        previous = getattr(self, '_board_defer_connections', False)
+        self._board_defer_connections = True
+        try:
+            yield
+        finally:
+            self._board_defer_connections = previous
+            if not previous and getattr(self, '_board_connections_pending', False):
+                self._board_connections_pending = False
+                self._update_board_connections()
+
+    def _board_geometry_state(self):
+        # Somente dados geométricos: não serializar HTML, placeholders ou assets
+        # para calcular limites ou mostrar o tamanho sugerido no painel.
+        from .canvas_items import DesignerBox, ImageItem, BackgroundItem, RectangleItem
+        items = self.scene.items()
+        groups = sorted((item.data for item in items if isinstance(item, BoardGroupItem)),
+                        key=lambda data: data.get('order', 0))
+        identifiers = {group['id'] for group in groups}
+        edges = sorted((item.board_edge for item in items if isinstance(item, BoardConnectorItem)
+                        and item.board_edge['source'] in identifiers and item.board_edge['target'] in identifiers),
+                       key=lambda edge: (edge['source'], edge['target']))
+        board = {'groups': groups, 'connections': edges, 'connector_style': self._board_connector_style,
+                 'margin_mm': self._board_margin_mm, 'boxes': [], 'images': [], 'shapes': []}
+        for item in items:
+            if not isinstance(item, (DesignerBox, ImageItem)) or isinstance(item, BackgroundItem):
+                continue
+            rect = item.rect()
+            entry = {'x': round(float(item.pos().x()), 2), 'y': round(float(item.pos().y()), 2),
+                     'w': round(float(rect.width()), 2), 'h': round(float(rect.height()), 2),
+                     'rotation': round(float(item.rotation()), 2), 'visible': item.isVisible()}
+            collection = 'boxes' if isinstance(item, DesignerBox) else 'images'
+            if isinstance(item, RectangleItem):
+                collection = 'shapes'
+                entry['outline_width'] = item.outline_width
+            board[collection].append(entry)
+        return board
+
+    def _build_board_paths(self, board):
+        routes = board_routes(board)
+        return connector_paths(board, routes=routes), any(crowded for _, crowded in routes.values())
+
+    def _board_geometry(self):
+        board = self._board_geometry_state()
+        group_key = []
+        for group in board['groups']:
+            rect = bordered_group_bounds(group)
+            group_key.append((group['id'], rect.x(), rect.y(), rect.width(), rect.height(),
+                              tuple(group.get('entry_sides', ['bottom'])), tuple(group.get('exit_sides', ['top']))))
+        edge_key = []
+        for edge in board['connections']:
+            style = connector_style(edge, board)
+            edge_key.append((edge['source'], edge['target'], style['width_mm'], style['radius_mm']))
+        path_key = (tuple(group_key), tuple(edge_key))
+        cached = getattr(self, '_board_path_cache', None)
+        if cached is None or cached[0] != path_key:
+            paths, crowded = self._build_board_paths(board)
+            cached = self._board_path_cache = (path_key, paths, crowded)
+        bounds_key = (path_key, board['margin_mm'], tuple(tuple(tuple(sorted(entry.items()))
+                      for entry in board[key]) for key in ('boxes', 'images', 'shapes')))
+        extent = getattr(self, '_board_bounds_cache', None)
+        if extent is None or extent[0] != bounds_key:
+            extent = self._board_bounds_cache = (bounds_key, board_bounds(board, paths=cached[1]))
+        return board, cached[1], cached[2], QRectF(extent[1])
+
+    def _invalidate_board_cutouts(self):
+        previous = getattr(self, '_board_cutouts_cache', None)
+        self._board_cutouts_cache = None
+        self._board_workspace_dirty = True
+        self._board_cutout_revision = getattr(self, '_board_cutout_revision', 0) + 1
+        if previous is not None and not previous.isEmpty():
+            self.scene.update(previous.boundingRect())
+
+    def _build_board_cutouts(self):
+        from .canvas_items import DesignerBox
+        result = QPainterPath()
+        result.setFillRule(Qt.FillRule.WindingFill)
+        for item in self.scene.items():
+            if (isinstance(item, DesignerBox) and item.isVisible() and item.opacity() > 0
+                    and not getattr(item, 'board_behind', False)):
+                rect = QPainterPath()
+                rect.addPolygon(item.mapToScene(item.rect()))
+                rect.closeSubpath()
+                result.addPath(rect)
+        return result
+
+    def _board_cutouts(self):
+        cached = getattr(self, '_board_cutouts_cache', None)
+        if cached is None:
+            cached = self._board_cutouts_cache = self._build_board_cutouts()
+        # Mantém a semântica de um resultado que o chamador pode modificar.
+        return QPainterPath(cached)
+
     def _update_board_connections(self):
         if getattr(self, "_board_defer_connections", False):
+            self._board_connections_pending = True
             return
-        groups = {item.data["id"]: item.data for item in self._board_items()}
-        board = {"groups": list(groups.values()), "connections": self._board_connections_data(),
-                 "connector_style": self._board_connector_style}
-        paths = connector_paths(board)
-        self._board_routes_crowded = any(crowded for _, crowded in board_routes(board).values())
-        for item in list(self.scene.items()):
-            if not hasattr(item, "board_edge"):
+        self._board_connections_pending = False
+        if self._active_page_id != 'organogram':
+            return
+        board, paths, crowded, _ = self._board_geometry()
+        groups = {group['id'] for group in board['groups']}
+        self._board_routes_crowded = crowded
+        for item in list(self._board_item_refs.values()):
+            if not isValid(item) or item.scene() is not self.scene or not isinstance(item, BoardConnectorItem):
                 continue
-            source = groups.get(item.board_edge["source"])
-            target = groups.get(item.board_edge["target"])
-            if not source or not target:
+            edge = item.board_edge
+            if edge['source'] not in groups or edge['target'] not in groups:
                 self.scene.removeItem(item)
                 continue
-            style = connector_style(item.board_edge, {"connector_style": self._board_connector_style})
-            item.setPen(connector_pen(style))
-            path = paths[(item.board_edge["source"], item.board_edge["target"])]
+            pen = connector_pen(connector_style(edge, board))
+            if item.pen() != pen:
+                item.setPen(pen)
+                self._board_workspace_dirty = True
+            path = paths[(edge['source'], edge['target'])]
             if item.path() != path:
                 item.setPath(path)
-        active = {id(item) for item in self.scene.items()}
-        self._board_item_refs = {key: item for key, item in self._board_item_refs.items() if key in active}
+                self._board_workspace_dirty = True
+        self._board_item_refs = {key: item for key, item in self._board_item_refs.items()
+                                 if isValid(item) and item.scene() is self.scene}
 
     def set_board_parent(self, child_id, parent_id):
         return self.set_board_parents([child_id], parent_id)
@@ -1178,7 +1334,7 @@ class OrganogramEditorMixin:
             chooser = StarterDialog("organogram", self, document=self._model_document)
             if chooser.exec() != QDialog.DialogCode.Accepted:
                 return
-            self._model_document = chooser.result_document
+            self._model_document, _provider = chooser.take_result()
         else:
             self._model_document = add_organogram(self._model_document)
         self._pending_history_page_id = "organogram"
@@ -1378,16 +1534,17 @@ class OrganogramEditorMixin:
         except ModelValidationError as error:
             QMessageBox.warning(self, tr("Bloco inválido"), str(error))
             return True
-        self.scene.clearSelection()
-        for group in copies:
-            item = BoardGroupItem(self, group, self._board_card_preview)
-            self.scene.addItem(item)
-            item.setSelected(True)
-        for edge in edges:
-            self._add_board_edge(edge)
-        self._update_board_connections()
-        self._update_board_extent()
-        self.save_snapshot()
+        with self._selection_batch():
+            self.scene.clearSelection()
+            for group in copies:
+                item = BoardGroupItem(self, group, self._board_card_preview)
+                self.scene.addItem(item)
+                item.setSelected(True)
+            for edge in edges:
+                self._add_board_edge(edge)
+            self._update_board_connections()
+            self._update_board_extent()
+            self.save_snapshot()
         return True
 
     def refresh_board_context(self):
@@ -1407,4 +1564,5 @@ class OrganogramEditorMixin:
         self.btn_add_sig.setToolTip(tr("Blocos e conexões do quadro") if active else tr("Adicionar uma assinatura opcional ao modelo"))
         if active:
             self._update_board_extent()
-        self.organogram_panel.refresh()
+        else:
+            self.organogram_panel.refresh()

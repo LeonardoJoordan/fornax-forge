@@ -1,0 +1,7 @@
+Execuções exploratórias descartadas. O cenário de 200 objetos excedeu o timeout de 600 segundos nas configurações de 100 e de 20 ciclos adicionais de memória. As primeiras amostras também coincidiram com testes de diagnóstico. Não usar esses tempos na comparação oficial.
+
+O benchmark definitivo mantém vinte amostras cronometradas, com dois aquecimentos e uma rodada de profiler. A memória usa 100 ciclos adicionais nos casos simples, cinco no caso de 200 objetos e vinte nos demais. Os processos são sequenciais, com timeout de 1.800 segundos e overlay explícito da referência anterior à etapa 09. Os parâmetros são iguais nas duas versões.
+
+`alvo-indefinido` contém os cenários editados cujo alvo era o primeiro texto da cena. O harness definitivo usa IDs fixos. `antes-da-normalizacao-das-camadas` contém medições intermediárias da implementação, anteriores à compatibilização da normalização de camadas com o carregador. Nenhum desses resultados intermediários compõe a comparação final.
+
+`antes-da-protecao-do-fundo-legado` preserva a rodada interrompida antes de proteger a conversão dos fundos antigos. `antes-da-geometria-do-fundo` guarda a rodada em que documentos e histórico coincidiam, mas os casos editados ainda apresentavam diferenças de zoom/pixels pela geometria das alças ocultas. Os dois casos editados foram novamente medidos na referência com a posição inicial restaurada fora do cronômetro e registrados em `ambiente-casos-editados-final.json`. Todas as medições finais da implementação foram repetidas após a correção das alças.

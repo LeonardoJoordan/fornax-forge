@@ -19,17 +19,20 @@ class HistoryManager(QObject):
         # Se estamos no meio da pilha e o usuário faz uma nova ação, 
         # o futuro alternativo (redo) é destruído.
 
+        # A mesma codificação serve à comparação e ao orçamento de memória.
+        # O estado atual continua sendo codificado: integrações podem alterar
+        # seus caminhos de assets em memória, invalidando um cache persistente.
+        encoded = json.dumps(state, sort_keys=True, ensure_ascii=False)
         # Evita salvar snapshots duplicados (se o usuário não mudou nada)
         if self._undo_stack and self._current_index >= 0:
             current_state = self._undo_stack[self._current_index]
-            # Uma forma rápida e segura de comparar dicionários complexos no Python
-            if json.dumps(current_state, sort_keys=True) == json.dumps(state, sort_keys=True):
+            if json.dumps(current_state, sort_keys=True, ensure_ascii=False) == encoded:
                 return
 
         if self._current_index < len(self._undo_stack) - 1:
             self._undo_stack = self._undo_stack[:self._current_index + 1]
             self._state_sizes = self._state_sizes[:self._current_index + 1]
-        encoded_size = len(json.dumps(state, sort_keys=True, ensure_ascii=False).encode("utf-8"))
+        encoded_size = len(encoded.encode("utf-8"))
         self._undo_stack.append(state)
         self._state_sizes.append(encoded_size)
         

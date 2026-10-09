@@ -1,11 +1,14 @@
 import math
+import weakref
+from contextlib import contextmanager
+from shiboken6 import isValid
 from uuid import uuid4
 from pathlib import Path
 from PySide6.QtWidgets import (QGraphicsLineItem, QGraphicsRectItem, QGraphicsTextItem,
                                QGraphicsItem, QInputDialog, QLineEdit, QGraphicsPixmapItem,
                                QStyle, QStyleOptionGraphicsItem)
 from PySide6.QtCore import Qt, QPointF, QRectF, QSize, QBuffer, QByteArray, QIODevice
-from PySide6.QtGui import (QPen, QBrush, QColor, QTextCursor,
+from PySide6.QtGui import (QPen, QBrush, QColor, QTextCursor, QGuiApplication,
                            QPixmap, QPainterPathStroker,
                            QImageReader, QPainterPath, QPainter,
                            QImageIOHandler)
@@ -32,9 +35,16 @@ def _load_proxy_pixmap(path):
     Retorna: (pixmap, logical_w, logical_h, proxy_scale)
     """
     if not path:
-        pix = QPixmap(1000, 1000)
-        pix.fill(Qt.GlobalColor.transparent)
-        return pix, 1000.0, 1000.0, 1.0
+        # Formas vetoriais também usam este proxy. Um buffer vazio por aplicação
+        # evita reservar 4 MB por forma, mantendo dimensões e escala históricas.
+        app = QGuiApplication.instance()
+        pix = getattr(app, '_fornax_empty_proxy', None)
+        if pix is None:
+            pix = QPixmap(1000, 1000)
+            pix.fill(Qt.GlobalColor.transparent)
+            app._fornax_empty_proxy = pix
+        # QPixmap desanexa seus pixels na escrita: um item não modifica os demais.
+        return QPixmap(pix), 1000.0, 1000.0, 1.0
 
     reader = QImageReader(path)
     reader.setAutoTransform(True)
@@ -955,7 +965,20 @@ class SelectionTransformFrame(QGraphicsRectItem):
             QPointF(left, bottom), QPointF(left, cy),
         )
         for handle, position in zip(self.handles, positions):
+            if handle.pos() == position and self.isVisible():
+                continue
+            # Essas alças ignoram o zoom: sua extensão em pixels precisa
+            # entrar na região suja antiga e nova, incluindo antialiasing.
+            scene = self.scene()
+            views = scene.views() if scene else []
+            previous = [(view, handle.deviceTransform(view.viewportTransform()).mapRect(handle.boundingRect())
+                         if handle.isVisible() else None) for view in views]
             handle.setPos(position)
+            for view, old_rect in previous:
+                new_rect = handle.deviceTransform(view.viewportTransform()).mapRect(handle.boundingRect())
+                for rect in ((new_rect,) if old_rect is None else (old_rect, new_rect)):
+                    dirty = view.mapToScene(rect.adjusted(-2, -2, 2, 2).toAlignedRect()).boundingRect()
+                    scene.update(dirty)
 
 
 RESIZE_HANDLE_SPECS = (
@@ -1000,6 +1023,20 @@ def _init_resize_handles(item):
         item.resize_handles[name] = handle
     item.handle_br = item.resize_handles["bottom_right"]
     _update_resize_handles(item)
+
+
+def _invalidate_resize_handle_areas(item):
+    """Inclui as alças antigas antes de mover um item com seleção individual.
+
+    Seu tamanho acompanha o zoom e pode mudar durante a pintura. A região
+    antiga calculada pelo Qt para o pai pode não incluir essa área ampliada.
+    """
+    scene = item.scene()
+    if scene is None:
+        return
+    for handle in getattr(item, 'resize_handles', {}).values():
+        if handle.isVisible():
+            scene.update(handle.sceneBoundingRect())
 
 
 def _update_resize_handles(item):
@@ -1135,8 +1172,9 @@ class Guideline(QGraphicsLineItem):
 class ImageItem(QGraphicsPixmapItem):
     SNAP_DISTANCE = 15
 
-    def __init__(self, pixmap_path=None, parent=None, *, pixmap_data=None, asset_reference=None):
-        pixmap, logical_w, logical_h, proxy_scale = (
+    def __init__(self, pixmap_path=None, parent=None, *, pixmap_data=None, asset_reference=None,
+                 loaded_proxy=None):
+        pixmap, logical_w, logical_h, proxy_scale = loaded_proxy if loaded_proxy is not None else (
             _load_proxy_pixmap_bytes(pixmap_data)
             if pixmap_data is not None else _load_proxy_pixmap(pixmap_path)
         )
@@ -1177,6 +1215,7 @@ class ImageItem(QGraphicsPixmapItem):
             _set_resize_handles_visible(self, can_resize)
 
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
+            _invalidate_resize_handle_areas(self)
             new_pos = value
             w, h = self._current_w, self._current_h
             return _snap_position_to_guides(self, new_pos, w, h)
@@ -1471,10 +1510,11 @@ class BackgroundItem(ImageItem):
     Ele ganha alças de redimensionamento e vira uma camada livre (Z-Value -100), 
     mas é renderizado estritamente dentro da área da prancheta.
     """
-    def __init__(self, pixmap_path=None, parent=None, *, pixmap_data=None, asset_reference=None):
+    def __init__(self, pixmap_path=None, parent=None, *, pixmap_data=None, asset_reference=None,
+                 loaded_proxy=None):
         super().__init__(
             pixmap_path, parent, pixmap_data=pixmap_data,
-            asset_reference=asset_reference,
+            asset_reference=asset_reference, loaded_proxy=loaded_proxy,
         )
         self.setZValue(-100)
 
@@ -1498,8 +1538,9 @@ class BackgroundItem(ImageItem):
 class SignatureItem(QGraphicsPixmapItem):
     SNAP_DISTANCE = 15
 
-    def __init__(self, pixmap_path=None, parent=None, *, pixmap_data=None, asset_reference=None):
-        pixmap, logical_w, logical_h, proxy_scale = (
+    def __init__(self, pixmap_path=None, parent=None, *, pixmap_data=None, asset_reference=None,
+                 loaded_proxy=None):
+        pixmap, logical_w, logical_h, proxy_scale = loaded_proxy if loaded_proxy is not None else (
             _load_proxy_pixmap_bytes(pixmap_data)
             if pixmap_data is not None else _load_proxy_pixmap(pixmap_path)
         )
@@ -1533,6 +1574,7 @@ class SignatureItem(QGraphicsPixmapItem):
             _set_resize_handles_visible(self, can_resize)
 
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
+            _invalidate_resize_handle_areas(self)
             new_pos = value
             w, h = self._current_w, self._current_h
             return _snap_position_to_guides(self, new_pos, w, h)
@@ -1664,6 +1706,35 @@ class BleedTextItem(QGraphicsTextItem):
         super().keyPressEvent(event)
 
 
+def _board_text_destroyed(owner):
+    window = owner()
+    if (window is not None and isValid(window) and isValid(window.scene)
+            and getattr(window, '_active_page_id', None) == 'organogram'):
+        window._invalidate_board_cutouts()
+
+
+def _invalidate_board_text_cutouts(item, *, layout_only=False):
+    scene = item.scene()
+    window = None
+    if scene and getattr(scene, '_board_grid', 0) and scene.views():
+        window = scene.views()[0].window()
+        previous = getattr(item, '_board_cutout_owner', None)
+        if previous is None or previous() is not window:
+            owner = item._board_cutout_owner = weakref.ref(window)
+            text = getattr(item, 'text_item', None)
+            if text is not None and isValid(text):
+                # A destruição C++ não garante itemChange no retângulo pai.
+                # O filho QObject avisa sem acessar o wrapper do pai destruído.
+                text.destroyed.connect(lambda _=None, ref=owner: _board_text_destroyed(ref))
+    else:
+        reference = getattr(item, '_board_cutout_owner', None)
+        window = reference() if reference else None
+    if window is not None and isValid(window) and getattr(window, '_active_page_id', None) == 'organogram':
+        window._board_workspace_dirty = True
+        if not layout_only:
+            window._invalidate_board_cutouts()
+
+
 class DesignerBox(QGraphicsRectItem):
     SNAP_DISTANCE = 15
 
@@ -1692,6 +1763,8 @@ class DesignerBox(QGraphicsRectItem):
         self.setBrush(QBrush(QColor(255, 255, 255, 50)))
         self.setZValue(101)
 
+        self._text_layout_depth = 0
+        self._text_layout_pending = False
         self.state = TextState(html_content=text)
         
         self.text_item = BleedTextItem("", self)
@@ -1702,10 +1775,10 @@ class DesignerBox(QGraphicsRectItem):
         
         self.text_item.document().contentsChanged.connect(self.recalculate_text_position)
 
-        self.text_item.setTextWidth(w)
-        self.text_item.setPos(0, 0)
-        
-        self.apply_state()
+        with self._text_layout_batch():
+            self.text_item.setTextWidth(w)
+            self.text_item.setPos(0, 0)
+            self.apply_state()
         self.update_center()
         
         # --- Instanciar Alças de Redimensionamento ---
@@ -1714,10 +1787,22 @@ class DesignerBox(QGraphicsRectItem):
 
     def setRect(self, *args):
         super().setRect(*args)
+        _invalidate_board_text_cutouts(self)
         if hasattr(self, 'handle_br'):
             _update_resize_handles(self)
 
     def itemChange(self, change, value):
+        if change in (QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged,
+                      QGraphicsItem.GraphicsItemChange.ItemRotationHasChanged,
+                      QGraphicsItem.GraphicsItemChange.ItemScaleHasChanged,
+                      QGraphicsItem.GraphicsItemChange.ItemTransformHasChanged,
+                      QGraphicsItem.GraphicsItemChange.ItemTransformOriginPointHasChanged,
+                      QGraphicsItem.GraphicsItemChange.ItemVisibleHasChanged,
+                      QGraphicsItem.GraphicsItemChange.ItemOpacityHasChanged,
+                      QGraphicsItem.GraphicsItemChange.ItemParentHasChanged,
+                      QGraphicsItem.GraphicsItemChange.ItemSceneChange,
+                      QGraphicsItem.GraphicsItemChange.ItemSceneHasChanged):
+            _invalidate_board_text_cutouts(self)
         if change == QGraphicsItem.GraphicsItemChange.ItemSelectedHasChanged:
             can_resize = self.isSelected() and bool(
                 self.flags() & QGraphicsItem.GraphicsItemFlag.ItemIsMovable
@@ -1725,6 +1810,7 @@ class DesignerBox(QGraphicsRectItem):
             _set_resize_handles_visible(self, can_resize)
 
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
+            _invalidate_resize_handle_areas(self)
             new_pos = value
             rect = self.rect()
             w, h = rect.width(), rect.height()
@@ -1773,26 +1859,53 @@ class DesignerBox(QGraphicsRectItem):
         return variables_in_html(self.state.html_content)
     
 
-    def apply_state(self):
-        """Reconstrói todo o documento visual com base na Fonte da Verdade."""
-        blocked = self.text_item.blockSignals(True)
+    @contextmanager
+    def _text_layout_batch(self):
+        """Consolida só o reposicionamento; sinais e conteúdo continuam imediatos."""
+        self._text_layout_depth += 1
         try:
-            doc = configure_text_document(
-                self.text_item.document(), self.text_layout_data(), self.state.html_content,
-            )
-            self.text_item.setFont(doc.defaultFont())
-            self.text_item.setDefaultTextColor(QColor(self.state.font_color))
+            yield
         finally:
-            self.text_item.blockSignals(blocked)
-        self.recalculate_text_position()
+            self._text_layout_depth -= 1
+            if not self._text_layout_depth and self._text_layout_pending:
+                self._text_layout_pending = False
+                self.recalculate_text_position()
+
+    def apply_state(self):
+        """Reconstrói o documento e mede somente sua configuração final."""
+        with self._text_layout_batch():
+            blocked = self.text_item.blockSignals(True)
+            try:
+                doc = configure_text_document(
+                    self.text_item.document(), self.text_layout_data(), self.state.html_content,
+                )
+                self.text_item.setFont(doc.defaultFont())
+                self.text_item.setDefaultTextColor(QColor(self.state.font_color))
+            finally:
+                self.text_item.blockSignals(blocked)
+            self.recalculate_text_position()
 
     def text_layout_data(self):
         return {**vars(self.state), "w": self.rect().width(), "h": self.rect().height()}
 
     def recalculate_text_position(self):
-        self.text_item.setTextWidth(self.rect().width())
-        y, _top, _height = text_geometry(self.text_item.document(), self.text_layout_data())
-        self.text_item.setPos(0, y)
+        if self._text_layout_depth:
+            self._text_layout_pending = True
+            return
+        self._recalculate_text_geometry()
+
+    def _recalculate_text_geometry(self):
+        # setTextWidth pode notificar o documento. A medida feita após essa
+        # chamada já considera a largura final, sem recursão intermediária.
+        self._text_layout_depth += 1
+        try:
+            self.text_item.setTextWidth(self.rect().width())
+            y, _top, _height = text_geometry(self.text_item.document(), self.text_layout_data())
+            self.text_item.setPos(0, y)
+            _invalidate_board_text_cutouts(self, layout_only=True)
+        finally:
+            self._text_layout_depth -= 1
+            self._text_layout_pending = False
 
     def update_center(self):
         rect = self.rect()

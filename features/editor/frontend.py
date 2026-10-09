@@ -6,7 +6,7 @@ from core.resources import (
     state_icon_path,
 )
 from core.theme_icons import themed_svg_icon
-from core.i18n import tr
+from core.i18n import tr, current_locale
 from PySide6.QtCore import (
     Qt, QSize, QObject, QEvent, QPoint, QTimer, QPropertyAnimation, QEasingCurve,
     QAbstractAnimation,
@@ -16,7 +16,7 @@ from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtGui import QPainter
 from .canvas_items import RectangleItem, mm_to_px, px_to_mm
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea,
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea,
     QSplitter, QFrame, QLineEdit, QAbstractSpinBox, QColorDialog,
     QDoubleSpinBox, QComboBox, QMenu, QSizePolicy, QListView,
     QGridLayout, QButtonGroup,
@@ -835,6 +835,7 @@ def install_frontend(w):
             elif isinstance(item, ResizeHandle):
                 item.setBrush(QColor(theme_color('handle')))
         w.view.viewport().update()
+        w.refresh_layer_list()
     _connect_theme_callback(w, update_canvas_theme)
     update_canvas_theme()
     w.view.setFrameShape(QFrame.Shape.NoFrame)
@@ -1633,7 +1634,18 @@ def install_frontend(w):
             remove_action.triggered.connect(lambda: w.remove_model_page(page_id))
         menu.exec(anchor.mapToGlobal(QPoint(0, anchor.height())))
 
+    page_selector_signature = None
+
     def rebuild_page_selector():
+        nonlocal page_selector_signature
+        document = w._model_document
+        page_ids = [page['page_id'] for page in document.get('pages', [])] if document else ['front']
+        if document and document.get('organogram') is not None:
+            page_ids.append('organogram')
+        signature = (tuple(page_ids), w._active_page_id, current_locale(), QApplication.font().key(),
+                     tuple(sorted(theme_manager().current['colors'].items())))
+        if signature == page_selector_signature:
+            return
         while page_layout.count():
             item = page_layout.takeAt(0)
             old_widget = item.widget()
@@ -1641,10 +1653,6 @@ def install_frontend(w):
                 old_widget.hide()
                 old_widget.setParent(None)
                 old_widget.deleteLater()
-        document = w._model_document
-        page_ids = [page['page_id'] for page in document.get('pages', [])] if document else ['front']
-        if document and document.get('organogram') is not None:
-            page_ids.append('organogram')
         for index, page_id in enumerate(page_ids, start=1):
             group = QFrame(page_selector)
             group.setObjectName('pageButton')
@@ -1697,6 +1705,7 @@ def install_frontend(w):
         if hasattr(w, '_footer_save_alignment'):
             w._footer_save_alignment.schedule()
         w.refresh_board_context()
+        page_selector_signature = signature
 
     w._update_page_controls = rebuild_page_selector
     rebuild_page_selector()
@@ -1927,10 +1936,8 @@ def install_frontend(w):
             color_changed(getattr(selected[0].state, 'font_color', '#000000'))
             if hasattr(w, 'canvas_edit'):
                 w.canvas_edit.sync_panel()
-    w.scene.selectionChanged.connect(sync_enabled)
-    # O seletor de camadas bloqueia os sinais da cena enquanto seleciona pela lista.
-    # Atualizar depois dele também cobre o único acesso ao plano de fundo.
-    w.layer_list.itemSelectionChanged.connect(sync_enabled)
+    # O editor sincroniza este inspetor junto dos outros painéis, depois de
+    # concluir a seleção (também pelas camadas). Não registrar um segundo slot.
     w._refresh_board_inspector = sync_enabled
     # O editor sempre começa no contexto geral do documento. As seções de
     # objeto só são habilitadas quando o usuário faz uma seleção explícita.

@@ -1,0 +1,195 @@
+{
+  "fixture_format": "fornax-table-acceptance-spec",
+  "fixture_version": 1,
+  "id": "mesclagens",
+  "purpose": "Grade com mesclagens horizontais/verticais e conteúdo para operações destrutivas reversíveis.",
+  "runtime_model": false,
+  "physical_page_mm": [
+    210,
+    297
+  ],
+  "pages": [
+    {
+      "page": "front",
+      "tables": [
+        {
+          "key": "mesclagens",
+          "rows": 4,
+          "columns": 4,
+          "origin_mm": [
+            15,
+            25
+          ],
+          "column_widths_mm": [
+            45.0,
+            45.0,
+            45.0,
+            45.0
+          ],
+          "row_heights_mm": [
+            12,
+            12,
+            12,
+            12
+          ],
+          "default_font": "Inter",
+          "default_font_size_pt": 10,
+          "padding_mm": 1.5,
+          "outline": {
+            "color": "#203746",
+            "width_mm": 0.3
+          },
+          "cells": [
+            {
+              "key": "mesclagens-r1c1",
+              "row": 0,
+              "column": 0,
+              "row_span": 1,
+              "column_span": 4,
+              "html": "<p><b>QUADRO — {no</b><b>me}</b></p>",
+              "align": "center",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#f0e8d7"
+            },
+            {
+              "key": "mesclagens-r2c1",
+              "row": 1,
+              "column": 0,
+              "row_span": 2,
+              "column_span": 1,
+              "html": "<p>Área<br/>Sintética</p>",
+              "align": "left",
+              "vertical_align": "center",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "mesclagens-r2c2",
+              "row": 1,
+              "column": 1,
+              "row_span": 1,
+              "column_span": 2,
+              "html": "<p><i>Texto combinado</i> e <b>{funcao}</b></p>",
+              "align": "left",
+              "vertical_align": "bottom",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "mesclagens-r2c4",
+              "row": 1,
+              "column": 3,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>AVISO DE EXCESSO texto longo texto longo texto longo texto longo texto longo texto longo texto longo texto longo texto longo texto longo texto longo texto longo texto longo texto longo texto longo texto longo texto longo texto longo texto longo texto longo </p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": false,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "mesclagens-r3c2",
+              "row": 2,
+              "column": 1,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>Ação ágil 😀 𝄞</p>",
+              "align": "right",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "mesclagens-r3c3",
+              "row": 2,
+              "column": 2,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>|Contato: {contato}|</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "mesclagens-r3c4",
+              "row": 2,
+              "column": 3,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>Nota: {nota}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "mesclagens-r4c1",
+              "row": 3,
+              "column": 0,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p><b>Texto A</b></p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "mesclagens-r4c2",
+              "row": 3,
+              "column": 1,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p><i>Texto B</i></p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "mesclagens-r4c3",
+              "row": 3,
+              "column": 2,
+              "row_span": 1,
+              "column_span": 2,
+              "html": "<p>Rodapé<br/>Linha seguinte</p>",
+              "align": "center",
+              "vertical_align": "bottom",
+              "wrap": true,
+              "fill": "#ffffff"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "records": [
+    {
+      "key": "vazio",
+      "values": {
+        "nome": "Pessoa Sintética",
+        "funcao": "Apoio",
+        "contato": "",
+        "nota": ""
+      }
+    }
+  ],
+  "expected_resolved_text": {
+    "vazio": {
+      "mesclagens-r1c1": "QUADRO — Pessoa Sintética",
+      "mesclagens-r3c3": "",
+      "mesclagens-r3c4": "Nota: "
+    }
+  },
+  "exercises": [
+    "Mesclar células preenchidas",
+    "Dividir e desfazer são operações distintas",
+    "Inserir/remover cruzando mesclagem",
+    "Unicode UTF-16",
+    "Placeholder dividido entre spans",
+    "Bloco opcional",
+    "Overflow sem invasão"
+  ]
+}

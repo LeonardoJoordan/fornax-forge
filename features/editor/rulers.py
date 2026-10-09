@@ -106,6 +106,8 @@ class Ruler(QWidget):
 class RulerWorkspace(QWidget):
     def __init__(self, window):
         super().__init__()
+        self._window = window
+        self._last_paint_inputs = None
         self.top = Ruler(window, True, self)
         self.left = Ruler(window, False, self)
         layout = QGridLayout(self)
@@ -126,6 +128,16 @@ class RulerWorkspace(QWidget):
             bar.valueChanged.connect(self.refresh)
 
     def refresh(self, *_):
+        viewport = self._window.view.viewport()
+        origin = viewport.mapToGlobal(QPoint())
+        inputs = (self._window.view.viewportTransform(), self._window._get_document_rect(),
+                  viewport.size(), self.top.size(), self.left.size(),
+                  self.top.mapFromGlobal(origin), self.left.mapFromGlobal(origin),
+                  self.top.logicalDpiX(), self.top.logicalDpiY(), self.top.devicePixelRatioF(),
+                  self.left.logicalDpiX(), self.left.logicalDpiY(), self.left.devicePixelRatioF())
+        if inputs == self._last_paint_inputs:
+            return
+        self._last_paint_inputs = inputs
         self.top.update()
         self.left.update()
 

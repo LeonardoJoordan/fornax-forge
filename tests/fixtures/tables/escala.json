@@ -1,0 +1,478 @@
+{
+  "fixture_format": "fornax-table-acceptance-spec",
+  "fixture_version": 1,
+  "id": "escala",
+  "purpose": "Cinco posições fixas preenchidas por um registro; sem repetição automática.",
+  "runtime_model": false,
+  "physical_page_mm": [
+    210,
+    297
+  ],
+  "pages": [
+    {
+      "page": "front",
+      "tables": [
+        {
+          "key": "escala",
+          "rows": 8,
+          "columns": 5,
+          "origin_mm": [
+            15,
+            25
+          ],
+          "column_widths_mm": [
+            36.0,
+            36.0,
+            36.0,
+            36.0,
+            36.0
+          ],
+          "row_heights_mm": [
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12,
+            12
+          ],
+          "default_font": "Inter",
+          "default_font_size_pt": 10,
+          "padding_mm": 1.5,
+          "outline": {
+            "color": "#203746",
+            "width_mm": 0.3
+          },
+          "cells": [
+            {
+              "key": "escala-r1c1",
+              "row": 0,
+              "column": 0,
+              "row_span": 1,
+              "column_span": 5,
+              "html": "<p><b>ESCALA — {periodo}</b></p>",
+              "align": "center",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#e4eee5"
+            },
+            {
+              "key": "escala-r2c1",
+              "row": 1,
+              "column": 0,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p><b>Data</b></p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#eef4ef"
+            },
+            {
+              "key": "escala-r2c2",
+              "row": 1,
+              "column": 1,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p><b>Turno</b></p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#eef4ef"
+            },
+            {
+              "key": "escala-r2c3",
+              "row": 1,
+              "column": 2,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p><b>Responsável</b></p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#eef4ef"
+            },
+            {
+              "key": "escala-r2c4",
+              "row": 1,
+              "column": 3,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p><b>Função</b></p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#eef4ef"
+            },
+            {
+              "key": "escala-r2c5",
+              "row": 1,
+              "column": 4,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p><b>Observação</b></p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#eef4ef"
+            },
+            {
+              "key": "escala-r3c1",
+              "row": 2,
+              "column": 0,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{data_1}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r3c2",
+              "row": 2,
+              "column": 1,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{turno_1}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r3c3",
+              "row": 2,
+              "column": 2,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{responsavel_1}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r3c4",
+              "row": 2,
+              "column": 3,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{funcao_1}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r3c5",
+              "row": 2,
+              "column": 4,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{observacao_1}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r4c1",
+              "row": 3,
+              "column": 0,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{data_2}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r4c2",
+              "row": 3,
+              "column": 1,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{turno_2}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r4c3",
+              "row": 3,
+              "column": 2,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{responsavel_2}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r4c4",
+              "row": 3,
+              "column": 3,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{funcao_2}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r4c5",
+              "row": 3,
+              "column": 4,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{observacao_2}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r5c1",
+              "row": 4,
+              "column": 0,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{data_3}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r5c2",
+              "row": 4,
+              "column": 1,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{turno_3}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r5c3",
+              "row": 4,
+              "column": 2,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{responsavel_3}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r5c4",
+              "row": 4,
+              "column": 3,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{funcao_3}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r5c5",
+              "row": 4,
+              "column": 4,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{observacao_3}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r6c1",
+              "row": 5,
+              "column": 0,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{data_4}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r6c2",
+              "row": 5,
+              "column": 1,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{turno_4}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r6c3",
+              "row": 5,
+              "column": 2,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{responsavel_4}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r6c4",
+              "row": 5,
+              "column": 3,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{funcao_4}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r6c5",
+              "row": 5,
+              "column": 4,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{observacao_4}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r7c1",
+              "row": 6,
+              "column": 0,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{data_5}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r7c2",
+              "row": 6,
+              "column": 1,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{turno_5}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r7c3",
+              "row": 6,
+              "column": 2,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{responsavel_5}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r7c4",
+              "row": 6,
+              "column": 3,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{funcao_5}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r7c5",
+              "row": 6,
+              "column": 4,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{observacao_5}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "escala-r8c1",
+              "row": 7,
+              "column": 0,
+              "row_span": 1,
+              "column_span": 5,
+              "html": "<p>Nota geral: {nota_geral}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "records": [
+    {
+      "key": "fixo",
+      "values": {
+        "periodo": "Período Sintético 01",
+        "nota_geral": "Conferir os horários.",
+        "data_1": "01/11/2026",
+        "turno_1": "Manhã",
+        "responsavel_1": "Pessoa Sintética 1",
+        "funcao_1": "Apoio",
+        "observacao_1": "",
+        "data_2": "02/11/2026",
+        "turno_2": "Manhã",
+        "responsavel_2": "Pessoa Sintética 2",
+        "funcao_2": "Apoio",
+        "observacao_2": "",
+        "data_3": "03/11/2026",
+        "turno_3": "Manhã",
+        "responsavel_3": "Pessoa Sintética 3",
+        "funcao_3": "Apoio",
+        "observacao_3": "",
+        "data_4": "04/11/2026",
+        "turno_4": "Manhã",
+        "responsavel_4": "Pessoa Sintética 4",
+        "funcao_4": "Apoio",
+        "observacao_4": "",
+        "data_5": "05/11/2026",
+        "turno_5": "Manhã",
+        "responsavel_5": "Pessoa Sintética 5",
+        "funcao_5": "Apoio",
+        "observacao_5": ""
+      }
+    }
+  ],
+  "expected_resolved_text": {},
+  "exercises": [
+    "Adicionar/remover linha e coluna",
+    "Formatação de intervalo",
+    "Contornos internos/externos",
+    "Copiar intervalo tabular"
+  ]
+}

@@ -10,23 +10,48 @@ REFERENCE_GLYPHS = "AÇgjpqy|{}"
 PLACEHOLDER_PATTERN = r"\{([\w]+)\}"
 
 
-def line_reference_ink_bounds(doc, block, line):
-    """Retorna topo/base estáveis usando as fontes realmente presentes na linha."""
+def _reference_font_bounds(font, metrics):
+    # Cache apenas deste cálculo: não retém texto/documento, nem depende de
+    # invalidação global de DPI, fontes instaladas ou sessões protegidas.
+    cached = metrics.get(font)
+    if cached is not None:
+        return cached
+    rect = QFontMetrics(font).tightBoundingRect(REFERENCE_GLYPHS)
+    bounds = (rect.top(), rect.bottom())
+    metrics[QFont(font)] = bounds
+    return bounds
+
+
+def line_reference_ink_bounds(doc, block, line, _metrics=None):
+    """Mede as fontes da linha por trechos, preservando os offsets do Qt."""
     fonts = {}
-    line_start = line.textStart()
-    line_end = line_start + line.textLength()
-    cursor = QTextCursor(doc)
-    for offset in range(line_start, line_end):
-        cursor.setPosition(block.position() + offset)
+    start = block.position() + line.textStart()
+    end = start + line.textLength()
+    if start < end:
+        cursor = QTextCursor(doc)
+        cursor.setPosition(start)
         font = cursor.charFormat().font().resolve(doc.defaultFont())
         fonts[font.toString()] = font
-
+        iterator = block.begin()
+        while not iterator.atEnd():
+            fragment = iterator.fragment()
+            if fragment.isValid():
+                # Sem seleção, charFormat em p>início do bloco corresponde
+                # ao caractere anterior. Fragmentos e linhas usam UTF-16.
+                first = fragment.position() + 1
+                last = first + fragment.length()
+                if first >= end:
+                    break
+                if last > start:
+                    font = fragment.charFormat().font().resolve(doc.defaultFont())
+                    fonts[font.toString()] = font
+            iterator += 1
     if not fonts:
         default = doc.defaultFont()
         fonts[default.toString()] = default
-
-    bounds = [QFontMetrics(font).tightBoundingRect(REFERENCE_GLYPHS) for font in fonts.values()]
-    return min(rect.top() for rect in bounds), max(rect.bottom() for rect in bounds)
+    metrics = {} if _metrics is None else _metrics
+    bounds = [_reference_font_bounds(font, metrics) for font in fonts.values()]
+    return min(top for top, _ in bounds), max(bottom for _, bottom in bounds)
 
 
 def variables_in_html(content):
@@ -166,6 +191,7 @@ def text_geometry(doc, box_data):
     h = box_data.get("h", 100)
     layout = doc.documentLayout()
     logical_h = layout.documentSize().height()
+    metrics = {}
     
     real_top = 0
     real_bottom = logical_h
@@ -177,7 +203,7 @@ def text_geometry(doc, box_data):
             first_line = text_layout.lineAt(0)
             text_str = first_block.text()[first_line.textStart() : first_line.textStart() + first_line.textLength()]
             if text_str.strip():
-                ink_top, _ = line_reference_ink_bounds(doc, first_block, first_line)
+                ink_top, _ = line_reference_ink_bounds(doc, first_block, first_line, metrics)
                 real_top = first_line.y() + first_line.ascent() + ink_top
 
     last_block = doc.begin()
@@ -192,7 +218,7 @@ def text_geometry(doc, box_data):
             last_line = text_layout.lineAt(text_layout.lineCount() - 1)
             text_str = last_valid_block.text()[last_line.textStart() : last_line.textStart() + last_line.textLength()]
             if text_str.strip():
-                _, ink_bottom = line_reference_ink_bounds(doc, last_valid_block, last_line)
+                _, ink_bottom = line_reference_ink_bounds(doc, last_valid_block, last_line, metrics)
                 block_y = layout.blockBoundingRect(last_valid_block).y()
                 real_bottom = block_y + last_line.y() + last_line.ascent() + ink_bottom
                 

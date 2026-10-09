@@ -271,6 +271,9 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         """Salva a posição, tamanho e estado do splitter ao fechar o programa."""
         self._session_maintenance_timer.stop()
+        cache = getattr(self, '_starter_preview_cache', None)
+        if cache is not None:
+            cache.clear()
         self.settings.setValue("geometry", self.saveGeometry())
         self.settings.setValue("splitterState", self.splitter.saveState())
         self._stop_sheet_preview_worker(wait=True)
@@ -860,9 +863,10 @@ class MainWindow(QMainWindow):
         chooser = StarterDialog("model", self)
         if chooser.exec() != QDialog.DialogCode.Accepted:
             return
+        document, asset_provider = chooser.take_result()
         self.editor_window = EditorWindow(self)
-        if chooser.result_document is not None:
-            self.editor_window.load_starter_document(chooser.result_document, chooser.asset_provider)
+        if document is not None:
+            self.editor_window.load_starter_document(document, asset_provider)
         self.editor_window.modelSaved.connect(self._on_editor_saved)
         self._connect_editor_lifecycle()
         self.editor_window.show()

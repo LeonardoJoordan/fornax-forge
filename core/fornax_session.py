@@ -12,10 +12,14 @@ from enum import Enum
 import hashlib
 from pathlib import Path
 import time
+import threading
+import weakref
+from contextlib import contextmanager
 from types import MappingProxyType
 from typing import Callable, Mapping
 from uuid import uuid4
 
+from core.file_transactions import file_lock
 from core.fornax_container import (
     FULL_MODE,
     MAX_PACKAGE_BYTES,
@@ -27,6 +31,7 @@ from core.fornax_container import (
     FornaxFormatError,
     FornaxPasswordError,
     OpenedFornax,
+    _file_stamp, _stat_stamp,
     _unlock_fornax_with_key,
     _unlock_fornax_with_retained_kek,
     inspect_fornax,
@@ -119,10 +124,85 @@ class AuthorizedJobSnapshot:
             raise FornaxFormatError("O snapshot autorizado já foi encerrado.")
 
 
+class RecoveryCancelled(FornaxError):
+    """A recuperação foi substituída ou perdeu a autorização de publicação."""
+
+
+class RecoveryAuthorization:
+    """Permissão revogável e independente da sessão/UI para uma recuperação.
+
+    A chave é uma cópia local, zerada ao cancelar/terminar. O trabalhador nunca
+    consulta os objetos mutáveis da sessão. A publicação exige confirmação da UI
+    e conferência do original; um job normal tem outro ciclo de vida.
+    """
+
+    def __init__(self, session, token):
+        self.descriptor = session.descriptor
+        self.token = token
+        self.fingerprint = session.fingerprint
+        self._key = bytearray(session.kek) if session.kek is not None else None
+        self._lock = threading.RLock()
+        self.cancelled = threading.Event()
+        self.answer = threading.Event()
+        self.source_stamp = None
+
+    def cancel(self):
+        with self._lock:
+            self.cancelled.set()
+            self.answer.set()
+            if self._key is not None:
+                self._key[:] = bytes(len(self._key))
+                self._key = None
+
+    def check(self):
+        if self.cancelled.is_set():
+            raise RecoveryCancelled("Recuperação cancelada.")
+
+    def check_source(self):
+        self.check()
+        stamp = _file_stamp(self.descriptor.path)
+        if stamp is None or stamp[-1].hex() != self.fingerprint:
+            raise FornaxExternalChangeError("O arquivo original mudou durante a recuperação.")
+        self.source_stamp = stamp[:-1]
+        self.check()
+
+    def check_publication(self):
+        self.check()
+        if _stat_stamp(self.descriptor.path) != self.source_stamp:
+            raise FornaxExternalChangeError("O arquivo original mudou antes da publicação.")
+
+    @contextmanager
+    def publication(self):
+        with self._lock:
+            source = self.descriptor.path
+            with file_lock(source.with_name(f".{source.name}.write.lock")):
+                self.check_publication()
+                yield
+
+    def write(self, document, destination, provider, commit):
+        with self._lock:
+            self.check()
+            key = bytes(self._key) if self._key is not None else None
+        if self.descriptor.mode == PUBLIC_MODE:
+            return save_public_fornax(
+                document, destination, asset_provider=provider,
+                model_id=self.descriptor.model_id, _commit=commit,
+                _store_compressed_images=True,
+            )
+        if key is None:
+            raise FornaxPasswordError("A recuperação protegida exige autorização ativa.")
+        return save_protected_fornax_with_key(
+            document, destination, key, self.descriptor.salt,
+            mode=self.descriptor.mode, asset_provider=provider,
+            model_id=self.descriptor.model_id, _commit=commit,
+            _store_compressed_images=True,
+        )
+
+
 class _ModelSession:
     __slots__ = (
         "descriptor", "fingerprint", "state", "temporary", "opened", "kek",
-        "grace_deadline", "generation", "notice", "save_as_required",
+        "grace_deadline", "generation", "notice", "save_as_required", "recoveries",
     )
 
     def __init__(self, descriptor: FornaxDescriptor, fingerprint: str, *, temporary: bool):
@@ -136,8 +216,15 @@ class _ModelSession:
         self.generation = 0
         self.notice: str | None = None
         self.save_as_required = False
+        self.recoveries = weakref.WeakSet()
+
+    def cancel_recoveries(self):
+        for authorization in tuple(self.recoveries):
+            authorization.cancel()
+        self.recoveries.clear()
 
     def discard_authorization(self, state: AccessState) -> None:
+        self.cancel_recoveries()
         if self.kek is not None:
             for index in range(len(self.kek)):
                 self.kek[index] = 0
@@ -207,6 +294,7 @@ class FornaxSessionManager:
             raise FornaxFormatError("O arquivo mudou; recarregue antes de desbloquear.")
         if session.descriptor.mode == PUBLIC_MODE:
             return self._status(session)
+        session.cancel_recoveries()
         opened, kek = _unlock_fornax_with_key(
             session.descriptor, password, cancel_check=cancel_check,
         )
@@ -258,6 +346,7 @@ class FornaxSessionManager:
         self._active_path = None
         if session is None:
             return
+        session.cancel_recoveries()
         if session.state == AccessState.AUTHORIZED_ACTIVE:
             session.state = AccessState.GRACE
             session.grace_deadline = self._clock() + self._grace_seconds
@@ -335,6 +424,7 @@ class FornaxSessionManager:
             raise FornaxExternalChangeError(
                 "O arquivo foi alterado externamente durante a edição."
             )
+        session.cancel_recoveries()
         previous_key = session.kek
         target = Path(destination or session.descriptor.path).resolve()
         selected_mode = mode or session.descriptor.mode
@@ -378,12 +468,28 @@ class FornaxSessionManager:
         self._active_path = target
         return self._status(session)
 
+    def prepare_recovery(self, path=None) -> RecoveryAuthorization:
+        """Emite dados próprios sem reler o pacote nem emprestar a sessão à thread."""
+        session = self._accessible_session(path)
+        if session.save_as_required:
+            raise FornaxPasswordError("A cópia deve ser salva com uma nova identidade.")
+        if session.descriptor.mode != PUBLIC_MODE and (
+            session.state != AccessState.AUTHORIZED_ACTIVE or session.kek is None
+        ):
+            raise FornaxPasswordError("O modelo protegido não possui autorização ativa para recuperar.")
+        authorization = RecoveryAuthorization(session, self.issue_token(path))
+        session.recoveries.add(authorization)
+        return authorization
+
     def write_recovery(
         self, document: dict, destination: str | Path, *,
         path: str | Path | None = None, asset_provider=None,
     ) -> FornaxDescriptor:
         """Grava um snapshot lateral no mesmo nível de proteção da sessão."""
         session = self._accessible_session(path)
+        if self._changed_on_disk(session):
+            session.discard_authorization(AccessState.EXTERNAL_CHANGED)
+            raise FornaxExternalChangeError("O arquivo original mudou durante a recuperação.")
         provider = asset_provider or session.opened.asset
         if session.descriptor.mode == PUBLIC_MODE:
             return save_public_fornax(

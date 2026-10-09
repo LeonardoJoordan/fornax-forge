@@ -3,6 +3,7 @@
 O cache usa somente geometria, portas e conexões; dados pessoais não participam.
 """
 from bisect import bisect_left, bisect_right, insort
+from collections import OrderedDict
 from functools import lru_cache
 import heapq
 import math
@@ -43,8 +44,13 @@ def _clean(points):
 
 
 class _Rectangles:
+    CACHE_LIMIT = 16384
+
     def __init__(self, rects):
         self.rects = rects
+        # Obstáculos ficam fixos durante uma chamada de _routes. Canais de
+        # conectores, que mudam a cada ligação, deliberadamente não entram aqui.
+        self._hit_cache = OrderedDict()
         self.cell = max(10 * UNITS_PER_MM, median(max(r[2] - r[0], r[3] - r[1]) for r in rects.values()))
         self.buckets = {}
         self.large = set()
@@ -79,6 +85,21 @@ class _Rectangles:
         return result
 
     def hits(self, a, b, excluded=()):
+        # Sem arredondar coordenadas: inclusive consultas próximas às bordas
+        # conservam os mesmos resultados e a mesma tolerância geométrica.
+        key = (a, b, tuple(excluded)) if a <= b else (b, a, tuple(excluded))
+        cached = self._hit_cache.get(key)
+        if cached is not None:
+            self._hit_cache.move_to_end(key)
+            return cached
+        count = self._count_hits(a, b, excluded)
+        if self.CACHE_LIMIT > 0:
+            if len(self._hit_cache) >= self.CACHE_LIMIT:
+                self._hit_cache.popitem(last=False)
+            self._hit_cache[key] = count
+        return count
+
+    def _count_hits(self, a, b, excluded=()):
         bounds = (min(a[0], b[0]), min(a[1], b[1]), max(a[0], b[0]), max(a[1], b[1]))
         count = 0
         for identifier, (left, top, right, bottom) in self.query(bounds):
@@ -210,7 +231,8 @@ def _search(a, b, obstacles, channels, owner, spacing, local):
             if edge_key not in clear:
                 p, q = (xs[x], ys[y]), (xs[nx], ys[ny])
                 clear[edge_key] = not obstacles.hits(p, q) and not channels.hits(p, q, owner)
-                crossing_cost[edge_key] = channels.crossings(p, q, owner) * spacing * 16
+                crossing_cost[edge_key] = (channels.crossings(p, q, owner) * spacing * 16
+                                           if clear[edge_key] else 0)
             if not clear[edge_key]:
                 continue
             next_cost = (cost + abs(xs[nx] - xs[x]) + abs(ys[ny] - ys[y])

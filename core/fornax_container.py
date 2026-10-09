@@ -614,6 +614,8 @@ def save_public_fornax(
     source_dir: str | Path | None = None,
     asset_provider=None,
     model_id: str | None = None,
+    _commit=None,
+    _store_compressed_images=False,
 ) -> FornaxDescriptor:
     """Publica atomicamente um modelo público em um único ``.fornax``."""
     destination = Path(destination)
@@ -661,7 +663,8 @@ def save_public_fornax(
             raise FornaxFormatError("A verificação dos assets recém-gravados falhou.")
 
     entries = {MANIFEST_PATH: manifest_bytes, PUBLIC_DOCUMENT_PATH: document_bytes, **assets}
-    _publish_package(destination, entries, verify, expected_stamp=expected_stamp)
+    _publish_package(destination, entries, verify, expected_stamp=expected_stamp, commit=_commit,
+                     store_images=_store_compressed_images)
     return FornaxDescriptor(
         destination.resolve(), PUBLIC_MODE, selected_model_id, revision_id, version
     )
@@ -761,13 +764,31 @@ def _rewrite_selected_assets(
     return rewritten, assets
 
 
-def _inner_zip(entries: Mapping[str, bytes]) -> bytes:
+def _write_zip_entries(archive, entries, *, store_images=False):
+    for name in sorted(entries):
+        data = entries[name]
+        # PNG/JPEG já são comprimidos. Na recuperação, evita recomprimir os
+        # grandes; JSON, SVG e arquivos pequenos mantêm a compressão habitual.
+        stored = name == PROTECTED_PATH or (
+            store_images and len(data) >= 256 * 1024
+            and name.startswith((PUBLIC_ASSET_PREFIX, INNER_ASSET_PREFIX))
+            and PurePosixPath(name).suffix.lower() in {'.png', '.jpg', '.jpeg'}
+        )
+        archive.writestr(name, data, compress_type=zipfile.ZIP_STORED if stored else zipfile.ZIP_DEFLATED)
+
+
+def _inner_zip(entries: Mapping[str, bytes], *, store_images=False) -> bytes:
     output = BytesIO()
     with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-        for name in sorted(entries):
-            archive.writestr(name, entries[name])
+        _write_zip_entries(archive, entries, store_images=store_images)
     payload = output.getvalue()
     if len(payload) > MAX_INNER_BYTES:
+        if store_images:
+            # A economia de CPU nunca diminui a capacidade do formato nem
+            # afrouxa seus limites. Perto do teto, tenta a compressão original.
+            output.close()
+            del payload
+            return _inner_zip(entries, store_images=False)
         raise FornaxLimitError("O conteúdo protegido excede 256 MiB.")
     return payload
 
@@ -923,6 +944,19 @@ def _split_signatures(
     return public, public_assets, protected, protected_assets
 
 
+def _stat_stamp(path):
+    """Cheap last-boundary check; the full content stamp is checked beforehand."""
+    if path.is_symlink():
+        raise FornaxFormatError("O destino não pode ser um link simbólico.")
+    try:
+        info = path.stat()
+    except FileNotFoundError:
+        return None
+    if not stat.S_ISREG(info.st_mode):
+        raise FornaxFormatError("O destino não é um arquivo regular.")
+    return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
 def _file_stamp(path):
     if path.is_symlink():
         raise FornaxFormatError("O destino não pode ser um link simbólico.")
@@ -937,14 +971,16 @@ def _file_stamp(path):
     return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns, digest)
 
 
-def _publish_package(destination: Path, entries: Mapping[str, bytes], verify, *, expected_stamp) -> None:
+def _publish_package(destination: Path, entries: Mapping[str, bytes], verify, *, expected_stamp, commit=None,
+                     store_images=False) -> None:
     with file_lock(destination.with_name(f".{destination.name}.write.lock")):
         if _file_stamp(destination) != expected_stamp:
             raise FornaxFormatError("O destino mudou durante o salvamento; nada foi substituído.")
-        _publish_package_locked(destination, entries, verify, expected_stamp)
+        _publish_package_locked(destination, entries, verify, expected_stamp, commit, store_images=store_images)
 
 
-def _publish_package_locked(destination: Path, entries: Mapping[str, bytes], verify, expected_stamp) -> None:
+def _publish_package_locked(destination: Path, entries: Mapping[str, bytes], verify, expected_stamp, commit=None,
+                            *, store_images=False) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary_path = None
     backup_temporary = None
@@ -956,9 +992,10 @@ def _publish_package_locked(destination: Path, entries: Mapping[str, bytes], ver
         temporary_path = Path(temporary_name)
         os.chmod(temporary_path, 0o600)
         with zipfile.ZipFile(temporary_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-            for name in sorted(entries):
-                compression = zipfile.ZIP_STORED if name == PROTECTED_PATH else zipfile.ZIP_DEFLATED
-                archive.writestr(name, entries[name], compress_type=compression)
+            _write_zip_entries(archive, entries, store_images=store_images)
+        if store_images and temporary_path.stat().st_size > MAX_PACKAGE_BYTES:
+            with zipfile.ZipFile(temporary_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                _write_zip_entries(archive, entries)
         # Windows requires a writable descriptor for fsync; preserve the bytes.
         with temporary_path.open("r+b") as stream:
             os.fsync(stream.fileno())
@@ -987,17 +1024,43 @@ def _publish_package_locked(destination: Path, entries: Mapping[str, bytes], ver
             shutil.copyfile(backup_source, backup_temporary)
             with backup_temporary.open("r+b") as stream:
                 os.fsync(stream.fileno())
-            os.replace(backup_temporary, destination.with_name(destination.name + ".bak"))
-            backup_temporary = None
-            _fsync_directory(destination.parent)
-        if expected_stamp is None:
-            publish_new(temporary_path, destination)
-        else:
-            if _file_stamp(destination) != expected_stamp:
+
+        # Hashing, compression, verification and backup copying are complete.
+        # Recovery may dispatch only this short, durable publication to the UI.
+        # Recheck metadata at the commit boundary against the hash verified here.
+        if commit is not None and _file_stamp(destination) != expected_stamp:
+            raise FornaxFormatError("O destino mudou antes da publicação; nada foi substituído.")
+
+        def publish(validate=None):
+            nonlocal backup_temporary, temporary_path
+            if validate is not None:
+                validate()
+            if commit is not None and _stat_stamp(destination) != (
+                expected_stamp[:-1] if expected_stamp is not None else None
+            ):
                 raise FornaxFormatError("O destino mudou antes da publicação; nada foi substituído.")
-            os.replace(temporary_path, destination)
-        temporary_path = None
-        _fsync_directory(destination.parent)
+            if backup_temporary is not None:
+                os.replace(backup_temporary, destination.with_name(destination.name + ".bak"))
+                backup_temporary = None
+                _fsync_directory(destination.parent)
+            if validate is not None:
+                validate()
+            if expected_stamp is None:
+                publish_new(temporary_path, destination)
+            else:
+                stamp = _file_stamp(destination) if commit is None else _stat_stamp(destination)
+                expected = expected_stamp if commit is None else expected_stamp[:-1]
+                if stamp != expected:
+                    raise FornaxFormatError("O destino mudou antes da publicação; nada foi substituído.")
+                os.replace(temporary_path, destination)
+            temporary_path = None
+            _fsync_directory(destination.parent)
+
+        if commit is None:
+            publish()
+        else:
+            commit(publish)
+
     finally:
         if temporary_path is not None:
             try:
@@ -1022,6 +1085,8 @@ def _save_protected_fornax(
     model_id: str | None = None,
     retained_kek: bytes | None = None,
     retained_salt: bytes | None = None,
+    _commit=None,
+    _store_compressed_images=False,
 ) -> FornaxDescriptor:
     """Cria um pacote parcial ou integral com uma nova chave por revisão."""
     if mode not in PROTECTED_MODES:
@@ -1059,7 +1124,13 @@ def _save_protected_fornax(
         inner_entries = {INNER_SIGNATURES_PATH: _json_bytes(protected), **protected_assets}
         outer_entries = {PUBLIC_DOCUMENT_PATH: public_bytes, **public_assets}
         expected_document = _merge_protected_signatures(public, protected)
-    inner = _inner_zip(inner_entries)
+    inner = _inner_zip(inner_entries, store_images=_store_compressed_images)
+    if (_store_compressed_images and len(inner) + sum(map(len, outer_entries.values()))
+            + MAX_MANIFEST_BYTES + 16 > MAX_PACKAGE_BYTES):
+        # No modo de assinaturas há assets públicos além do ZIP protegido.
+        # Recomprimi-lo aqui conserva também o orçamento do pacote combinado.
+        del inner
+        inner = _inner_zip(inner_entries)
     descriptor, ciphertext = _encrypt_payload(
         inner, password, path=destination, mode=mode,
         model_id=selected_model_id, revision_id=revision_id,
@@ -1079,7 +1150,8 @@ def _save_protected_fornax(
         if opened.document() != expected_document:
             raise FornaxFormatError("A verificação lógica do pacote protegido falhou.")
 
-    _publish_package(destination, outer_entries, verify, expected_stamp=expected_stamp)
+    _publish_package(destination, outer_entries, verify, expected_stamp=expected_stamp, commit=_commit,
+                     store_images=_store_compressed_images)
     return descriptor.__class__(
         destination.resolve(), descriptor.mode, descriptor.model_id,
         descriptor.revision_id, descriptor.version, descriptor.crypto_profile,
@@ -1114,11 +1186,14 @@ def save_protected_fornax_with_key(
     mode: str,
     asset_provider=None,
     model_id: str,
+    _commit=None,
+    _store_compressed_images=False,
 ) -> FornaxDescriptor:
     """Publica nova revisão com a KEK da sessão, sem reter ou pedir senha."""
     return _save_protected_fornax(
         document, destination, None, mode=mode, asset_provider=asset_provider,
-        model_id=model_id, retained_kek=kek, retained_salt=salt,
+        model_id=model_id, retained_kek=kek, retained_salt=salt, _commit=_commit,
+        _store_compressed_images=_store_compressed_images,
     )
 
 

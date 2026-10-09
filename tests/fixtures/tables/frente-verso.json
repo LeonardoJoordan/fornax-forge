@@ -1,0 +1,271 @@
+{
+  "fixture_format": "fornax-table-acceptance-spec",
+  "fixture_version": 1,
+  "id": "frente-verso",
+  "purpose": "Duas páginas independentes, campos exclusivos do verso e recuperação de texto ativo.",
+  "runtime_model": false,
+  "physical_page_mm": [
+    210,
+    297
+  ],
+  "pages": [
+    {
+      "page": "front",
+      "tables": [
+        {
+          "key": "frente",
+          "rows": 3,
+          "columns": 3,
+          "origin_mm": [
+            15,
+            25
+          ],
+          "column_widths_mm": [
+            60.0,
+            60.0,
+            60.0
+          ],
+          "row_heights_mm": [
+            12,
+            12,
+            12
+          ],
+          "default_font": "Inter",
+          "default_font_size_pt": 10,
+          "padding_mm": 1.5,
+          "outline": {
+            "color": "#203746",
+            "width_mm": 0.3
+          },
+          "cells": [
+            {
+              "key": "frente-r1c1",
+              "row": 0,
+              "column": 0,
+              "row_span": 1,
+              "column_span": 3,
+              "html": "<p><b>FICHA — {nome}</b></p>",
+              "align": "center",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "frente-r2c1",
+              "row": 1,
+              "column": 0,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>Identificação</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "frente-r2c2",
+              "row": 1,
+              "column": 1,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>{identificacao}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "frente-r2c3",
+              "row": 1,
+              "column": 2,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p></p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "frente-r3c1",
+              "row": 2,
+              "column": 0,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p></p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "frente-r3c2",
+              "row": 2,
+              "column": 1,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p></p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "frente-r3c3",
+              "row": 2,
+              "column": 2,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p></p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "page": "back",
+      "tables": [
+        {
+          "key": "verso",
+          "rows": 4,
+          "columns": 2,
+          "origin_mm": [
+            15,
+            25
+          ],
+          "column_widths_mm": [
+            90.0,
+            90.0
+          ],
+          "row_heights_mm": [
+            12,
+            12,
+            12,
+            12
+          ],
+          "default_font": "Inter",
+          "default_font_size_pt": 10,
+          "padding_mm": 1.5,
+          "outline": {
+            "color": "#203746",
+            "width_mm": 0.3
+          },
+          "cells": [
+            {
+              "key": "verso-r1c1",
+              "row": 0,
+              "column": 0,
+              "row_span": 1,
+              "column_span": 2,
+              "html": "<p><b>INFORMAÇÕES COMPLEMENTARES</b></p>",
+              "align": "center",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "verso-r2c1",
+              "row": 1,
+              "column": 0,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>Campo exclusivo do verso</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "verso-r2c2",
+              "row": 1,
+              "column": 1,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p><b>{campo_verso}</b></p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "verso-r3c1",
+              "row": 2,
+              "column": 0,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p></p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "verso-r3c2",
+              "row": 2,
+              "column": 1,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p>Observação: {observacao_verso}</p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "verso-r4c1",
+              "row": 3,
+              "column": 0,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p></p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            },
+            {
+              "key": "verso-r4c2",
+              "row": 3,
+              "column": 1,
+              "row_span": 1,
+              "column_span": 1,
+              "html": "<p></p>",
+              "align": "left",
+              "vertical_align": "top",
+              "wrap": true,
+              "fill": "#ffffff"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "records": [
+    {
+      "key": "duplex",
+      "values": {
+        "nome": "Pessoa Sintética",
+        "identificacao": "ID-TESTE-001",
+        "campo_verso": "Somente no verso",
+        "observacao_verso": ""
+      }
+    }
+  ],
+  "expected_resolved_text": {
+    "duplex": {
+      "verso-r2c2": "Somente no verso",
+      "verso-r3c2": "Observação: "
+    }
+  },
+  "exercises": [
+    "Troca de página",
+    "União de campos",
+    "Copiar tabela independente",
+    "Frente/verso em PDF e imagem",
+    "Recuperar texto em edição"
+  ]
+}

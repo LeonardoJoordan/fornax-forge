@@ -322,7 +322,7 @@ def artwork_bounds(board):
     return bounds
 
 
-def board_bounds(board, *, visible_slots=None):
+def board_bounds(board, *, visible_slots=None, paths=None):
     bounds = artwork_bounds(board)
     if visible_slots is None:
         for group in board["groups"]:
@@ -342,7 +342,8 @@ def board_bounds(board, *, visible_slots=None):
                 bounds = bounds.united(bordered_group_bounds(group))
     groups = {group["id"]: group for group in board["groups"]}
     visible = set(groups) if visible_slots is None else {slot[0] for slot in visible_slots}
-    paths = connector_paths(board)
+    if paths is None:
+        paths = connector_paths(board)
     for edge in board["connections"]:
         if edge["source"] in visible and edge["target"] in visible:
             style = connector_style(edge, board)

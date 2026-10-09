@@ -101,9 +101,10 @@ def connector_path(source, target, style, *, points=None, obstacles=None):
     return path
 
 
-def connector_paths(board):
+def connector_paths(board, *, routes=None):
     from core.board_routing import board_routes
-    routes = board_routes(board)
+    if routes is None:
+        routes = board_routes(board)
     groups = {group["id"]: group for group in board["groups"]}
     obstacles = [bordered_group_bounds(group) for group in board["groups"]]
     return {(edge["source"], edge["target"]): connector_path(

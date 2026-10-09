@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt, QRectF, QTimer
 from PySide6.QtGui import QBrush, QColor, QPainter, QPen
 from PySide6.QtWidgets import (
     QAbstractItemView, QGraphicsItem, QGraphicsOpacityEffect, QGraphicsScene,
-    QGraphicsView, QListWidget, QPushButton,
+    QGraphicsView, QGraphicsRectItem, QListWidget, QPushButton,
 )
 
 from core.custom_widgets import MathDoubleSpinBox
@@ -14,6 +14,20 @@ from core.themes import theme_color
 from .canvas_items import BackgroundItem, SelectionTransformFrame, mm_to_px
 from .properties import CaixaDeTextoPanel, EditorDeTextoPanel
 from .organogram_editor import BoardGraphicsView
+
+
+def create_canvas_paper(scene, rect):
+    """Mantém o ciclo de vida do papel rastreável pelo Shiboken.
+
+    addRect cria um item nativo; seu wrapper pode sobreviver à destruição do
+    item C++ e falhar na coleta de lixo. O construtor Python acompanha o descarte.
+    """
+    paper = QGraphicsRectItem(rect)
+    paper.setPen(QPen(Qt.PenStyle.NoPen))
+    paper.setBrush(QBrush(Qt.GlobalColor.white))
+    paper.setZValue(-200)
+    scene.addItem(paper)
+    return paper
 
 
 def initialize_editor_controls(window):
@@ -69,7 +83,8 @@ def initialize_editor_controls(window):
     window._document_rect = QRectF(0, 0, 1000, 1000)
     window.scene._document_rect = QRectF(window._document_rect)
     window.view = BoardGraphicsView(window.scene, window)
-    window.view.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
+    # Um retângulo sujo evita fragmentar a pintura sem redesenhar toda a view.
+    window.view.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.BoundingRectViewportUpdate)
     window.view.setRenderHint(QPainter.RenderHint.Antialiasing)
     window.view.setBackgroundBrush(QBrush(QColor(theme_color('canvas'))))
     window.view.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
@@ -88,10 +103,7 @@ def initialize_editor_controls(window):
     window.bg_item = None
     window.background_path = None
     window._space_pan_items = []
-    window.fallback_bg = window.scene.addRect(
-        0, 0, 1000, 1000, QPen(Qt.PenStyle.NoPen), QBrush(Qt.GlobalColor.white)
-    )
-    window.fallback_bg.setZValue(-200)
+    window.fallback_bg = create_canvas_paper(window.scene, QRectF(0, 0, 1000, 1000))
     window.bg_item = BackgroundItem(None)
     doc_width_mm, doc_height_mm = DEFAULT_NEW_MODEL_SIZE_MM
     window.bg_item.resize_custom(mm_to_px(doc_width_mm), mm_to_px(doc_height_mm))

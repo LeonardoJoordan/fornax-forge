@@ -18,43 +18,40 @@ from core.model_document import (
 
 from .canvas_items import DesignerBox, ImageItem, RectangleItem, SignatureItem
 from .model_adapter import prepare_scene_page
+from .page_scenes import PageScenesMixin
 
 
-class DocumentSessionMixin:
+class DocumentSessionMixin(PageScenesMixin):
     """Mantém página ativa, seleção por página e histórico do documento."""
 
-    def _selection_keys(self) -> set[tuple[str, int]]:
-        keys = set()
-        for item in self.scene.selectedItems():
-            layer_id = getattr(item, "layer_id", None)
-            if layer_id is None:
-                continue
-            if isinstance(item, DesignerBox):
-                kind = "text"
-            elif isinstance(item, SignatureItem):
-                kind = "signature"
-            elif isinstance(item, RectangleItem):
-                kind = "shape"
-            elif isinstance(item, ImageItem):
-                kind = "image"
-            else:
-                continue
-            keys.add((kind, layer_id))
-        return keys
+    @staticmethod
+    def _item_selection_key(item) -> tuple[str, int | str | tuple[str, str]] | None:
+        from .organogram_editor import BoardGroupItem, BoardConnectorItem
+        if isinstance(item, BoardGroupItem):
+            return "board_group", item.data["id"]
+        if isinstance(item, BoardConnectorItem):
+            return "board_connector", (item.board_edge["source"], item.board_edge["target"])
+        layer_id = getattr(item, "layer_id", None)
+        if layer_id is None:
+            return None
+        kind = (
+            "text" if isinstance(item, DesignerBox) else
+            "signature" if isinstance(item, SignatureItem) else
+            "shape" if isinstance(item, RectangleItem) else
+            "image" if isinstance(item, ImageItem) else None
+        )
+        return (kind, layer_id) if kind is not None else None
+
+    def _selection_keys(self) -> set[tuple[str, int | str | tuple[str, str]]]:
+        return {key for item in self.scene.selectedItems()
+                if (key := self._item_selection_key(item)) is not None}
 
     def _restore_page_selection(self):
         wanted = self._page_selection.get(self._active_page_id, set())
         if not wanted:
             return
         for item in self.scene.items():
-            layer_id = getattr(item, "layer_id", None)
-            kind = (
-                "text" if isinstance(item, DesignerBox) else
-                "signature" if isinstance(item, SignatureItem) else
-                "shape" if isinstance(item, RectangleItem) else
-                "image" if isinstance(item, ImageItem) else None
-            )
-            if (kind, layer_id) in wanted:
+            if self._item_selection_key(item) in wanted:
                 item.setSelected(True)
 
     def _synchronize_document_backgrounds(self, document: dict) -> dict:
@@ -136,11 +133,9 @@ class DocumentSessionMixin:
         self._finish_page_interaction()
         self.save_snapshot()
         self._page_selection[self._active_page_id] = self._selection_keys()
-        self._active_page_id = page_id
         self._switching_page = True
         try:
-            data = prepare_scene_page(adapt_model_page(self._model_document, page_id))
-            self.apply_scene_state(data, is_undo_redo=False)
+            self._activate_model_page_scene(page_id)
         finally:
             self._switching_page = False
         self._active_scene_baseline = self.get_current_scene_state()

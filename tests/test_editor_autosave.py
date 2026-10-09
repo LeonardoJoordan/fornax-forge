@@ -5,6 +5,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+import time
 from unittest.mock import patch
 
 from PySide6.QtCore import Qt, QPoint
@@ -80,6 +81,15 @@ class EditorAutosaveTest(unittest.TestCase):
         window._last_saved_state = window.get_current_scene_state()
         window._last_saved_document_state = window._capture_document_history_state()
         window.close()
+        self.wait_recovery(window)
+        self.app.processEvents()
+
+    def wait_recovery(self, window):
+        deadline = time.monotonic() + 60
+        while getattr(window, '_recovery_worker', None) is not None:
+            if time.monotonic() >= deadline:
+                self.fail('A recuperação não terminou em 60 segundos')
+            QTest.qWait(1)
         self.app.processEvents()
 
     def begin_typing(self, window):
@@ -106,6 +116,7 @@ class EditorAutosaveTest(unittest.TestCase):
                 html = box.state.html_content
                 before = window.canvas_edit.before
                 window._autosave_timer.timeout.emit()
+                self.wait_recovery(window)
                 self.app.processEvents()
                 self.assertIs(window.canvas_edit.box, box)
                 self.assertTrue(box.text_item.hasFocus())
@@ -137,9 +148,10 @@ class EditorAutosaveTest(unittest.TestCase):
     def test_recovery_write_error_does_not_interrupt_typing(self):
         window, sessions, _path = self.editor()
         box = self.begin_typing(window)
-        with patch.object(sessions, "write_recovery", side_effect=OSError("Disco indisponível")), \
+        with patch("core.fornax_session.save_public_fornax", side_effect=OSError("Disco indisponível")), \
              patch("builtins.print") as warning:
             window._autosave_timer.timeout.emit()
+            self.wait_recovery(window)
         warning.assert_called_once()
         self.assertIs(window.canvas_edit.box, box)
         self.assertTrue(box.text_item.hasFocus())
@@ -161,6 +173,7 @@ class EditorAutosaveTest(unittest.TestCase):
         self.assertIsNotNone(window.scene.mouseGrabberItem())
         QTest.mouseRelease(window.view.viewport(), Qt.MouseButton.LeftButton, pos=start + QPoint(10, 10))
         window._autosave_timer.timeout.emit()
+        self.wait_recovery(window)
         self.assertTrue(window.fornax_recovery_path(path).exists())
 
 

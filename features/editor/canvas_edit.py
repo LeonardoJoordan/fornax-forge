@@ -108,16 +108,17 @@ class CanvasEdit(QObject):
             fmt.setFontPointSize(enabled)
         elif kind == 'color':
             fmt.setForeground(QColor(enabled))
-        cursor.mergeCharFormat(fmt)
-        box.state.rich_text_version = 1
-        box.state.html_content = box.text_item.toHtml()
+        with box._text_layout_batch():
+            cursor.mergeCharFormat(fmt)
+            box.state.rich_text_version = 1
+            box.state.html_content = box.text_item.toHtml()
+            box.recalculate_text_position()
         if self.box:
             box.text_item.setTextCursor(cursor)
             self.window.view.setFocus()
             box.text_item.setFocus()
         else:
             self.window.save_snapshot()
-        box.recalculate_text_position()
         self.sync_panel()
         return True
 

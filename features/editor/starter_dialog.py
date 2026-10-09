@@ -1,5 +1,6 @@
 """Escolha visual de exemplos locais antes de iniciar uma nova composição."""
 import math
+from hashlib import sha256
 
 from PySide6.QtCore import Qt, QSize, QSizeF, QRectF, QRect, QTimer, QEvent, QPoint, QLocale
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor, QPen, QPageSize
@@ -15,6 +16,7 @@ from core.organogram import board_bounds, UNITS_PER_MM
 from core.model_document import adapt_model_page, DEFAULT_NEW_MODEL_SIZE_MM
 from features.generator.renderer import NativeRenderer
 from features.generator.organogram import OrganogramRenderer
+from .starter_cache import window_cache, asset_snapshot, digest
 
 
 TEMPLATE_DIMENSIONS_ROLE = Qt.ItemDataRole.UserRole + 2
@@ -176,6 +178,10 @@ class StarterDialog(QDialog):
         self.kind, self.document = kind, document
         self.result_document = self.asset_provider = None
         self._templates = {}
+        self._starter_valid = True
+        self._preview_assets = None
+        self._preview_validator = None
+        self._preview_cache = window_cache(parent or self)
         self.setWindowTitle(tr("Novo modelo") if kind == "model" else tr("Adicionar organograma"))
         self.resize(820, 620)
         self.setMinimumSize(620, 440)
@@ -235,16 +241,25 @@ class StarterDialog(QDialog):
         layout.addWidget(self.buttons)
         errors = []
         try:
-            templates = starter_catalog(kind)
+            self._bind_preview_cache()
+        except Exception as error:
+            self._starter_valid = False
+            errors.append(str(error))
+        try:
+            templates = starter_catalog(kind) if self._starter_valid else ()
         except Exception as error:
             templates = ()
             errors.append(str(error))
         for template in templates:
             try:
+                source_stamp = sha256(template.path.read_bytes()).hexdigest()
                 preview, provider = (model_from_starter(template) if kind == "model" else
-                                     (organogram_from_starter(document, template), getattr(parent, "_fornax_asset_provider", None)))
+                                     (organogram_from_starter(document, template,
+                                         columns=self.columns.value() if template.configurable_grid else None,
+                                         rows=self.rows.value() if template.configurable_grid else None),
+                                      getattr(parent, "_fornax_asset_provider", None)))
                 self._templates[template.id] = template
-                self._add_tile(template.id, tr(template.title), tr(template.description), starter_thumbnail(preview, provider),
+                self._add_tile(template.id, tr(template.title), tr(template.description), self._cached_thumbnail(preview, provider, template, source_stamp=source_stamp),
                                starter_dimensions(preview))
             except Exception as error:
                 errors.append(f"{template.title}: {error}")
@@ -260,6 +275,75 @@ class StarterDialog(QDialog):
         self.columns.valueChanged.connect(lambda *_: self._grid_timer.start())
         self.rows.valueChanged.connect(lambda *_: self._grid_timer.start())
         self.gallery.setCurrentRow(0)
+        self._preview_cache.dialogs.add(self)
+
+    def _bind_preview_cache(self):
+        scope = ('model',)
+        if self.kind == 'organogram':
+            parent = self.parent()
+            manager = getattr(parent, '_fornax_session_manager', None)
+            path = getattr(parent, '_fornax_path', None)
+            authorization = None
+            if path and manager:
+                token = manager.issue_token(path)
+                authorization = (token.model_id, token.revision_id, token.generation)
+                self._preview_validator = lambda: manager.token_is_current(token)
+            elif getattr(parent, '_fornax_mode', None) in ('full', 'signatures'):
+                raise PermissionError('A autorização do modelo não está mais disponível.')
+            scope = ('organogram', digest(self.document), authorization)
+        self._preview_cache.bind(scope, self._preview_validator)
+
+    def _cached_thumbnail(self, preview, provider, template, *, source_stamp=None):
+        if not self._starter_valid or (self._preview_validator and not self._preview_validator()):
+            self._discard_starter_preview()
+            raise PermissionError('A autorização do modelo não está mais disponível.')
+        source = sha256(template.path.read_bytes()).hexdigest()
+        # Não publicar uma miniatura sob a identidade de um exemplo substituído
+        # entre sua leitura e a renderização. A próxima abertura usa o novo arquivo.
+        if source_stamp is not None and source != source_stamp:
+            return starter_thumbnail(preview, provider)
+        parameters = ((self.columns.value(), self.rows.value()) if template.configurable_grid else None)
+        recipe = [self.kind, source, self.document if self.kind == 'organogram' else preview, parameters]
+        assets = None
+        if self.kind == 'organogram':
+            # Um snapshot do cartão alimenta os cinco exemplos desta abertura.
+            if self._preview_assets is None:
+                self._preview_assets = asset_snapshot(preview, provider)
+            assets = self._preview_assets
+        return self._preview_cache.preview(preview, provider, recipe, starter_thumbnail, assets=assets)
+
+    def _discard_starter_preview(self):
+        self._starter_valid = False
+        self.document = self._preview_assets = self._preview_validator = None
+        self.result_document = self.asset_provider = None
+        for row in range(self.gallery.count()):
+            self.gallery.item(row).setIcon(QIcon())
+        self.reject()
+
+    def done(self, result):
+        if hasattr(self, '_grid_timer'):
+            self._grid_timer.stop()
+        self.document = self._preview_assets = None
+        if result != QDialog.DialogCode.Accepted:
+            self._preview_validator = None
+            self.result_document = self.asset_provider = None
+            self._preview_cache.dialogs.discard(self)
+        # Só o resultado aceito fica disponível até sua transferência ao editor.
+        for row in range(self.gallery.count()):
+            self.gallery.item(row).setIcon(QIcon())
+        super().done(result)
+        if result != QDialog.DialogCode.Accepted:
+            self.deleteLater()
+
+    def take_result(self):
+        """Entrega a cópia escolhida e libera o diálogo oculto e seus providers."""
+        if self._preview_validator and not self._preview_validator():
+            self._discard_starter_preview()
+        result = self.result_document, self.asset_provider
+        self.result_document = self.asset_provider = self._preview_validator = None
+        self._preview_cache.dialogs.discard(self)
+        self.deleteLater()
+        return result
 
     def _add_tile(self, identity, title, description, pixmap, dimensions):
         item = QListWidgetItem(thumbnail_icon(pixmap), title)
@@ -294,8 +378,10 @@ class StarterDialog(QDialog):
         if not template or not template.configurable_grid:
             return
         try:
+            source_stamp = sha256(template.path.read_bytes()).hexdigest()
+            self._preview_assets = None
             preview = organogram_from_starter(self.document, template, columns=self.columns.value(), rows=self.rows.value())
-            item.setIcon(thumbnail_icon(starter_thumbnail(preview, getattr(self.parent(), "_fornax_asset_provider", None))))
+            item.setIcon(thumbnail_icon(self._cached_thumbnail(preview, getattr(self.parent(), "_fornax_asset_provider", None), template, source_stamp=source_stamp)))
             self._set_tile_dimensions(item, starter_dimensions(preview))
             self.details.setText(tr("{colunas} × {linhas} · {quantidade} posições. Você poderá ajustar o bloco no editor.").format(colunas=self.columns.value(), linhas=self.rows.value(), quantidade=self.columns.value() * self.rows.value()))
             self.error.setText(self._catalog_error)
@@ -305,6 +391,9 @@ class StarterDialog(QDialog):
             self.buttons.button(QDialogButtonBox.StandardButton.Ok).setEnabled(False)
 
     def accept(self):
+        if not self._starter_valid or (self._preview_validator and not self._preview_validator()):
+            self._discard_starter_preview()
+            return
         item = self.gallery.currentItem()
         if item is None:
             return

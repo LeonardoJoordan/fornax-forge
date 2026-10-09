@@ -3,6 +3,7 @@ import re
 import copy
 import shutil
 import math
+from contextlib import contextmanager
 from pathlib import Path
 from PySide6.QtWidgets import (QMainWindow, QGraphicsView, QWidget,
                                QHBoxLayout, QFrame, QLabel, QPushButton,
@@ -14,7 +15,7 @@ from PySide6.QtWidgets import (QMainWindow, QGraphicsView, QWidget,
 from PySide6.QtGui import (QPainter, QBrush, QPen, QColor, QShortcut, QIcon, QImage,
                            QKeySequence, QTextCursor, QTextCharFormat, QImageReader, QPixmap,
                            QFont, QTextDocument)
-from PySide6.QtCore import Qt, Signal, QEvent, QRectF, QSize, QPointF, QTimer, QSignalBlocker
+from PySide6.QtCore import Qt, Signal, QEvent, QRectF, QSize, QPointF, QTimer, QSignalBlocker, QModelIndex, QItemSelectionModel
 from shiboken6 import isValid
 
 from .canvas_items import (DesignerBox, Guideline, px_to_mm, mm_to_px, SignatureItem, RectangleItem,
@@ -25,7 +26,10 @@ from .properties import CaixaDeTextoPanel
 from .document_session import DocumentSessionMixin
 from .organogram_editor import OrganogramEditorMixin, BoardGroupItem
 from .model_adapter import prepare_scene_page
-from .controls import initialize_editor_controls
+from .visual_cache import EditorVisualCache
+from .history_capture import history_inputs
+from .recovery_worker import RecoveryTask, RecoveryWorker
+from .controls import initialize_editor_controls, create_canvas_paper
 from core.template_manager import slugify_model_name
 from core.history_manager import HistoryManager
 from core.paths import get_models_dir
@@ -85,6 +89,10 @@ def _scaled_rich_text_html(html, factor):
         char_format.setFontPointSize(max(1.0, size * factor))
         cursor.mergeCharFormat(char_format)
     return document.toHtml()
+
+
+class LayerReconciliationError(RuntimeError):
+    """O modelo da lista não conseguiu reconciliar suas linhas."""
 
 
 class LayerGroupBadge(QPushButton):
@@ -159,11 +167,14 @@ class LayerGroupBadge(QPushButton):
 
 def _visibility_icon(visible):
     """Alterna o desenho do olho; a opacidade é aplicada pelo botão da camada."""
-    if visible not in _VISIBILITY_ICONS:
-        _VISIBILITY_ICONS[visible] = themed_svg_icon(
+    key = (visible, theme_color('icon'))
+    if key not in _VISIBILITY_ICONS:
+        if any(stored[1] != key[1] for stored in _VISIBILITY_ICONS):
+            _VISIBILITY_ICONS.clear()
+        _VISIBILITY_ICONS[key] = themed_svg_icon(
             state_icon_path("eye" if visible else "eye-off")
         )
-    return _VISIBILITY_ICONS[visible]
+    return _VISIBILITY_ICONS[key]
 
 
 class ElidedLayerLabel(QLabel):
@@ -174,6 +185,12 @@ class ElidedLayerLabel(QLabel):
         self.setMinimumWidth(0)
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self._update_visible_text()
+
+    def set_full_text(self, text):
+        text = str(text)
+        if self._full_text != text:
+            self._full_text = text
+            self._update_visible_text()
 
     def _update_visible_text(self):
         available = max(0, self.contentsRect().width())
@@ -217,14 +234,22 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self._pending_protection_password = None
         self._recovery_source_path = None
         self._recovered_unsaved = False
+        self._recovery_worker = None
+        self._recovery_task = None
+        self._recovery_pending = None
+        self._recovery_success = None
+        self._recovery_epoch = 0
         self._autosave_timer = QTimer(self)
         self._autosave_timer.setInterval(60_000)
         self._autosave_timer.timeout.connect(self._write_fornax_recovery)
         self._model_document = None
+        self._history_capture_cache = None
         self._active_page_id = "front"
         self._board_grid_mm = 5.0
         self._board_margin_mm = 10.0
         self._loading_board = False
+        self._visual_cache = EditorVisualCache()
+        QApplication.instance().fontDatabaseChanged.connect(self._clear_visual_cache)
         self._page_selection = {"front": set(), "back": set()}
         self._object_clipboard = []
         self._clipboard_source_page = None
@@ -235,14 +260,17 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self._group_resize_session = None
         self._layer_group_drop_indicator = None
         self._active_scene_baseline = None
+        self._inactive_page_scene = None
+        self._active_page_dependencies = None
+        self._page_scene_budget = 64 * 1024 * 1024
+        self._page_font_epoch = 0
         self.setWindowTitle(tr("Editor de modelos — FORNAX Forge"))
         self.setWindowIcon(QIcon(str(app_icon_path())))
         self.resize(1200, 800)
 
         initialize_editor_controls(self)
 
-        self.scene.selectionChanged.connect(self.on_selection_changed)
-        self.scene.changed.connect(self.update_position_ui)
+        self._scene_signals(self.scene, connect=True)
 
         
         # O histórico não deve registrar a inicialização em branco, deixaremos para 
@@ -440,27 +468,49 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self._cleanup_unused_assets_on_close()
         super().closeEvent(event)
         if event.isAccepted():
+            self._history_capture_cache = None
+            self._clear_visual_cache()
             self._release_workspace_window()
             if self._fornax_mode in {FULL_MODE, SIGNATURES_MODE}:
                 self._discard_protected_editor_content()
             self.closed.emit()
 
+    def _clear_visual_cache(self):
+        cache = getattr(self, '_starter_preview_cache', None)
+        if cache is not None:
+            cache.clear()
+        self._visual_cache.clear()
+        self._page_font_epoch += 1
+        self._clear_page_scenes()
+
     def _discard_protected_editor_content(self):
         """Descarta referências de uma janela protegida que já foi encerrada."""
+        self._invalidate_recovery()
         self.scene.blockSignals(True)
         self.scene.clear()
+        self._clear_visual_cache()
+        self.fallback_bg = self.bg_item = self._selection_frame = None
+        self._board_card_preview = None
+        self._board_item_refs = {}
+        self._board_artwork_refs = []
+        self._board_path_cache = self._board_bounds_cache = self._board_cutouts_cache = None
+        self._active_page_dependencies = None
         self.history.clear()
         self._object_clipboard.clear()
         self._clipboard_source_page = None
         self._fornax_asset_provider = None
         self._model_document = None
+        self._history_capture_cache = None
         self._active_scene_baseline = None
         self._last_saved_state = None
         self._last_saved_document_state = None
         self._mask_edit_session = None
         self._group_resize_session = None
         # A janela encerrada não deve ser reutilizada com itens C++ destruídos.
-        self.deleteLater()
+        if self._recovery_worker is None:
+            self.deleteLater()
+        else:
+            self._recovery_worker.finished.connect(self.deleteLater)
 
     def _current_model_directory(self) -> Path | None:
         if self._fornax_path is not None:
@@ -893,40 +943,123 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         source = Path(path)
         return source.with_name(f".{source.name}.autosave.fornax")
 
+    def _invalidate_recovery(self):
+        """Revoga publicação antes de salvar, trocar, remover ou fechar."""
+        self._recovery_epoch += 1
+        self._recovery_success = None
+        if self._recovery_task is not None:
+            self._recovery_task.authorization.cancel()
+        if self._recovery_pending is not None:
+            self._recovery_pending.clear()
+            self._recovery_pending = None
+
     def _remove_fornax_recovery(self):
+        self._invalidate_recovery()
         source = self._recovery_source_path or self._fornax_path
         if source is not None:
             recovery = self.fornax_recovery_path(source)
             recovery.unlink(missing_ok=True)
             recovery.with_name(recovery.name + ".bak").unlink(missing_ok=True)
 
-    def _write_fornax_recovery(self):
-        if (
-            self._fornax_path is None or self._fornax_session_manager is None
-            or self._fornax_save_as_required
-        ):
-            return
-        # O timer não deve encerrar uma edição ou confirmar um gesto parcial.
-        # Texto já é sincronizado em contentsChanged; gestos serão capturados
-        # na próxima gravação, depois de sua conclusão pelo usuário.
-        if (
+    def _recovery_gesture_active(self):
+        return bool(
             self.view._pointer_buttons or self.scene.mouseGrabberItem() is not None
             or self._mask_edit_session or self._group_resize_session
             or getattr(getattr(self, 'shape_drawing', None), 'start', None) is not None
+        )
+
+    def _write_fornax_recovery(self):
+        if (
+            self._fornax_path is None or self._fornax_session_manager is None
+            or self._fornax_save_as_required or self._recovery_gesture_active()
         ):
             return
+        authorization = None
         try:
             current = self._capture_document_history_state()
             if self._states_equal_for_close(current, self._last_saved_document_state):
+                # Returning to the saved state also revokes a stale active job.
+                if self._recovery_task is not None:
+                    self._invalidate_recovery()
                 return
             document = current["document"]
             document["name"] = self._current_model_name
-            self._fornax_session_manager.write_recovery(
-                document, self.fornax_recovery_path(self._fornax_path),
-                path=self._fornax_path, asset_provider=self._save_asset_provider,
+            authorization = self._fornax_session_manager.prepare_recovery(self._fornax_path)
+            task = RecoveryTask.capture(
+                document, self._authorized_asset_bytes, authorization,
+                self.fornax_recovery_path(self._fornax_path), self._recovery_epoch,
+                self._recovery_success,
             )
+            if self._recovery_worker is not None:
+                self._recovery_task.authorization.cancel()
+                if self._recovery_pending is not None:
+                    self._recovery_pending.clear()
+                self._recovery_pending = task
+            else:
+                self._start_recovery(task)
         except Exception as error:
+            if authorization is not None:
+                authorization.cancel()
             print(f"[WARN] Falha ao salvar recuperação protegida: {error}")
+
+    def _start_recovery(self, task):
+        worker = RecoveryWorker(task)
+        self._recovery_worker, self._recovery_task = worker, task
+        worker.commit_requested.connect(self._commit_recovery)
+        worker.finished.connect(self._recovery_finished)
+        # This callback retains only the independent authorization, not the UI.
+        worker.on_window_destroyed = lambda *_args, a=task.authorization: a.cancel()
+        self.destroyed.connect(worker.on_window_destroyed)
+        worker.start()
+
+    def _commit_recovery(self, worker):
+        task = worker.task
+        authorization = task.authorization
+        try:
+            if (
+                worker is not self._recovery_worker or task.epoch != self._recovery_epoch
+                or authorization.cancelled.is_set()
+                or self._fornax_session_manager is None
+                or not self._fornax_session_manager.token_is_current(authorization.token)
+                or self._fornax_save_as_required or self._recovery_gesture_active()
+            ):
+                authorization.cancel()
+                return
+            current = self._capture_document_history_state()["document"]
+            current["name"] = self._current_model_name
+            if current != task.document or not task.external_is_current():
+                authorization.cancel()
+                # Keep only the latest consistent snapshot after this worker ends.
+                self._write_fornax_recovery()
+                return
+            # No event processing between validation and the short rename/fsync.
+            # All expensive file/content checks have already run on the worker.
+            with authorization.publication():
+                worker.commit_action(authorization.check_publication)
+                worker.committed = True
+        except Exception as error:
+            worker.commit_error = error.with_traceback(None)
+        finally:
+            authorization.answer.set()
+
+    def _recovery_finished(self):
+        worker = self._recovery_worker
+        if worker is None:
+            return
+        task = worker.task
+        self.destroyed.disconnect(worker.on_window_destroyed)
+        if task.epoch == self._recovery_epoch:
+            if worker.result is not None:
+                self._recovery_success = worker.result
+            if worker.error is not None:
+                print(f"[WARN] Falha ao salvar recuperação protegida: {worker.error}")
+        self._recovery_worker = self._recovery_task = None
+        pending, self._recovery_pending = self._recovery_pending, None
+        if pending is not None:
+            if pending.epoch == self._recovery_epoch and not pending.authorization.cancelled.is_set():
+                self._start_recovery(pending)
+            else:
+                pending.clear()
 
     def load_starter_document(self, document, asset_provider=None):
         """Inicia uma cópia sem nome/destino de gravação e mantém o aviso de salvar."""
@@ -940,10 +1073,14 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self._last_saved_document_state = saved_document
 
     def _load_document_into_scene(self, document):
+        self._invalidate_recovery()
+        self._history_capture_cache = None
         data = prepare_scene_page(adapt_model_page(document, "front"))
+        self._clear_visual_cache()
         self._current_model_name = data.get("name", "")
         self._model_document = document
         self._active_page_id = "front"
+        self._page_selection = {"front": set(), "back": set()}
         self.setWindowTitle(tr("Editor de modelos — {modelo}").format(modelo=self._current_model_name))
         self.apply_scene_state(data, is_undo_redo=False)
         self._active_scene_baseline = self.get_current_scene_state()
@@ -1212,6 +1349,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         else:
             document.pop("protection_preferences", None)
         destination = Path(self._fornax_path)
+        self._invalidate_recovery()
         try:
             manager = self._fornax_session_manager
             if current_mode in {SIGNATURES_MODE, FULL_MODE}:
@@ -1294,6 +1432,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             if password_bytes(new.text()) != password_bytes(confirmation.text()):
                 raise FornaxError(tr("As senhas informadas não coincidem."))
             destination = Path(self._fornax_path)
+            self._invalidate_recovery()
             descriptor = reencrypt_fornax(
                 destination, current.text(), destination, new.text(), mode=self._fornax_mode,
             )
@@ -1405,6 +1544,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             QMessageBox.warning(self, tr("Erro"), tr("Já existe um modelo com esse nome."))
             return
 
+        self._invalidate_recovery()
         try:
             manager = self._fornax_session_manager
             can_use_session = (
@@ -1720,18 +1860,37 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             if getattr(item, 'group_id', None) == group_id
         ]
 
-    def _selected_transform_roots(self):
+    @contextmanager
+    def _selection_batch(self):
+        """Publica somente a seleção concluída, preservando bloqueios externos."""
+        self._selection_batch_depth = getattr(self, '_selection_batch_depth', 0) + 1
+        blocker = QSignalBlocker(self.scene)
+        try:
+            yield
+        finally:
+            self._selection_batch_depth -= 1
+            blocker.unblock()
+            if not self._selection_batch_depth and not self.scene.signalsBlocked():
+                self.scene.selectionChanged.emit()
+
+    def _selected_transform_roots(self, *, groupable=None):
+        selected = self.scene.selectedItems()
+        if not selected:
+            return []
+        available = set(self._groupable_items() if groupable is None else groupable)
         roots = []
-        for item in self.scene.selectedItems():
+        seen = set()
+        for item in selected:
             if not isinstance(item, (DesignerBox, ImageItem, SignatureItem)):
                 continue
             root = self._group_root(item)
             if (
-                root not in roots
-                and root in self._groupable_items()
+                root not in seen
+                and root in available
                 and root.flags() & QGraphicsItem.GraphicsItemFlag.ItemIsMovable
             ):
                 roots.append(root)
+                seen.add(root)
         return roots
 
     def _ensure_selection_frame(self):
@@ -1748,9 +1907,9 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         if hasattr(self, '_selection_frame_timer') and not self._selection_frame_timer.isActive():
             self._selection_frame_timer.start(0)
 
-    def _refresh_selection_frame(self, *_):
+    def _refresh_selection_frame(self, *_, groupable=None):
         frame = self._ensure_selection_frame()
-        members = self._selected_transform_roots()
+        members = self._selected_transform_roots(groupable=groupable)
         active = len(members) >= 2
         self.scene._multi_selection_active = active
         if not active:
@@ -1796,47 +1955,41 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         members = self._group_members(group_id)
         if not members:
             return
-        self._changing_group_selection = True
-        try:
+        with self._selection_batch():
             self.scene.clearSelection()
+            self.canvas_edit.finish()
             for item in members:
                 if item.flags() & QGraphicsItem.GraphicsItemFlag.ItemIsSelectable:
                     item.setSelected(True)
-        finally:
-            self._changing_group_selection = False
-        self.on_selection_changed()
 
     def select_mask_group(self, shape):
         if not isinstance(shape, RectangleItem) or not shape.masked_images():
             return
         members = [shape, *shape.masked_images()]
-        self._changing_group_selection = True
-        try:
-            # No canvas apenas a forma é selecionada: mover pai e filhos ao
-            # mesmo tempo aplicaria o deslocamento duas vezes às imagens.
+        # No canvas apenas o pai é selecionado; selecionar os filhos também
+        # deslocaria as imagens duas vezes. As camadas mostram toda a máscara.
+        with self._selection_batch():
             self.scene.clearSelection()
+            self.canvas_edit.finish()
             if shape.flags() & QGraphicsItem.GraphicsItemFlag.ItemIsSelectable:
                 shape.setSelected(True)
-        finally:
-            self._changing_group_selection = False
-        self.on_selection_changed()
-        self.layer_list.blockSignals(True)
-        try:
+        with QSignalBlocker(self.layer_list):
             member_set = set(members)
             for index in range(self.layer_list.count()):
                 row = self.layer_list.item(index)
                 row.setSelected(row.data(Qt.ItemDataRole.UserRole) in member_set)
-        finally:
-            self.layer_list.blockSignals(False)
 
     def group_selected_items(self):
         if self._mask_edit_session:
             self.finish_mask_edit(True)
         roots = []
+        available = set(self._groupable_items())
+        seen = set()
         for item in self.scene.selectedItems():
             root = self._group_root(item)
-            if root in self._groupable_items() and root not in roots:
+            if root in available and root not in seen:
                 roots.append(root)
+                seen.add(root)
         if len(roots) < 2:
             return False
         group_id = self._next_group_id()
@@ -1863,14 +2016,15 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             item.group_id = None
         self._changing_group_selection = True
         try:
-            self.scene.clearSelection()
-            for item in members:
-                if item.flags() & QGraphicsItem.GraphicsItemFlag.ItemIsSelectable:
-                    item.setSelected(True)
+            with self._selection_batch():
+                self.scene.clearSelection()
+                self.canvas_edit.finish()
+                for item in members:
+                    if item.flags() & QGraphicsItem.GraphicsItemFlag.ItemIsSelectable:
+                        item.setSelected(True)
+                self.refresh_layer_list()
         finally:
             self._changing_group_selection = False
-        self.refresh_layer_list()
-        self.on_selection_changed()
         self.save_snapshot()
         return True
 
@@ -2038,10 +2192,12 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         ):
             previous_clipboard = copy.deepcopy(self._object_clipboard)
             previous_page = self._clipboard_source_page
-            self.copy_selected_items()
-            self.paste_copied_items()
-            self._object_clipboard = previous_clipboard
-            self._clipboard_source_page = previous_page
+            try:
+                self.copy_selected_items()
+                self.paste_copied_items()
+            finally:
+                self._object_clipboard = previous_clipboard
+                self._clipboard_source_page = previous_page
             return
         valid_items = [
             i for i in selected_items
@@ -2052,64 +2208,70 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         if not valid_items: 
             return
 
-        self.scene.clearSelection()
+        with self._selection_batch():
+            self.scene.clearSelection()
 
-        for original in valid_items:
-            if getattr(original, 'is_document_background', False):
-                continue
-            if isinstance(original, DesignerBox):
-                rect = original.rect()
-                new_item = DesignerBox(original.x(), original.y(), rect.width(), rect.height(), "")
-                new_item.state = copy.deepcopy(original.state)
-                new_item.setRotation(original.rotation())
-                new_item.apply_state()
-                new_item.update_center()
+            inserted_items = []
+            for original in valid_items:
+                if getattr(original, 'is_document_background', False):
+                    continue
+                if isinstance(original, DesignerBox):
+                    rect = original.rect()
+                    new_item = DesignerBox(original.x(), original.y(), rect.width(), rect.height(), "")
+                    new_item.state = copy.deepcopy(original.state)
+                    new_item.setRotation(original.rotation())
+                    new_item.apply_state()
+                    new_item.update_center()
                 
-            elif isinstance(original, (ImageItem, SignatureItem)):
-                if isinstance(original, RectangleItem):
-                    new_item = RectangleItem(original.rect().width(), original.rect().height(), original.fill_color)
-                    for key, value in original.style_data().items():
-                        setattr(new_item, key, value)
-                    new_item.has_link = getattr(original, 'has_link', False)
-                    new_item.link_key = getattr(original, 'link_key', '')
-                elif isinstance(original, ImageItem):
-                    new_item = ImageItem(getattr(original, '_original_path', ''))
-                    new_item.has_link = getattr(original, 'has_link', False)
-                    new_item.link_key = getattr(original, 'link_key', '')
-                else:
-                    new_item = SignatureItem(getattr(original, '_original_path', ''))
+                elif isinstance(original, (ImageItem, SignatureItem)):
+                    if isinstance(original, RectangleItem):
+                        new_item = RectangleItem(original.rect().width(), original.rect().height(), original.fill_color)
+                        for key, value in original.style_data().items():
+                            setattr(new_item, key, value)
+                        new_item.has_link = getattr(original, 'has_link', False)
+                        new_item.link_key = getattr(original, 'link_key', '')
+                    elif isinstance(original, ImageItem):
+                        new_item = self._create_asset_item(ImageItem, getattr(original, '_original_path', ''), self._current_model_name)
+                        if new_item is None:
+                            continue
+                        new_item.has_link = getattr(original, 'has_link', False)
+                        new_item.link_key = getattr(original, 'link_key', '')
+                    else:
+                        new_item = self._create_asset_item(SignatureItem, getattr(original, '_original_path', ''), self._current_model_name)
+                        if new_item is None:
+                            continue
                 
-                rect = original.rect() if hasattr(original, 'rect') else original.pixmap().rect()
-                new_item.resize_custom(rect.width(), rect.height())
-                new_item.setRotation(original.rotation())
-                new_item.setPos(original.x(), original.y())
+                    rect = original.rect() if hasattr(original, 'rect') else original.pixmap().rect()
+                    new_item.resize_custom(rect.width(), rect.height())
+                    new_item.setRotation(original.rotation())
+                    new_item.setPos(original.x(), original.y())
 
-            new_item.setZValue(original.zValue() + 0.01)
-            if self._active_page_id == "organogram":
-                new_item.board_behind = getattr(original, 'board_behind', False)
+                new_item.setZValue(original.zValue() + 0.01)
+                if self._active_page_id == "organogram":
+                    new_item.board_behind = getattr(original, 'board_behind', False)
             
-            # Propriedades Comuns
-            new_item.layer_id = None
-            new_item.keep_proportion = getattr(original, 'keep_proportion', True)
-            base_name = self._generate_layer_name(getattr(original, 'layer_id', None), original)
-            numbered = re.fullmatch(r'(.+?)\s+(\d+)', base_name)
-            if numbered:
-                possible_base = numbered.group(1).strip()
-                existing_names = {
-                    str(getattr(i, 'custom_name', '')).strip().casefold()
-                    for i in self.scene.items()
-                }
-                if possible_base.casefold() in existing_names:
-                    base_name = possible_base
-            new_item.custom_name = self._unique_layer_name(base_name)
+                # Propriedades Comuns
+                new_item.layer_id = None
+                new_item.keep_proportion = getattr(original, 'keep_proportion', True)
+                base_name = self._generate_layer_name(getattr(original, 'layer_id', None), original)
+                numbered = re.fullmatch(r'(.+?)\s+(\d+)', base_name)
+                if numbered:
+                    possible_base = numbered.group(1).strip()
+                    existing_names = {
+                        str(getattr(i, 'custom_name', '')).strip().casefold()
+                        for i in self.scene.items()
+                    }
+                    if possible_base.casefold() in existing_names:
+                        base_name = possible_base
+                new_item.custom_name = self._unique_layer_name(base_name)
 
-            self.scene.addItem(new_item)
-            new_item.setSelected(True)
+                inserted_items.append(new_item)
+                self.scene.addItem(new_item)
+                new_item.setSelected(True)
 
-        self.refresh_layer_list()
-        self.sync_placeholders_list()
-        self.save_snapshot()
-        self.on_selection_changed()
+            self.refresh_layer_list()
+            self.sync_placeholders_list()
+            self.save_snapshot()
 
     def copy_selected_items(self):
         """Copia objetos como dados de página, sem duplicar os arquivos de asset."""
@@ -2288,43 +2450,66 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             pasted_ids.append((kind, next_id))
             next_id += 1
 
-        self._switching_page = True
-        try:
-            self.apply_scene_state(state, is_undo_redo=False)
-        finally:
-            self._switching_page = False
-        self.scene.clearSelection()
-        for item in self.scene.items():
-            layer_id = getattr(item, "layer_id", None)
-            kind = (
-                "text" if isinstance(item, DesignerBox) else
-                "signature" if isinstance(item, SignatureItem) else
-                "shape" if isinstance(item, RectangleItem) else
-                "image" if isinstance(item, ImageItem) else None
-            )
-            if (kind, layer_id) in pasted_ids:
+        from core.document_layers import upgrade_layers
+        state = upgrade_layers(state)
+        pasted_keys = set(pasted_ids)
+        insertion = {"name": state.get("name", ""), "canvas_size": state["canvas_size"]}
+        existing_z = {}
+        for kind, collection in collections.items():
+            insertion[collection] = []
+            for entry in state.get(collection, []):
+                if (kind, entry.get("layer_id")) in pasted_keys:
+                    insertion[collection].append(entry)
+                else:
+                    existing_z[(kind, entry.get("layer_id"))] = entry["z_value"]
+
+        with self._selection_batch():
+            self.scene.clearSelection()
+            previous_loading = self._loading_board
+            previous_grid = self.scene._board_grid
+            self._loading_board = True
+            self.scene._board_grid = 0
+            try:
+                # A carga anterior normalizava a pilha inteira. Mantém essa ordem
+                # sem reconstruir os objetos existentes nem alterar os filhos da máscara.
+                for item in self.scene.items():
+                    kind = ("text" if isinstance(item, DesignerBox) else
+                            "signature" if isinstance(item, SignatureItem) else
+                            "shape" if isinstance(item, RectangleItem) else
+                            "image" if isinstance(item, ImageItem) else None)
+                    z = existing_z.get((kind, getattr(item, "layer_id", None)))
+                    # parentItem() em uma guia sem pai pode devolver sua posse
+                    # ao Python. Não toca nos itens auxiliares ao reordenar cópias.
+                    if z is not None and not isinstance(item.parentItem(), RectangleItem):
+                        item.setZValue(z)
+                loaded_items = self._insert_scene_items(insertion)
+            finally:
+                self.scene._board_grid = previous_grid
+                self._loading_board = previous_loading
+            self.sync_placeholders_list()
+            self.refresh_layer_list()
+            for item in loaded_items:
                 item.setSelected(True)
-        self.sync_placeholders_list()
-        self.refresh_layer_list()
-        self.save_snapshot()
-        self.on_selection_changed()
+            if self._active_page_id == "organogram":
+                self._update_board_connections()
+                self._update_board_extent(refresh_panel=False)
+            self.save_snapshot()
 
     def select_all_items(self):
         """Seleciona todas as camadas visíveis e editáveis da página ativa."""
-        if self._mask_edit_session:
-            self.finish_mask_edit(True)
-        self.scene.clearSelection()
-        for item in self.scene.items():
-            if not isinstance(item, (DesignerBox, ImageItem, SignatureItem, RectangleItem, BoardGroupItem)):
-                continue
-            if getattr(item, "is_document_background", False):
-                continue
-            if not item.isVisible():
-                continue
-            if not item.flags() & QGraphicsItem.GraphicsItemFlag.ItemIsSelectable:
-                continue
-            item.setSelected(True)
-        self.on_selection_changed()
+        with self._selection_batch():
+            if self._mask_edit_session:
+                self.finish_mask_edit(True)
+            self.scene.clearSelection()
+            self.canvas_edit.finish()
+            for item in self.scene.items():
+                if not isinstance(item, (DesignerBox, ImageItem, SignatureItem, RectangleItem, BoardGroupItem)):
+                    continue
+                if getattr(item, "is_document_background", False) or not item.isVisible():
+                    continue
+                if not item.flags() & QGraphicsItem.GraphicsItemFlag.ItemIsSelectable:
+                    continue
+                item.setSelected(True)
 
     def delete_selected_items(self):
         if getattr(self, "_board_connection_sources", None):
@@ -2561,49 +2746,53 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self.save_snapshot()
 
     def on_selection_changed(self):
-        """Gerencia a troca de painéis laterais quando a seleção muda."""
+        """Normaliza a seleção e sincroniza os painéis uma vez, no estado final."""
+        if (getattr(self, '_selection_batch_depth', 0)
+                or getattr(self, '_syncing_selection', False)):
+            return
         try:
             sel = self.scene.selectedItems()
         except RuntimeError:
-            return 
-        if self._mask_edit_session and not self._changing_mask_selection:
-            active = self._mask_edit_session['image']
-            if set(sel) != {active}:
-                self.finish_mask_edit(True)
-                sel = self.scene.selectedItems()
+            return
+        self._syncing_selection = True
+        try:
+            # A expansão de grupos e a prioridade das guias não devem publicar
+            # seleções intermediárias nem carregar propriedades recursivamente.
+            with QSignalBlocker(self.scene):
+                if self.canvas_edit.box and not self.canvas_edit.box.isSelected():
+                    self.canvas_edit.finish()
+                if self._mask_edit_session and not self._changing_mask_selection:
+                    active = self._mask_edit_session['image']
+                    if set(sel) != {active}:
+                        self.finish_mask_edit(True)
+                        sel = self.scene.selectedItems()
+                groupable = self._groupable_items() if any(
+                    isinstance(item, (DesignerBox, ImageItem, SignatureItem)) for item in sel
+                ) else []
+                if not self._changing_group_selection and not self._selecting_from_layer_list:
+                    group_ids = {
+                        getattr(self._group_root(item), 'group_id', None)
+                        for item in sel
+                        if isinstance(item, (DesignerBox, ImageItem, SignatureItem))
+                    }
+                    group_ids.discard(None)
+                    selected = set(sel)
+                    for member in groupable:
+                        if (getattr(member, 'group_id', None) in group_ids
+                                and member not in selected
+                                and member.flags() & QGraphicsItem.GraphicsItemFlag.ItemIsSelectable):
+                            member.setSelected(True)
+                    sel = self.scene.selectedItems()
+                if any(not isinstance(item, Guideline) for item in sel):
+                    for item in sel:
+                        if isinstance(item, Guideline):
+                            item.setSelected(False)
+                    sel = self.scene.selectedItems()
+            self._sync_selection_panels(sel, groupable)
+        finally:
+            self._syncing_selection = False
 
-        if not self._changing_group_selection and not self._selecting_from_layer_list:
-            group_ids = {
-                getattr(self._group_root(item), 'group_id', None)
-                for item in sel
-                if isinstance(item, (DesignerBox, ImageItem, SignatureItem))
-            }
-            group_ids.discard(None)
-            missing = [
-                member for group_id in group_ids
-                for member in self._group_members(group_id)
-                if member not in sel
-                and member.flags() & QGraphicsItem.GraphicsItemFlag.ItemIsSelectable
-            ]
-            if missing:
-                self._changing_group_selection = True
-                try:
-                    for member in missing:
-                        member.setSelected(True)
-                finally:
-                    self._changing_group_selection = False
-                sel = self.scene.selectedItems()
-            
-        # Filtro de prioridade: Guias só podem ser selecionadas sozinha
-        has_non_guide = any(not isinstance(i, Guideline) for i in sel)
-        if has_non_guide:
-            # Desmarca silenciosamente as guias da seleção mista
-            for i in sel:
-                if isinstance(i, Guideline):
-                    i.setSelected(False)
-            # Atualiza a lista de itens selecionados após a limpeza
-            sel = self.scene.selectedItems()
-            
+    def _sync_selection_panels(self, sel, groupable):
         boxes = [i for i in sel if isinstance(i, DesignerBox)]
         images = [i for i in sel if isinstance(i, ImageItem)]
         signatures = [i for i in sel if isinstance(i, SignatureItem)]
@@ -2624,7 +2813,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 tr('Desagrupar objetos selecionados (Ctrl+Shift+G)')
                 if is_complete_group else tr('Agrupar objetos selecionados (Ctrl+G)')
             )
-        self._refresh_selection_frame()
+        self._refresh_selection_frame(groupable=groupable)
         
         self.update_position_ui()
 
@@ -2674,7 +2863,10 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             self.caixa_texto_panel.clear_selection_state()
             self.caixa_texto_panel.setEnabled(False)
         if self._active_page_id == "organogram" and hasattr(self, "organogram_panel"):
-            self.organogram_panel.refresh()
+            self.organogram_panel.refresh(refresh_inspector=False)
+        inspector = getattr(self, '_refresh_board_inspector', None)
+        if inspector:
+            inspector()
 
     _DOC_PROPORTION_OFF_BG      = "rgba(220, 53, 69, 102)"
     _DOC_PROPORTION_OFF_HOVER   = "rgba(220, 53, 69, 130)"
@@ -2838,16 +3030,13 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self._selecting_from_layer_list = True
         self._selecting_board_layer = selecting_board_layer
         try:
-            self.scene.blockSignals(True)
-            self.scene.clearSelection()
-            for target_item in target_items:
-                if target_item.scene() is self.scene:
-                    target_item.setSelected(True)
-            self.scene.blockSignals(False)
-
-            # Dispara manualmente para atualizar os painéis laterais sem
-            # expandir automaticamente a seleção para o grupo inteiro.
-            self.on_selection_changed()
+            # Os observadores recebem a seleção final, mantendo a escolha
+            # parcial de grupos permitida pela lista de camadas.
+            with self._selection_batch():
+                self.scene.clearSelection()
+                for target_item in target_items:
+                    if target_item.scene() is self.scene:
+                        target_item.setSelected(True)
         finally:
             self._selecting_from_layer_list = False
             self._selecting_board_layer = False
@@ -2869,26 +3058,20 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             return False
         rows, selected_items, reordered = plan
 
-        widgets = [(item, self.layer_list.itemWidget(item)) for item in rows]
-        model = self.layer_list.model()
-        self.layer_list.blockSignals(True)
-        model.blockSignals(True)
+        previous_sync = getattr(self, '_syncing_layer_rows', False)
+        self._syncing_layer_rows = True
         try:
-            for item in rows:
-                self.layer_list.removeItemWidget(item)
-            while self.layer_list.count():
-                self.layer_list.takeItem(0)
-            for item in reordered:
-                self.layer_list.addItem(item)
-                widget = next((value for row_item, value in widgets if row_item is item), None)
-                if widget is not None:
-                    self.layer_list.setItemWidget(item, widget)
-            self.layer_list.setCurrentItem(anchor_item)
-            for item in reordered:
-                item.setSelected(item in selected_items)
+            with QSignalBlocker(self.layer_list):
+                self._order_layer_rows(reordered)
+                self.layer_list.setCurrentItem(anchor_item)
+                for item in reordered:
+                    item.setSelected(item in selected_items)
+        except LayerReconciliationError:
+            # A ordem da cena ainda não mudou; recuperar a lista a partir dela.
+            self.refresh_layer_list(force=True)
+            return False
         finally:
-            model.blockSignals(False)
-            self.layer_list.blockSignals(False)
+            self._syncing_layer_rows = previous_sync
 
         self._on_layer_reordered(None, 0, 0, None, 0)
         return True
@@ -2951,6 +3134,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             self._layer_group_drop_indicator.hide()
 
     def _on_layer_reordered(self, parent, start, end, destination, row):
+        if getattr(self, '_syncing_layer_rows', False):
+            return
         count = self.layer_list.count()
         items_in_order = []
         board_row = None
@@ -3322,17 +3507,99 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             if var not in existing_items_map:
                 self.lst_placeholders.addItem(var)
 
-    def refresh_layer_list(self):
+    def refresh_layer_list(self, *, force=False):
+        """Reconcilia as linhas vivas, sem reaproveitar objetos de outra cena."""
         self._sync_board_artwork_layers()
-        self.layer_list.blockSignals(True)
-        self.layer_list.clear()
+        current = self.layer_list.currentItem()
+        current_object = getattr(current, '_layer_owner', None) if current else None
+        current_board = bool(current and current.data(_BOARD_LAYER_ROLE))
+        selected = self.layer_list.selectedItems()
+        selected_ids = {id(row._layer_owner) for row in selected
+                        if getattr(row, '_layer_owner', None) is not None}
+        selected_board = any(row.data(_BOARD_LAYER_ROLE) for row in selected)
+        scroll = self.layer_list.verticalScrollBar().value()
+        previous_sync = getattr(self, '_syncing_layer_rows', False)
+        self._syncing_layer_rows = True
+        try:
+            with QSignalBlocker(self.layer_list):
+                try:
+                    self._refresh_layer_rows(force)
+                except LayerReconciliationError:
+                    # Um modelo incapaz de mover as linhas usa a reconstrução
+                    # completa, com callbacks ligados aos objetos atuais.
+                    self._refresh_layer_rows(True)
+                for index in range(self.layer_list.count()):
+                    row = self.layer_list.item(index)
+                    item = row.data(Qt.ItemDataRole.UserRole)
+                    board = bool(row.data(_BOARD_LAYER_ROLE))
+                    if (current_object is not None and item is current_object) or (current_board and board):
+                        self.layer_list.setCurrentItem(row, QItemSelectionModel.SelectionFlag.NoUpdate)
+                    row.setSelected(id(item) in selected_ids if item is not None else selected_board and board)
+                self.layer_list.verticalScrollBar().setValue(scroll)
+        finally:
+            self._syncing_layer_rows = previous_sync
+
+    def _order_layer_rows(self, rows):
+        # Os sinais do modelo ficam ativos: a view precisa deles para manter
+        # seus índices persistentes e widgets durante moveRows.
+        model = self.layer_list.model()
+        for destination, item in enumerate(rows):
+            source = self.layer_list.row(item)
+            if source == destination:
+                continue
+            insertion = destination + 1 if source < destination else destination
+            if source < 0 or not model.moveRows(QModelIndex(), source, 1, QModelIndex(), insertion):
+                raise LayerReconciliationError('Não foi possível reconciliar a ordem das camadas.')
+
+    def _update_layer_row(self, row, widget, item, display_name):
+        label, visible, visible_effect, locked, locked_effect = widget._layer_controls
+        is_visible = item.isVisible()
+        is_locked = not bool(item.flags() & QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
+        signature = (display_name, is_visible, is_locked, widget.font().key(),
+                     theme_color('icon'), theme_color('disabled'), theme_color('accent'), theme_color('selection'))
+        if getattr(widget, '_layer_visual_signature', None) == signature:
+            return
+        label.set_full_text(display_name)
+        themed_style(label, 'color: @disabled@; font-style: italic;' if is_locked else '')
+        if widget._layer_link_icon is not None:
+            widget._layer_link_icon.setPixmap(themed_svg_icon(navigation_icon_path('layer-child')).pixmap(14, 14))
+        visible.setIcon(_visibility_icon(is_visible))
+        visible_effect.setOpacity(1.0 if is_visible else 0.15)
+        locked.setIcon(themed_svg_icon(state_icon_path('lock' if is_locked else 'unlock')))
+        locked_effect.setOpacity(1.0 if is_locked else 0.15)
+        for badge in widget.findChildren(LayerGroupBadge):
+            badge.setStyleSheet(
+                f"QPushButton {{ border: 1px solid {theme_color('accent')}; border-radius: 5px; "
+                f"padding: 0; background: transparent; color: {theme_color('accent')}; "
+                "font-family: Inter; font-size: 10px; font-weight: 700; } "
+                f"QPushButton:hover {{ background: {theme_color('selection')}; }}"
+            )
+        row.setSizeHint(QSize(widget.sizeHint().width(), max(24, widget.sizeHint().height())))
+        widget._layer_visual_signature = signature
+
+    def _refresh_layer_rows(self, force=False):
+        scene_items = self.scene.items()
+        scene_ids = {id(item) for item in scene_items}
+        existing = [self.layer_list.item(i) for i in range(self.layer_list.count())]
+        # Não converter o QVariant de um QGraphicsItem já destruído pela cena:
+        # o binding pode acessar memória liberada antes mesmo de isValid().
+        objects = [row._layer_owner for row in existing
+                   if getattr(row, '_layer_owner', None) is not None]
+        if force or (objects and not any(isValid(item) and id(item) in scene_ids for item in objects)):
+            self.layer_list.clear()
+            existing = []
+        available = {id(row._layer_owner): row for row in existing
+                     if getattr(row, '_layer_owner', None) is not None
+                     and isValid(row._layer_owner)}
+        board_row = next((row for row in existing if row.data(_BOARD_LAYER_ROLE)), None)
+        desired = []
         
         assinaturas = []
         textos = []
         imagens = []
         fundo = None
         
-        for item in self.scene.items():
+        for item in scene_items:
             if isinstance(item, BackgroundItem): fundo = item
             elif isinstance(item, SignatureItem): assinaturas.append(item)
             elif isinstance(item, DesignerBox): textos.append(item)
@@ -3346,14 +3613,19 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         imagens.sort(key=lambda x: (x.zValue(), -(x.layer_id or 0)), reverse=True)
 
         def toggle_item_visibility(item, effect, button):
+            if not isValid(item) or item.scene() is not self.scene:
+                return
             new_vis = not item.isVisible()
             item.setVisible(new_vis)
             # Aplica opacidade 1.0 (visível) ou 0.15 (oculto)
             effect.setOpacity(1.0 if new_vis else 0.15)
             button.setIcon(_visibility_icon(new_vis))
+            button.parentWidget()._layer_visual_signature = None
             self.save_snapshot()
 
         def toggle_item_lock(item, effect, label, button):
+            if not isValid(item) or item.scene() is not self.scene:
+                return
             is_locked = not bool(item.flags() & QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
             new_locked = not is_locked
             
@@ -3380,6 +3652,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             effect.setOpacity(1.0 if new_locked else 0.15)
             button.setIcon(themed_svg_icon(state_icon_path("lock" if new_locked else "unlock")))
             themed_style(label, "color: @disabled@; font-style: italic;" if new_locked else "")
+            button.parentWidget()._layer_visual_signature = None
             self.save_snapshot()
 
         def add_header(title):
@@ -3394,8 +3667,24 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             for item in item_list:
                 name = self._generate_layer_name(item.layer_id, item)
                 display_name = tr("Plano de fundo") if getattr(item, 'is_document_background', False) else name
-                list_item = QListWidgetItem()
+                is_mask_child = self._is_mask_image(item) and isinstance(item.parentItem(), RectangleItem)
+                mask_shape = (item.parentItem() if is_mask_child else
+                              item if isinstance(item, RectangleItem) and item.masked_images() else None)
+                mask_group_id = getattr(mask_shape, 'mask_group_id', None)
+                group_id = getattr(self._group_root(item), 'group_id', None)
+                structure = (is_mask_child, id(mask_shape) if mask_shape is not None else None,
+                             mask_group_id, group_id if not is_mask_child else None,
+                             bool(getattr(item, 'is_document_background', False)))
+                list_item = available.get(id(item))
+                old_widget = self.layer_list.itemWidget(list_item) if list_item is not None else None
+                if old_widget is not None and isValid(old_widget) and getattr(old_widget, '_layer_structure', None) == structure:
+                    self._update_layer_row(list_item, old_widget, item, display_name)
+                    desired.append(list_item)
+                    continue
+                if list_item is None:
+                    list_item = QListWidgetItem()
                 list_item.setData(Qt.ItemDataRole.UserRole, item)
+                list_item._layer_owner = item
                 
                 # Removemos Qt.ItemFlag.ItemIsUserCheckable para sumir com a checkbox nativa
                 flags = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsDragEnabled
@@ -3465,7 +3754,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                     add_group_badge(
                         mask_group_id,
                         tr('Máscara {numero}').format(numero=mask_group_id),
-                        lambda checked=False, shape=mask_shape: self.select_mask_group(shape),
+                        lambda checked=False, shape=mask_shape: self.select_mask_group(shape)
+                        if isValid(shape) and shape.scene() is self.scene else None,
                     )
 
                 group_id = getattr(self._group_root(item), 'group_id', None)
@@ -3473,7 +3763,9 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                     add_group_badge(
                         group_id,
                         tr('Grupo {numero}').format(numero=group_id),
-                        lambda checked=False, gid=group_id: self.select_group(gid),
+                        lambda checked=False, gid=group_id, owner=item: self.select_group(gid)
+                        if isValid(owner) and owner.scene() is self.scene
+                        and getattr(self._group_root(owner), 'group_id', None) == gid else None,
                     )
                 
                 # --- Botão Bloqueio (Cadeado - DIREITA) ---
@@ -3498,10 +3790,23 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 # Os controles têm 24 px; calcular antes da aplicação do tema
                 # pode produzir uma sizeHint menor e recortar olho/nome/cadeado.
                 list_item.setSizeHint(QSize(w.sizeHint().width(), max(24, w.sizeHint().height())))
-                self.layer_list.addItem(list_item)
+                if self.layer_list.row(list_item) < 0:
+                    self.layer_list.addItem(list_item)
                 self.layer_list.setItemWidget(list_item, w)
+                w._layer_link_icon = link_icon if is_mask_child else None
+                w._layer_structure = structure
+                w._layer_controls = (lbl, btn_vis, effect_vis, btn_lock, effect_lock)
+                self._update_layer_row(list_item, w, item, display_name)
+                desired.append(list_item)
 
         def add_board_layer():
+            if board_row is not None:
+                widget = self.layer_list.itemWidget(board_row)
+                if widget is not None and hasattr(widget, '_layer_board_icon'):
+                    widget._layer_board_icon.setPixmap(themed_svg_icon(object_icon_path('organogram')).pixmap(16, 16))
+                    widget.findChildren(ElidedLayerLabel)[0].set_full_text(tr('Organograma'))
+                    desired.append(board_row)
+                    return
             # Referência da composição inteira; não é um objeto da Página 1.
             list_item = QListWidgetItem()
             list_item.setData(Qt.ItemDataRole.AccessibleTextRole, tr("Organograma"))
@@ -3524,6 +3829,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             list_item.setSizeHint(QSize(widget.sizeHint().width(), max(24, widget.sizeHint().height())))
             self.layer_list.addItem(list_item)
             self.layer_list.setItemWidget(list_item, widget)
+            widget._layer_board_icon = icon
+            desired.append(list_item)
 
         objects = [
             item for item in assinaturas + textos + imagens
@@ -3548,7 +3855,14 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             fundo.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
             fundo.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
 
-        self.layer_list.blockSignals(False)
+        wanted = {id(row) for row in desired}
+        for row in existing:
+            if id(row) not in wanted:
+                self.layer_list.removeItemWidget(row)
+                self.layer_list.takeItem(self.layer_list.row(row))
+                row.setData(Qt.ItemDataRole.UserRole, None)
+                row._layer_owner = None
+        self._order_layer_rows(desired)
 
     def get_current_scene_state(self) -> dict:
         """Captura uma 'foto' de tudo o que está na cena agora e retorna como um dicionário."""
@@ -3735,108 +4049,38 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         data['layer_order'] = order
         return self._append_board_state(data)
 
-    def apply_scene_state(self, data: dict, is_undo_redo: bool = False):
-        """Limpa a cena e recria tudo com base no dicionário fornecido."""
-        # Salva qual layer estava selecionada antes de limpar
-        # Identifica o fundo atual antes de limpar a cena
-        self._loading_board = True
-        if getattr(self, "_board_connection_sources", None):
-            self.cancel_board_connection()
-        self.scene._board_grid = 0
-        from core.document_layers import upgrade_layers
-        data = upgrade_layers(data)
-        # Arquivos abertos pelo inicializador podem estar fora da biblioteca.
-        model_dir = getattr(self, '_current_model_dir', None)
-        if model_dir:
-            for group in ('images', 'signatures'):
-                for entry in data.get(group, []):
-                    asset = Path(entry.get('path', ''))
-                    if not asset.is_absolute() and (Path(model_dir) / asset).is_file():
-                        entry['path'] = str(Path(model_dir) / asset)
-        old_bg = self.background_path
-        selected_layer_ids = set()
-        if not getattr(self, '_switching_page', False):
-            sel = self.scene.selectedItems()
-            for s in sel:
-                if isinstance(s, (DesignerBox, ImageItem, SignatureItem)) and getattr(s, 'layer_id', None) is not None:
-                    selected_layer_ids.add(s.layer_id)
+    def _create_asset_item(self, item_class, raw_path, model_name=""):
+        """Usa o mesmo provedor autorizado e proxy em cargas e inserções."""
+        asset_data = self._authorized_asset_bytes(raw_path)
+        path = Path(raw_path)
+        if asset_data is None and not path.is_absolute():
+            model_dir = getattr(self, '_current_model_dir', None)
+            if model_dir and (Path(model_dir) / path).is_file():
+                path = Path(model_dir) / path
+            else:
+                path = get_models_dir() / slugify_model_name(model_name) / path
+        if asset_data is None and not path.exists():
+            return None
+        return item_class(
+            str(path) if asset_data is None else None,
+            pixmap_data=asset_data, asset_reference=raw_path if asset_data is not None else None,
+            loaded_proxy=self._visual_cache.proxy(str(path), data=asset_data),
+        )
 
-        self.scene.clearSelection()
-        self.scene.clear()
-        self.bg_item = None
-        
+    def _insert_scene_items(self, data, *, include_guides=False):
+        """Constrói apenas os itens recebidos; conserva os wrappers até publicar camadas.
+
+        A página completa e a colagem usam a mesma restauração de propriedades e
+        máscaras. Relações são aplicadas após construir todos os novos objetos.
+        """
+        loaded_items = []
         canvas_w = data.get("canvas_size", {}).get("w", 1000)
         canvas_h = data.get("canvas_size", {}).get("h", 1000)
-        self._set_document_rect(QRectF(0, 0, canvas_w, canvas_h))
-
-        # Sincroniza os valores de milímetros na UI (Sempre ocorre, mesmo no Undo/Redo)
-        self.spin_phys_w.blockSignals(True)
-        self.spin_phys_h.blockSignals(True)
-        for control in (self.spin_phys_w, self.spin_phys_h):
-            control.setRange(0.1, 50000) if self._active_page_id == "organogram" else control.setRange(10, 1000)
-        self.spin_phys_w.setValue(data.get("target_w_mm", 100.0))
-        self.spin_phys_h.setValue(data.get("target_h_mm", 150.0))
-        self.spin_phys_w.blockSignals(False)
-        self.spin_phys_h.blockSignals(False)
-
-        proportion_locked = data.get("doc_proportion_locked", False)
-        self.chk_doc_proporcao.blockSignals(True)
-        self.chk_doc_proporcao.setChecked(proportion_locked)
-        self.chk_doc_proporcao.blockSignals(False)
-        self._doc_aspect_ratio = data.get("doc_aspect_ratio", self._doc_aspect_ratio)
-        self._refresh_doc_proportion_button()
-        
-        self.fallback_bg = self.scene.addRect(0, 0, canvas_w, canvas_h, QPen(Qt.PenStyle.NoPen), QBrush(Qt.GlobalColor.white))
-        self.fallback_bg.setZValue(-200)
-        
-        # Atualiza as labels informativas e o rect de fundo
-        self._on_physical_size_changed(document_rect=QRectF(0, 0, canvas_w, canvas_h))
-
-        # Fundo
-        bg_path_raw = data.get("background_path")
-        if bg_path_raw:
-            asset_data = self._authorized_asset_bytes(bg_path_raw)
-            bg_path = Path(bg_path_raw)
-            if asset_data is not None:
-                self.load_background_image(
-                    None, update_ui=not is_undo_redo, props=data.get("bg_props"),
-                    asset_data=asset_data, asset_reference=bg_path_raw,
-                )
-                if self.bg_item and "bg_props" in data:
-                    self.bg_item.setZValue(data["bg_props"].get("z_value", -100))
-            else:
-                # Tenta resolver o caminho se não for absoluto (procura no próprio modelo)
-                if not bg_path.is_absolute():
-                    slug = slugify_model_name(data.get("name", ""))
-                    bg_path = get_models_dir() / slug / bg_path_raw
-            if asset_data is None and bg_path.exists():
-                self.load_background_image(str(bg_path), update_ui=not is_undo_redo, props=data.get("bg_props"))
-                if self.bg_item and "bg_props" in data:
-                    self.bg_item.setZValue(data["bg_props"].get("z_value", -100))
-            elif asset_data is None:
-                self.load_background_image(None, update_ui=not is_undo_redo, props=data.get("bg_props"))
-        else:
-            self.load_background_image(None, update_ui=not is_undo_redo, props=data.get("bg_props"))
-
-        if self.bg_item and "bg_props" in data:
-            self.bg_item.custom_name = data["bg_props"].get("custom_name", "")
-            self.bg_item.layer_id = data["bg_props"].get("layer_id")
-            self.bg_item.setZValue(data["bg_props"].get("z_value", -100))
-
         # Assinaturas
         for sig_data in data.get("signatures", []):
-            raw_path = sig_data["path"]
-            asset_data = self._authorized_asset_bytes(raw_path)
-            sig_path = Path(raw_path)
-            if asset_data is None and not sig_path.is_absolute():
-                slug = slugify_model_name(data.get("name", ""))
-                sig_path = get_models_dir() / slug / raw_path
-
-            if asset_data is not None or sig_path.exists():
-                sig = SignatureItem(
-                    str(sig_path) if asset_data is None else None,
-                    pixmap_data=asset_data, asset_reference=raw_path if asset_data is not None else None,
-                )
+            sig = self._create_asset_item(SignatureItem, sig_data["path"], data.get("name", ""))
+            if sig is not None:
+                loaded_items.append(sig)
                 sig.signature_id = sig_data.get("signature_id") or sig.signature_id
                 sig.custom_name = sig_data.get("custom_name", "")
                 sig.layer_id = sig_data.get("layer_id")
@@ -3859,18 +4103,9 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
 
         # Imagens
         for img_data in data.get("images", []):
-            raw_path = img_data["path"]
-            asset_data = self._authorized_asset_bytes(raw_path)
-            img_path = Path(raw_path)
-            if asset_data is None and not img_path.is_absolute():
-                slug = slugify_model_name(data.get("name", ""))
-                img_path = get_models_dir() / slug / raw_path
-
-            if asset_data is not None or img_path.exists():
-                img = ImageItem(
-                    str(img_path) if asset_data is None else None,
-                    pixmap_data=asset_data, asset_reference=raw_path if asset_data is not None else None,
-                )
+            img = self._create_asset_item(ImageItem, img_data["path"], data.get("name", ""))
+            if img is not None:
+                loaded_items.append(img)
                 img.custom_name = img_data.get("custom_name", "")
                 img.layer_id = img_data.get("layer_id")
                 if self._active_page_id == "organogram":
@@ -3907,6 +4142,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 h=b.get("h", 60), 
                 text=b.get("id", "Placeholder") 
             )
+            loaded_items.append(box)
             box.custom_name = b.get("custom_name", "")
             box.state.rich_text_version = b.get('rich_text_version', 0)
             box.layer_id = b.get("layer_id")
@@ -3947,48 +4183,18 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 box.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
                 if hasattr(box, 'hide_resize_handles'):
                     box.hide_resize_handles()
-        # Linhas Guia
-        guides_data = data.get("guidelines", [])
-        for g in guides_data:
-            guide = Guideline(g["pos"], is_vertical=g.get("vertical", True))
-            guide.setVisible(g.get("visible", True))
-            self.scene.addItem(guide)
-            
-        # Sincroniza o estado global de visibilidade das guias (independente de haver guias na lista)
-        if "guidelines_visible" in data:
-            is_visible = data.get("guidelines_visible", True)
-        elif guides_data:
-            is_visible = guides_data[0].get("visible", True)
-        else:
-            is_visible = True
-        self.btn_toggle_guides.blockSignals(True)
-        self.btn_toggle_guides.setChecked(is_visible)
-        self.btn_toggle_guides.setIcon(_visibility_icon(is_visible))
-        self.op_eye.setOpacity(1.0 if is_visible else 0.2)
-        self.btn_toggle_guides.blockSignals(False)
-
-        # Restaura o estado do cadeado das guias
-        is_locked = data.get("guidelines_locked", False)
-        self.btn_lock_guides.blockSignals(True)
-        self.btn_lock_guides.setChecked(is_locked)
-        self.btn_lock_guides.setIcon(themed_svg_icon(
-            state_icon_path("lock" if is_locked else "unlock")
-        ))
-        self.btn_lock_guides.setText("")
-        self.op_lock.setOpacity(1.0 if is_locked else 0.2)
-        self.btn_lock_guides.blockSignals(False)
-        
-        # Reaplica o bloqueio nos itens recém-criados
-        for item in self.scene.items():
-            if isinstance(item, Guideline):
-                item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, not is_locked)
-                item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, not is_locked)
-                item.setOpacity(0.4 if is_locked else 1.0)
+        if include_guides:
+            for g in data.get("guidelines", []):
+                guide = Guideline(g["pos"], is_vertical=g.get("vertical", True))
+                loaded_items.append(guide)
+                guide.setVisible(g.get("visible", True))
+                self.scene.addItem(guide)
 
         from core.object_style import normalize_line_body
         for entry in data.get('shapes', []):
             entry = normalize_line_body(entry)
             item = RectangleItem(entry.get('width', canvas_w), entry.get('height', canvas_h), entry.get('fill_color', '#ffffff'))
+            loaded_items.append(item)
             for key in item.style_data():
                 if key in entry:
                     setattr(item, key, entry[key])
@@ -4021,12 +4227,13 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                     ('is_document_background' not in entry and entry.get('custom_name') == 'Plano de fundo')):
                 if not any(getattr(other, 'is_document_background', False) for other in self.scene.items() if other is not item):
                     item.bind_document(self._get_document_rect())
+        inserted_items = set(loaded_items)
         shapes_by_id = {
             f"shape:{item.layer_id}": item
             for item in self.scene.items()
-            if isinstance(item, RectangleItem)
+            if item in inserted_items and isinstance(item, RectangleItem)
         }
-        for image in [item for item in self.scene.items() if self._is_mask_image(item)]:
+        for image in [item for item in self.scene.items() if item in inserted_items and self._is_mask_image(item)]:
             shape = shapes_by_id.get(getattr(image, 'mask_shape_id', None))
             if shape is None:
                 image.mask_shape_id = None
@@ -4041,6 +4248,138 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             if shape.masked_images() and getattr(shape, 'mask_group_id', None) is None:
                 shape.mask_group_id = self._next_group_id()
             shape.refresh_mask_structure()
+        return loaded_items
+
+    def apply_scene_state(self, data: dict, is_undo_redo: bool = False):
+        """Limpa a cena e recria tudo com base no dicionário fornecido."""
+        self._clear_page_scenes()
+        self._history_capture_cache = None
+        # Salva qual layer estava selecionada antes de limpar
+        # Identifica o fundo atual antes de limpar a cena
+        self._loading_board = True
+        if getattr(self, "_board_connection_sources", None):
+            self.cancel_board_connection()
+        self.scene._board_grid = 0
+        from core.document_layers import upgrade_layers
+        data = upgrade_layers(data)
+        # Arquivos abertos pelo inicializador podem estar fora da biblioteca.
+        model_dir = getattr(self, '_current_model_dir', None)
+        if model_dir:
+            for group in ('images', 'signatures'):
+                for entry in data.get(group, []):
+                    asset = Path(entry.get('path', ''))
+                    if not asset.is_absolute() and (Path(model_dir) / asset).is_file():
+                        entry['path'] = str(Path(model_dir) / asset)
+        old_bg = self.background_path
+        selected_layer_ids = set()
+        if not getattr(self, '_switching_page', False):
+            sel = self.scene.selectedItems()
+            for s in sel:
+                if isinstance(s, (DesignerBox, ImageItem, SignatureItem)) and getattr(s, 'layer_id', None) is not None:
+                    selected_layer_ids.add(s.layer_id)
+
+        self.scene.clearSelection()
+        # Libera a referência ao papel antes de substituir a cena.
+        self.fallback_bg = None
+        self.scene.clear()
+        self.bg_item = None
+        # Guarda referências às subclasses Python até concluir a reconstrução.
+        # Ao restaurar máscaras, chamadas do Qt podem liberar wrappers de itens
+        # que ainda não foram registrados na lista de camadas.
+        loaded_items = []
+
+        canvas_w = data.get("canvas_size", {}).get("w", 1000)
+        canvas_h = data.get("canvas_size", {}).get("h", 1000)
+        self._set_document_rect(QRectF(0, 0, canvas_w, canvas_h))
+
+        # Sincroniza os valores de milímetros na UI (Sempre ocorre, mesmo no Undo/Redo)
+        self.spin_phys_w.blockSignals(True)
+        self.spin_phys_h.blockSignals(True)
+        for control in (self.spin_phys_w, self.spin_phys_h):
+            control.setRange(0.1, 50000) if self._active_page_id == "organogram" else control.setRange(10, 1000)
+        self.spin_phys_w.setValue(data.get("target_w_mm", 100.0))
+        self.spin_phys_h.setValue(data.get("target_h_mm", 150.0))
+        self.spin_phys_w.blockSignals(False)
+        self.spin_phys_h.blockSignals(False)
+
+        proportion_locked = data.get("doc_proportion_locked", False)
+        self.chk_doc_proporcao.blockSignals(True)
+        self.chk_doc_proporcao.setChecked(proportion_locked)
+        self.chk_doc_proporcao.blockSignals(False)
+        self._doc_aspect_ratio = data.get("doc_aspect_ratio", self._doc_aspect_ratio)
+        self._refresh_doc_proportion_button()
+
+        self.fallback_bg = create_canvas_paper(self.scene, QRectF(0, 0, canvas_w, canvas_h))
+
+        # Atualiza as labels informativas e o rect de fundo
+        self._on_physical_size_changed(document_rect=QRectF(0, 0, canvas_w, canvas_h))
+
+        # Fundo
+        bg_path_raw = data.get("background_path")
+        if bg_path_raw:
+            asset_data = self._authorized_asset_bytes(bg_path_raw)
+            bg_path = Path(bg_path_raw)
+            if asset_data is not None:
+                self.load_background_image(
+                    None, update_ui=not is_undo_redo, props=data.get("bg_props"),
+                    asset_data=asset_data, asset_reference=bg_path_raw,
+                )
+                if self.bg_item and "bg_props" in data:
+                    self.bg_item.setZValue(data["bg_props"].get("z_value", -100))
+            else:
+                # Tenta resolver o caminho se não for absoluto (procura no próprio modelo)
+                if not bg_path.is_absolute():
+                    slug = slugify_model_name(data.get("name", ""))
+                    bg_path = get_models_dir() / slug / bg_path_raw
+            if asset_data is None and bg_path.exists():
+                self.load_background_image(str(bg_path), update_ui=not is_undo_redo, props=data.get("bg_props"))
+                if self.bg_item and "bg_props" in data:
+                    self.bg_item.setZValue(data["bg_props"].get("z_value", -100))
+            elif asset_data is None:
+                self.load_background_image(None, update_ui=not is_undo_redo, props=data.get("bg_props"))
+        else:
+            self.load_background_image(None, update_ui=not is_undo_redo, props=data.get("bg_props"))
+
+        if self.bg_item and "bg_props" in data:
+            self.bg_item.custom_name = data["bg_props"].get("custom_name", "")
+            self.bg_item.layer_id = data["bg_props"].get("layer_id")
+            self.bg_item.setZValue(data["bg_props"].get("z_value", -100))
+
+        loaded_items = self._insert_scene_items(data, include_guides=True)
+        # Linhas Guia
+        guides_data = data.get("guidelines", [])
+        # Sincroniza o estado global de visibilidade das guias (independente de haver guias na lista)
+        if "guidelines_visible" in data:
+            is_visible = data.get("guidelines_visible", True)
+        elif guides_data:
+            is_visible = guides_data[0].get("visible", True)
+        else:
+            is_visible = True
+        self.btn_toggle_guides.blockSignals(True)
+        self.btn_toggle_guides.setChecked(is_visible)
+        self.btn_toggle_guides.setIcon(_visibility_icon(is_visible))
+        self.op_eye.setOpacity(1.0 if is_visible else 0.2)
+        self.btn_toggle_guides.blockSignals(False)
+
+        # Restaura o estado do cadeado das guias
+        is_locked = data.get("guidelines_locked", False)
+        self.btn_lock_guides.blockSignals(True)
+        self.btn_lock_guides.setChecked(is_locked)
+        self.btn_lock_guides.setIcon(themed_svg_icon(
+            state_icon_path("lock" if is_locked else "unlock")
+        ))
+        self.btn_lock_guides.setText("")
+        self.op_lock.setOpacity(1.0 if is_locked else 0.2)
+        self.btn_lock_guides.blockSignals(False)
+
+        # Reaplica visibilidade e bloqueio globais nos itens recém-criados.
+        for item in self.scene.items():
+            if isinstance(item, Guideline):
+                item.setVisible(is_visible)
+                item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, not is_locked)
+                item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, not is_locked)
+                item.setOpacity(0.4 if is_locked else 1.0)
+
         if self._active_page_id != "organogram":
             self._ensure_background_rectangle()
         self._load_board_items(data)
@@ -4071,13 +4410,43 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             self._zoom_to_fit()
         self._loading_board = False
         self.refresh_board_context()
+        self._active_page_dependencies = self._page_dependencies(self._active_page_id, data)
+
+    def _history_capture_token(self):
+        if self.history._current_index < 0 or self._active_scene_baseline is None:
+            return None
+        current = self.history._undo_stack[self.history._current_index]
+        if not current.get("__document_history__") or self._model_document is None:
+            return None
+        # Inclui páginas inativas e mudanças globais feitas sem sinais Qt.
+        if self._model_document != current.get("document"):
+            return None
+        return (id(current), id(current["document"]), id(self._model_document),
+                self.history._current_index, self._active_page_id)
+
+    def _history_snapshot_is_current(self):
+        token = self._history_capture_token()
+        cached = self._history_capture_cache
+        if token is None or cached is None or cached[0] != token:
+            return False
+        inputs = history_inputs(self)
+        return inputs is not None and inputs == cached[1]
+
+    def _remember_history_inputs(self):
+        token = self._history_capture_token()
+        inputs = history_inputs(self) if token is not None else None
+        self._history_capture_cache = (token, inputs) if inputs is not None else None
 
     def save_snapshot(self):
         """Dispara um salvamento na memória (chamado ao soltar o mouse ou terminar uma edição)."""
         if getattr(self, '_restoring_history', False) or self._mask_edit_session or self._loading_board:
             return
         if self._active_page_id == "organogram":
-            self._update_board_extent()
+            self._update_board_extent(refresh_panel=False)
+        if self._history_snapshot_is_current():
+            if hasattr(self, "_pending_history_page_id"):
+                del self._pending_history_page_id
+            return
         state = self._capture_document_history_state()
         if self.history._current_index >= 0:
             current = self.history._undo_stack[self.history._current_index]
@@ -4085,15 +4454,20 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 current.get("__document_history__")
                 and current.get("document") == state.get("document")
             ):
+                self._remember_history_inputs()
                 if hasattr(self, "_pending_history_page_id"):
                     del self._pending_history_page_id
                 return
         self.history.push(state)
+        self._remember_history_inputs()
         if hasattr(self, "_pending_history_page_id"):
             del self._pending_history_page_id
 
     def undo(self):
         self._finish_page_interaction()
+        # Controles numéricos podem ter aplicado um valor sem perder o foco.
+        # Registra essa edição para que o redo consiga recuperá-la.
+        self.save_snapshot()
         current = None
         if self.history._current_index >= 0:
             current = self.history._undo_stack[self.history._current_index]
@@ -4104,6 +4478,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
 
     def redo(self):
         self._finish_page_interaction()
+        # Uma nova edição após undo invalida o futuro, mesmo antes do blur.
+        self.save_snapshot()
         state = self.history.redo()
         if state:
             self._restore_history_state(state, preferred_page=state.get("__action_page_id"))
@@ -4115,6 +4491,9 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             for name, section in sections.items()
         }
         self._restoring_history = True
+        scene_blocker = QSignalBlocker(self.scene)
+        updates_enabled = self.view.updatesEnabled()
+        self.view.setUpdatesEnabled(False)
         try:
             if state.get("__document_history__"):
                 self._page_selection[self._active_page_id] = self._selection_keys()
@@ -4137,9 +4516,16 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 self.apply_scene_state(state, is_undo_redo=True)
         finally:
             self._restoring_history = False
+            scene_blocker.unblock()
+            self.view.setUpdatesEnabled(updates_enabled)
+        # Nenhum painel deve observar uma cena ou seleção parcialmente montada.
+        self.scene.selectionChanged.emit()
+        if self._active_page_id != 'organogram' and hasattr(self, 'organogram_panel'):
+            self.organogram_panel.refresh()
         restore_inspector = getattr(self, '_restore_inspector_state', None)
         if restore_inspector:
             restore_inspector(inspector_state)
+        self._remember_history_inputs()
 
     def _get_selected(self):
         valid_items = self._get_selected_items()

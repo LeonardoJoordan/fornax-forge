@@ -1,54 +1,77 @@
-# Ambientes Virtuais e Variáveis
+# Ambientes virtuais e configuração local
 venv/
 env/
 .venv/
-.venv-windows/
-.venv-appimage/
+.venv-*/
 .env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
 
-# Compilados e Cache Python
+# Bytecode, caches e cobertura Python
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
 .pytest_cache/
-*.flatpak
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+/coverage.xml
+*.egg-info/
 
-# Artefatos do Projeto ComSoc
-output/
-models/*
-!models/.gitkeep
-.validation/
+# Dados gerados localmente (os modelos de assets/templates são versionados)
+/output/
+/models/*
+!/models/.gitkeep
+/.validation/
+/logs/
 
-# Compilação e Nuitka
-build/
-dist/
+# Compilação, Nuitka e repositório Flatpak local
+/build/
+/dist/
 *.build/
 *.dist/
-*.bin
-.flatpak-builder/
-build-dir/
-repo/
-*.dmg
+/*.bin
+/.flatpak-builder/
+/build-dir/
+/repo/
 
-
-# Sistema Operacional / IDE
+# Sistema operacional e IDE
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
 
-# AppImage e Relatórios de Crash
-appimagetool
-COMSOC-x86_64.AppImage
-nuitka-crash-report.xml
-COMSOC.AppDir
-Projeto_ComSoc.AppImage
-ProjetoComSoc.flatpak
-FORNAX_Forge.AppImage
-FORNAX_Forge.AppDir/
-
-FORNAX_Forge.AppImage.sha256
+# Pacotes para distribuição, ferramentas de empacotamento e relatórios locais
+# Inclui nomes atuais, versionados e legados do Projeto ComSoc.
+*.flatpak
+*.AppImage
+*.AppImage.sha256
+*.AppDir/
+*.dmg
+/FORNAX*.exe
+/Instalador-FORNAX*.exe
+/appimagetool
+/appimagetool-*.AppImage
+/nuitka-crash-report.xml
 
 # Rascunhos de release e registros locais de validação
 /RELEASE_v*.md
 /docs/VALIDACAO_APPIMAGE_LINUX.md
+
+# Evidências locais de testes e benchmarks
+# Versionar documentação e scripts, sem logs, capturas, resultados brutos,
+# cópias de fontes, patches de referência ou arquivos compactados das rodadas.
+*.log
+/docs/desempenho_editor/**
+!/docs/desempenho_editor/**/
+!/docs/desempenho_editor/**/*.md
+!/docs/desempenho_editor/**/*.py
+# Entrada exigida por tests/performance/run_final_benchmarks.py.
+!/docs/desempenho_editor/etapa-00/antes.json
+/docs/implementacao_tabelas/**
+!/docs/implementacao_tabelas/**/
+!/docs/implementacao_tabelas/**/*.md
+!/docs/implementacao_tabelas/**/*.py
