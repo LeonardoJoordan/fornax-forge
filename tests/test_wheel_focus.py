@@ -1,6 +1,7 @@
 """Seletores temporários da tabela não podem ficar ativos após a destruição."""
 import os
 import unittest
+from unittest.mock import patch
 
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
@@ -74,6 +75,91 @@ class WheelFocusTest(unittest.TestCase):
         self.assertEqual(spin.value(), 5)
         guard.eventFilter(spin, self.click())
         self.assertFalse(guard.eventFilter(spin, wheel))
+
+    def test_child_click_arms_selector_and_outside_click_disarms_it(self):
+        guard = WheelFocusGuard()
+        spin = QSpinBox()
+        other = QWidget()
+        self.addCleanup(spin.deleteLater)
+        self.addCleanup(other.deleteLater)
+        guard.eventFilter(spin.lineEdit(), QEvent(QEvent.Type.Polish))
+        self.assertEqual(spin.focusPolicy(), Qt.FocusPolicy.StrongFocus)
+        guard.eventFilter(spin.lineEdit(), self.click())
+        self.assertIs(guard._armed, spin)
+        guard.eventFilter(other, QEvent(QEvent.Type.FocusIn))
+        self.assertIs(guard._armed, spin)
+        guard.eventFilter(other, self.click())
+        self.assertIsNone(guard._armed)
+
+    def test_deleted_selector_is_cleared_even_on_unrelated_events(self):
+        guard = WheelFocusGuard()
+        spin = QSpinBox()
+        other = QWidget()
+        self.addCleanup(other.deleteLater)
+        guard.eventFilter(spin, self.click())
+        spin.deleteLater()
+        self.app.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        self.assertFalse(guard.eventFilter(other, QEvent(QEvent.Type.LayoutRequest)))
+        self.assertIsNone(guard._armed)
+
+    def test_shift_wheel_and_touchpad_pixels_keep_scrolling_the_panel(self):
+        guard = WheelFocusGuard()
+        scroll = QScrollArea()
+        self.addCleanup(scroll.deleteLater)
+        content = QWidget()
+        content.resize(1500, 1500)
+        spin = QSpinBox(content)
+        spin.setValue(5)
+        scroll.setWidget(content)
+        scroll.resize(200, 200)
+        scroll.show()
+        self.app.processEvents()
+        for modifiers, pixels, angle, bar in (
+            (Qt.KeyboardModifier.ShiftModifier, QPoint(), QPoint(-120, 0), scroll.horizontalScrollBar()),
+            (Qt.KeyboardModifier.NoModifier, QPoint(0, -25), QPoint(), scroll.verticalScrollBar()),
+        ):
+            with self.subTest(modifiers=modifiers, pixels=pixels):
+                before = bar.value()
+                wheel = QWheelEvent(QPointF(5, 5), QPointF(5, 5), pixels, angle,
+                                    Qt.MouseButton.NoButton, modifiers,
+                                    Qt.ScrollPhase.NoScrollPhase, False)
+                self.assertTrue(guard.eventFilter(spin.lineEdit(), wheel))
+                self.assertGreater(bar.value(), before)
+                self.assertEqual(spin.value(), 5)
+
+    def test_installed_filter_preserves_real_spinbox_wheel_delivery(self):
+        guard = WheelFocusGuard()
+        spin = QSpinBox()
+        self.addCleanup(spin.deleteLater)
+        self.app.installEventFilter(guard)
+        self.addCleanup(lambda: self.app.removeEventFilter(guard))
+        spin.setValue(5)
+
+        def send_wheel():
+            wheel = QWheelEvent(QPointF(5, 5), QPointF(5, 5), QPoint(), QPoint(0, 120),
+                                Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier,
+                                Qt.ScrollPhase.NoScrollPhase, False)
+            self.app.sendEvent(spin, wheel)
+
+        send_wheel()
+        self.assertEqual(spin.value(), 5)
+        self.app.sendEvent(spin.lineEdit(), self.click())
+        send_wheel()
+        self.assertGreater(spin.value(), 5)
+
+
+class WheelFocusWorkTest(unittest.TestCase):
+    setUpClass = classmethod(WheelFocusTest.setUpClass.__func__)
+
+    def test_layout_and_paint_events_do_not_walk_widget_ancestors(self):
+        guard = WheelFocusGuard()
+        spin = QSpinBox()
+        self.addCleanup(spin.deleteLater)
+        with patch.object(guard, '_selector_for', wraps=guard._selector_for) as lookup:
+            for kind in (QEvent.Type.Paint, QEvent.Type.LayoutRequest,
+                         QEvent.Type.Resize, QEvent.Type.FocusIn, QEvent.Type.MouseMove):
+                self.assertFalse(guard.eventFilter(spin.lineEdit(), QEvent(kind)))
+        lookup.assert_not_called()
 
 
 if __name__ == '__main__':

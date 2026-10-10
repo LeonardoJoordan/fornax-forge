@@ -5,6 +5,11 @@ from PySide6.QtWidgets import QAbstractScrollArea, QAbstractSpinBox, QComboBox, 
 from shiboken6 import isValid
 
 
+_SELECTOR_EVENTS = frozenset((
+    QEvent.Type.Polish, QEvent.Type.MouseButtonPress, QEvent.Type.Wheel,
+))
+
+
 class WheelFocusGuard(QObject):
     """Só permite que o último seletor clicado processe a roda."""
 
@@ -38,9 +43,13 @@ class WheelFocusGuard(QObject):
     def eventFilter(self, watched, event):
         if self._armed is not None and not isValid(self._armed):
             self._armed = None
+        kind = event.type()
+        # O filtro é global: pintura e layout não precisam procurar seletores
+        # na hierarquia de widgets. Mantém acima a limpeza de objetos destruídos.
+        if kind not in _SELECTOR_EVENTS:
+            return False
         if not isValid(watched):
             return False
-        kind = event.type()
         selector = self._selector_for(watched)
         if kind == QEvent.Type.Polish and selector is not None:
             selector.setFocusPolicy(Qt.FocusPolicy.StrongFocus)

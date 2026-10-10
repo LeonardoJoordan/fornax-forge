@@ -4,6 +4,13 @@ from PySide6.QtWidgets import QLabel, QApplication, QWidget
 from PySide6.QtCore import Qt, QTimer, QObject, QEvent, QPoint
 from PySide6.QtGui import QCursor
 
+
+_TOOLTIP_EVENTS = frozenset((
+    QEvent.Type.Enter, QEvent.Type.Leave, QEvent.Type.MouseButtonPress,
+    QEvent.Type.WindowDeactivate, QEvent.Type.ToolTip,
+))
+
+
 class CustomTooltipManager(QObject):
     _instance = None
 
@@ -50,10 +57,13 @@ class CustomTooltipManager(QObject):
         self.current_widget = None
 
     def eventFilter(self, obj, event):
+        event_type = event.type()
+        # Descarta eventos sem relação com dicas antes de consultar o widget.
+        # Isso evita trabalho em cada evento de construção e pintura do editor.
+        if event_type not in _TOOLTIP_EVENTS:
+            return False
         if not isinstance(obj, QWidget):
             return False
-
-        event_type = event.type()
 
         if event_type == QEvent.Type.Enter:
             tip = obj.toolTip()

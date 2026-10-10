@@ -381,6 +381,9 @@ def install_frontend(panel):
 
     table.currentCellChanged.connect(load_cell_editor)
     table.itemChanged.connect(refresh_formula_from_item)
+    table.dataBatchChanged.connect(
+        lambda _cells: load_cell_editor(table.currentRow(), table.currentColumn())
+    )
     cell_editor.textChanged.connect(update_from_formula)
     update_state()
     themed_style(panel, '''

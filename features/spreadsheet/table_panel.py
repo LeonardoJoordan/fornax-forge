@@ -89,6 +89,8 @@ class DataHeaderView(QHeaderView):
 class RichTableWidget(QTableWidget):
     RICH_ROLE = Qt.ItemDataRole.UserRole
     signatureColumnToggled = Signal(int, bool)
+    # None indica alteração estrutural; set contém coordenadas lógicas alteradas.
+    dataBatchChanged = Signal(object)
 
     def _signature_columns(self):
         return [
@@ -127,6 +129,7 @@ class RichTableWidget(QTableWidget):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.batch_editing = False
         self.block_names = ()
         self._block_press_position = None
         header = DataHeaderView(self)
@@ -360,7 +363,6 @@ class RichTableWidget(QTableWidget):
         if not md: return
 
         grid_struct = []
-        grid_style = []
 
         # Chama diretamente o nosso Porteiro (router), passando HTML e Texto
         html_raw = md.html() if md.hasHtml() else ""
@@ -371,6 +373,24 @@ class RichTableWidget(QTableWidget):
 
         if not grid_struct: return
 
+        old_rows = self.rowCount()
+        self._paste_changed_cells = set()
+        self.batch_editing = True
+        blocked = self.blockSignals(True)
+        try:
+            self._paste_grid(grid_struct)
+        finally:
+            self.blockSignals(blocked)
+            self.batch_editing = False
+            changed = self._paste_changed_cells
+            self._paste_changed_cells = set()
+            self._queue_row_height_update({row for row, _ in changed})
+            if self.rowCount() != old_rows:
+                self.dataBatchChanged.emit(None)
+            elif changed:
+                self.dataBatchChanged.emit(changed)
+
+    def _paste_grid(self, grid_struct):
         header = self.horizontalHeader()
         signature_columns = set(self._signature_columns())
 
@@ -385,8 +405,8 @@ class RichTableWidget(QTableWidget):
             affected_cols_logical = set()
             for idx in selected_indexes:
                 r = idx.row()
-                c_visual = idx.column()
-                c_logical = header.logicalIndex(c_visual)
+                # QModelIndex já usa índices lógicos, mesmo após reordenar colunas.
+                c_logical = idx.column()
                 
                 if c_logical in signature_columns:
                     continue  # Protege a checkbox
@@ -398,6 +418,8 @@ class RichTableWidget(QTableWidget):
                     
                 item.setText(val_plain)
                 item.setData(self.RICH_ROLE, val_rich)
+                self._force_qty_alignment(item)
+                self._paste_changed_cells.add((r, c_logical))
                 affected_cols_logical.add(c_logical)
                 
             if affected_cols_logical:
@@ -450,6 +472,8 @@ class RichTableWidget(QTableWidget):
 
                 item.setText(cell_data.plain)
                 item.setData(self.RICH_ROLE, cell_data.rich_html)
+                self._force_qty_alignment(item)
+                self._paste_changed_cells.add((dest_row, dest_col_logical))
 
                 affected_cols_logical.add(dest_col_logical)
 
@@ -536,9 +560,8 @@ class RichTableWidget(QTableWidget):
     def _force_qty_alignment(self, item):
         # Se a mudança foi na coluna 0, bloqueia sinais para evitar loop e centraliza
         if item.column() == 0:
-            self.blockSignals(True)
-            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.blockSignals(False)    
+            with QSignalBlocker(self):
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
     def _text_width_px(self, text: str) -> int:
         fm = QFontMetrics(self.font())

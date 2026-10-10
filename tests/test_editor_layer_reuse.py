@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 from PySide6.QtCore import Qt, QEvent, QSignalBlocker, QSize, QModelIndex
 from PySide6.QtGui import QImage, QPainter
-from PySide6.QtWidgets import QPushButton
+from PySide6.QtWidgets import QPushButton, QGraphicsRectItem
 from shiboken6 import isValid
 from core.themes import theme_manager
 from features.editor.editor_window import ElidedLayerLabel, LayerGroupBadge, _BOARD_LAYER_ROLE
@@ -308,6 +308,63 @@ class LayerReuseTest(unittest.TestCase):
         self.settle()
         self.assertIs(w.layer_list.itemWidget(row),widget)
         self.assertNotEqual(before,pixels())
+
+
+class LayerIdAllocationTest(unittest.TestCase):
+    setUpClass = classmethod(contracts.PerformanceContractsTest.setUpClass.__func__)
+    setUp = contracts.PerformanceContractsTest.setUp
+    editor = contracts.PerformanceContractsTest.editor
+
+    def test_missing_ids_keep_the_previous_lowest_available_id_rule(self):
+        w = self.editor('mixed', 20)
+        before = w._document_with_active_page()
+        helpers = [QGraphicsRectItem(0, 0, 1, 1) for _ in range(6)]
+        for index, item in enumerate(helpers):
+            item.setZValue(10000 + index)
+            w.scene.addItem(item)
+        # Mistura atributo ausente, None, zero e identificadores esparsos.
+        helpers[0].layer_id = None
+        helpers[1].layer_id = 10000
+        helpers[2].layer_id = 0
+        items = w.scene.items()
+        used = {item.layer_id for item in items if getattr(item, 'layer_id', None) is not None}
+        expected = {}
+        for item in items:
+            identity = getattr(item, 'layer_id', None)
+            if identity is None:
+                identity = 0
+                while identity in used:
+                    identity += 1
+                used.add(identity)
+            expected[id(item)] = identity
+        w.refresh_layer_list()
+        self.assertEqual({id(item): item.layer_id for item in items}, expected)
+        self.assertEqual(w._document_with_active_page(), before)
+
+    def test_many_missing_ids_do_not_rescan_the_scene_per_item(self):
+        w = self.editor('simple', 4)
+        helpers = [QGraphicsRectItem(0, 0, 1, 1) for _ in range(100)]
+        for item in helpers:
+            w.scene.addItem(item)
+        with patch.object(w.scene, 'items', wraps=w.scene.items) as reads:
+            w.refresh_layer_list()
+        self.assertLess(reads.call_count, 10)
+        assigned = [item.layer_id for item in helpers]
+        self.assertEqual(len(set(assigned)), len(helpers))
+
+    def test_removed_ids_are_available_again_on_the_next_refresh(self):
+        w = self.editor('simple', 4)
+        first = QGraphicsRectItem(0, 0, 1, 1)
+        w.scene.addItem(first)
+        w.refresh_layer_list()
+        identity = first.layer_id
+        w.scene.removeItem(first)
+        replacement = QGraphicsRectItem(0, 0, 1, 1)
+        w.scene.addItem(replacement)
+        w.refresh_layer_list()
+        self.assertEqual(replacement.layer_id, identity)
+        w.refresh_layer_list()
+        self.assertEqual(replacement.layer_id, identity)
 
 
 if __name__ == '__main__':

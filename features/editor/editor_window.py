@@ -3706,7 +3706,12 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         textos = []
         imagens = []
         fundo = None
-        
+
+        # Aloca os IDs ausentes nesta passagem, sem reler a cena para cada
+        # objeto. Preserva os IDs existentes e a ordem do menor ID livre.
+        used_layer_ids = {item.layer_id for item in scene_items
+                          if getattr(item, 'layer_id', None) is not None}
+        next_layer_id = 0
         for item in scene_items:
             if isinstance(item, BackgroundItem): fundo = item
             elif isinstance(item, SignatureItem): assinaturas.append(item)
@@ -3714,7 +3719,11 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             elif isinstance(item, (ImageItem, TableItem)): imagens.append(item)
             
             if not hasattr(item, 'layer_id') or item.layer_id is None:
-                item.layer_id = self._get_next_layer_id()
+                while next_layer_id in used_layer_ids:
+                    next_layer_id += 1
+                item.layer_id = next_layer_id
+                used_layer_ids.add(next_layer_id)
+                next_layer_id += 1
 
         assinaturas.sort(key=lambda x: (x.zValue(), -(x.layer_id or 0)), reverse=True)
         textos.sort(key=lambda x: (x.zValue(), -(x.layer_id or 0)), reverse=True)

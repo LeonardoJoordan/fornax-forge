@@ -15,6 +15,7 @@ from core.image_memory_cache import ImageMemoryCache
 from core.table_model import table_fields, validate_table
 from core.table_layout import TableLayout
 from core.table_paint import paint_table
+from .png_output import save_png
 
 
 def signature_is_visible(signature: dict, row_data: dict | None) -> bool:
@@ -163,7 +164,7 @@ class NativeRenderer:
         self._static_table_warnings = [dict(warning) for warning in self.render_warnings]
 
     def render_row(self, row_plain: dict, row_rich: dict, out_path: Path, out_links: list = None,
-                   target_w_mm=None, target_h_mm=None):
+                   target_w_mm=None, target_h_mm=None, *, intermediate_png=False):
         image = self.render_to_qimage(row_plain, row_rich, out_links=out_links)
         # Metadados físicos após pintar: caixas legadas usam 96 DPI; células
         # têm seu próprio dispositivo fixo de 300 DPI para pontos físicos.
@@ -171,7 +172,7 @@ class NativeRenderer:
         h_mm = target_h_mm or self.tpl.get("target_h_mm") or image.height() * 25.4 / 300
         image.setDotsPerMeterX(round(image.width() * 1000 / w_mm))
         image.setDotsPerMeterY(round(image.height() * 1000 / h_mm))
-        if not image.save(str(out_path), "PNG"):
+        if not save_png(image, out_path, intermediate=intermediate_png):
             raise OSError(f"Não foi possível gravar {out_path}.")
 
     

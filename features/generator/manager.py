@@ -284,6 +284,7 @@ class RenderManager(QObject):
             w = PageRenderWorker(
                 worker_tasks, self.page_renderers, self.work_dir, settings,
                 self.worker_format, False, secure_output=self.protected_content,
+                intermediate_png=self.is_hybrid,
             )
             w.page_finished.connect(self._on_page_finished)
             w.error_occurred.connect(self._on_worker_error)
@@ -308,6 +309,7 @@ class RenderManager(QObject):
                 chunk, self.page_renderers, self.work_dir, self.worker_format,
                 False, self.target_w_mm, self.target_h_mm,
                 secure_output=self.protected_content,
+                intermediate_png=self.is_hybrid,
             )
             w.card_finished.connect(self._on_direct_card_finished)
             w.error_occurred.connect(self._on_worker_error)

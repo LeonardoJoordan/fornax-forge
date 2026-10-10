@@ -65,6 +65,7 @@ class PreviewWorkspace(MainWindow):
         table = self.table_panel.table
         table.itemSelectionChanged.connect(self._on_table_selection)
         table.itemChanged.connect(self._on_preview_data_changed)
+        table.dataBatchChanged.connect(self._on_preview_batch_changed)
         table.signatureColumnToggled.connect(lambda *_: self._on_preview_data_changed())
         table.model().rowsInserted.connect(self._on_preview_rows_changed)
         table.model().rowsRemoved.connect(self._on_preview_rows_changed)

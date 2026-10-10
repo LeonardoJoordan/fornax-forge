@@ -6,6 +6,7 @@ from PySide6.QtGui import QImage, QPainter, QPdfWriter, QPageLayout, QPageSize
 from .imposition import SheetAssembler
 from .production_plan import build_imposition_plan
 from .pdf_links import inject_pdf_links
+from .png_output import save_png
 from core.i18n import tr
 from core.model_document import resolve_model_file
 from core.naming_engine import confined_output_path
@@ -36,7 +37,7 @@ class DirectRenderWorker(QThread):
     error_occurred = Signal(str)
     warning_occurred = Signal(str)
 
-    def __init__(self, chunk_data, renderers, output_dir, export_format="PNG", single_pdf=False, target_w_mm=100.0, target_h_mm=150.0, secure_output=False):
+    def __init__(self, chunk_data, renderers, output_dir, export_format="PNG", single_pdf=False, target_w_mm=100.0, target_h_mm=150.0, secure_output=False, *, intermediate_png=False):
         super().__init__()
         self.chunk_data = chunk_data
         if not isinstance(renderers, (list, tuple)):
@@ -49,6 +50,7 @@ class DirectRenderWorker(QThread):
         self.target_w_mm = target_w_mm
         self.target_h_mm = target_h_mm
         self.secure_output = bool(secure_output)
+        self.intermediate_png = bool(intermediate_png) and not self.secure_output
         self._is_running = True
 
     def stop(self):
@@ -129,6 +131,7 @@ class DirectRenderWorker(QThread):
                         renderer.render_row(
                             row_plain, row_rich, temporary, out_links=local_links,
                             target_w_mm=self.target_w_mm, target_h_mm=self.target_h_mm,
+                            intermediate_png=self.intermediate_png,
                         )
                         emit_table_warnings(self,renderer,source_row)
                         links_by_page[page_index] = local_links
@@ -167,7 +170,7 @@ class PageRenderWorker(QThread):
     page_finished = Signal(int, object, int, object, str)
     error_occurred = Signal(str)
 
-    def __init__(self, tasks, renderers, output_dir, imposition_settings, export_format="PNG", single_pdf=False, secure_output=False):
+    def __init__(self, tasks, renderers, output_dir, imposition_settings, export_format="PNG", single_pdf=False, secure_output=False, *, intermediate_png=False):
         super().__init__()
         self.tasks = tasks
         if not isinstance(renderers, (list, tuple)):
@@ -179,6 +182,7 @@ class PageRenderWorker(QThread):
         self.single_pdf = single_pdf
         self.duplex = bool(imposition_settings.get("duplex", False))
         self.secure_output = bool(secure_output)
+        self.intermediate_png = bool(intermediate_png) and not self.secure_output
         
         w_mm = imposition_settings.get("target_w_mm", 100)
         h_mm = imposition_settings.get("target_h_mm", 150)
@@ -293,7 +297,7 @@ class PageRenderWorker(QThread):
                             temporary_paths.append(temporary)
                         else:
                             active_secure_paths.append(out_path)
-                        if not image.save(str(temporary), "PNG"):
+                        if not save_png(image, temporary, intermediate=self.intermediate_png):
                             raise OSError(tr("Não foi possível gravar {arquivo}.").format(arquivo=out_path))
                         staged.append((temporary, out_path))
                     if not self._is_running:
