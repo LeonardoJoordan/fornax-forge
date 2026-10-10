@@ -16,6 +16,8 @@ class CanvasEdit(QObject):
         window.scene.selectionChanged.connect(self.selection_changed)
 
     def begin(self, box):
+        if getattr(self.window, 'table_edit', None):
+            self.window.table_edit.finish()
         if self.box is box:
             return
         self.finish()

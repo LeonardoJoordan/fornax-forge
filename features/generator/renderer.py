@@ -12,6 +12,9 @@ from core.object_style import draw_shape, outline_margin, rounded_rect_path
 from core.text_layout import PLACEHOLDER_PATTERN, build_document, text_geometry, resolve_rich_text
 from core.dynamic_images import resolve_dynamic_image
 from core.image_memory_cache import ImageMemoryCache
+from core.table_model import table_fields, validate_table
+from core.table_layout import TableLayout
+from core.table_paint import paint_table
 
 
 def signature_is_visible(signature: dict, row_data: dict | None) -> bool:
@@ -61,6 +64,8 @@ class NativeRenderer:
                 "NativeRenderer recebe uma única página. Use renderers_for_document()."
             )
         self.tpl = template_data
+        for table in self.tpl.get("tables", []):
+            validate_table(table)
         canvas = self.tpl.get("canvas_size", {})
         validate_raster_dimensions(canvas.get("w"), canvas.get("h"), label="canvas")
         self.page_id = self.tpl.get("__page_id", "front")
@@ -70,6 +75,8 @@ class NativeRenderer:
         self._pixmap_cache = {}
         self.dynamic_image_dir = self.tpl.get("__dynamic_image_dir")
         self.asset_provider = asset_provider
+        self.render_warnings = []
+        self._static_table_warnings = []
 
     def set_dynamic_image_directory(self, directory):
         self.dynamic_image_dir = str(directory) if directory else None
@@ -84,6 +91,7 @@ class NativeRenderer:
         renderer._image_cache = self._image_cache.fork()
         if self._static_base_cache is not None:
             renderer._static_base_cache = QImage(self._static_base_cache)
+            renderer._static_table_warnings = [dict(warning) for warning in self._static_table_warnings]
         return renderer
 
     def paint_card(self, painter, row_plain, row_rich, out_links=None):
@@ -152,11 +160,13 @@ class NativeRenderer:
             self._paint_card(painter, {}, out_links=None, static_only=True)
         finally:
             painter.end()
+        self._static_table_warnings = [dict(warning) for warning in self.render_warnings]
 
     def render_row(self, row_plain: dict, row_rich: dict, out_path: Path, out_links: list = None,
                    target_w_mm=None, target_h_mm=None):
         image = self.render_to_qimage(row_plain, row_rich, out_links=out_links)
-        # Metadados físicos somente depois da pintura: o layout de texto usa 96 DPI.
+        # Metadados físicos após pintar: caixas legadas usam 96 DPI; células
+        # têm seu próprio dispositivo fixo de 300 DPI para pontos físicos.
         w_mm = target_w_mm or self.tpl.get("target_w_mm") or image.width() * 25.4 / 300
         h_mm = target_h_mm or self.tpl.get("target_h_mm") or image.height() * 25.4 / 300
         image.setDotsPerMeterX(round(image.width() * 1000 / w_mm))
@@ -194,6 +204,9 @@ class NativeRenderer:
                 painter.scale(scale, scale)
             if row_rich is None:
                 placeholders = self.tpl.get("placeholders", [])
+                if self.tpl.get("tables"):
+                    placeholders = list(dict.fromkeys([*placeholders,
+                        *(field for table in self.tpl["tables"] for field in table_fields(table))]))
                 row_rich = {p: f"{{{p}}}" for p in placeholders}
             self._paint_card(painter, row_rich)
         finally:
@@ -246,7 +259,8 @@ class NativeRenderer:
         return self._normalize_link_url(values.get(link_key, ""))
 
     def _paint_card(self, painter, row_rich, out_links=None, static_only=False, dynamic_only=False, row_plain=None):
-        if "layer_order" not in self.tpl and not self.tpl.get("shapes"):
+        self.render_warnings = [dict(warning) for warning in self._static_table_warnings] if dynamic_only else []
+        if "layer_order" not in self.tpl and not self.tpl.get("shapes") and not self.tpl.get("tables"):
             return self._paint_card_legacy(painter, row_rich, out_links, static_only, dynamic_only, row_plain)
         entries = layer_entries(self.tpl)
         masked_images = {
@@ -259,6 +273,9 @@ class NativeRenderer:
             images_by_mask.setdefault(image.get('mask_shape_id'), []).append(image)
         prefix = 0
         for _, kind, item in entries:
+            if kind == "table" and not table_fields(item):
+                prefix += 1
+                continue
             if kind == "shape" and item.get("dynamic_image_field"):
                 break
             if kind not in ("image", "shape") or (item.get("has_link") and item.get("link_key")):
@@ -268,6 +285,15 @@ class NativeRenderer:
             if static_only and index >= prefix:
                 break
             if dynamic_only and index < prefix:
+                continue
+            if kind == "table":
+                if item.get("visible", True) and item.get("opacity", 1) > 0:
+                    # Layouts/documents Qt têm vida somente nesta chamada. O
+                    # fork transporta apenas dados/cache raster, nunca texto Qt.
+                    values = None if row_rich is None and row_plain is None else {**(row_plain or {}), **(row_rich or {})}
+                    layout = TableLayout(item, values)
+                    paint_table(painter, layout)
+                    self.render_warnings.extend({**warning, "page_id": self.page_id} for warning in layout.warnings)
                 continue
             if kind == "shape":
                 children = sorted(images_by_mask.get(item.get('object_id'), []),
@@ -290,7 +316,7 @@ class NativeRenderer:
             if kind == 'image' and item.get('object_id') in masked_images:
                 continue
             # A child view avoids mutating a renderer shared by batch workers.
-            layer = {**self.tpl, "images": [], "boxes": [], "signatures": [], "background_path": None}
+            layer = {**self.tpl, "images": [], "boxes": [], "signatures": [], "tables": [], "background_path": None}
             layer.pop("layer_order", None)
             layer[{"image": "images", "text": "boxes", "signature": "signatures"}[kind]] = [item]
             child = NativeRenderer(layer, asset_provider=self.asset_provider)

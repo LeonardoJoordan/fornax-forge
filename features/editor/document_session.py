@@ -18,6 +18,7 @@ from core.model_document import (
 
 from .canvas_items import DesignerBox, ImageItem, RectangleItem, SignatureItem
 from .model_adapter import prepare_scene_page
+from .table_item import TableItem
 from .page_scenes import PageScenesMixin
 
 
@@ -40,6 +41,8 @@ class DocumentSessionMixin(PageScenesMixin):
             "shape" if isinstance(item, RectangleItem) else
             "image" if isinstance(item, ImageItem) else None
         )
+        if isinstance(item, TableItem):
+            kind = 'table'
         return (kind, layer_id) if kind is not None else None
 
     def _selection_keys(self) -> set[tuple[str, int | str | tuple[str, str]]]:
@@ -112,6 +115,12 @@ class DocumentSessionMixin(PageScenesMixin):
             refresh()
 
     def _finish_page_interaction(self):
+        if getattr(self, 'object_floating_bar', None):
+            self.object_floating_bar.mask_picker.cancel()
+            # Encerrar o gesto sem ocultar a barra ao capturar/salvar a página.
+            self.object_floating_bar.end_dock_drag(restore_focus=False)
+            for menu in self.object_floating_bar.menus:
+                menu.close()
         self._finish_canvas_pointer_interaction(leave_pan=True)
         if getattr(self, "_board_connection_sources", None):
             self.cancel_board_connection()
@@ -119,6 +128,8 @@ class DocumentSessionMixin(PageScenesMixin):
             self.finish_mask_edit(True)
         if getattr(self, "canvas_edit", None):
             self.canvas_edit.finish()
+        if getattr(self, 'table_edit', None):
+            self.table_edit.finish()
         if getattr(self, "shape_drawing", None):
             self.shape_drawing.cancel()
 

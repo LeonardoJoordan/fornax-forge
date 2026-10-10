@@ -15,6 +15,7 @@ from .canvas_items import (
     SelectionResizeHandle, SelectionTransformFrame,
 )
 from .organogram_editor import BoardGroupItem, BoardConnectorItem
+from .table_item import TableItem
 
 
 class UnsupportedInput(ValueError):
@@ -52,7 +53,7 @@ _IGNORED_TYPES = (
 )
 _CONTENT_TYPES = (
     DesignerBox, ImageItem, RectangleItem, SignatureItem, BackgroundItem,
-    Guideline, BoardGroupItem, BoardConnectorItem,
+    Guideline, BoardGroupItem, BoardConnectorItem, TableItem,
 )
 
 
@@ -78,7 +79,23 @@ def history_inputs(window):
             if kind not in _CONTENT_TYPES:
                 return None
             attrs = []
-            for name, value in vars(item).items():
+            if kind is TableItem:
+                session = getattr(window, 'table_edit', None)
+                if session and session.item is item:
+                    return None  # Rascunho aceito/native cursor exige captura completa.
+                known = {'data', 'window', 'layout', 'presentation_revision', 'selected_range',
+                         'selection_anchor', 'selection_cursor', 'editing_cell', '_selecting_cells',
+                         '_is_mouse_dragging', 'overlays_enabled', 'custom_name', 'layer_id', 'group_id',
+                         'board_behind', 'keep_proportion', '_drag_start', '_resizing_from_handle',
+                         '_board_cutout_owner', 'resize_handles', 'handle_br',
+                         '_pending_cell', '_overlays_enabled'}
+                if set(vars(item)) - known:
+                    return None
+                # Toda a fonte persistente, não a revisão nem o cache Qt. Assim,
+                # alterações Python sem sinal também invalidam a comparação.
+                for name in ('data','custom_name','layer_id','group_id','board_behind','keep_proportion'):
+                    attrs.append((name, _freeze(getattr(item,name))))
+            for name, value in (() if kind is TableItem else vars(item).items()):
                 if name in _NATIVE_FIELDS or name in _TRANSIENT_FIELDS:
                     continue
                 if name == "state" and kind is DesignerBox:

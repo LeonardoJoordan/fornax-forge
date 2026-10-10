@@ -12,7 +12,7 @@ ou um título acompanhado de elementos decorativos.
 ## Como usar
 
 1. Selecione pelo menos dois objetos compatíveis, como texto, imagem e forma.
-2. Clique no controle **Agrupar**, junto de Camadas, ou pressione **Ctrl+G**.
+2. Clique no controle **Agrupar**, na barra flutuante da seleção ou junto de Camadas, ou pressione **Ctrl+G**.
 3. Confira a indicação de grupo na lista Camadas.
 4. Clique em um integrante no canvas para selecionar o grupo.
 5. Arraste ou redimensione a seleção conforme necessário.

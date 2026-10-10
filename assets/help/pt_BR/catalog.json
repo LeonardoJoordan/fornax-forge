@@ -91,6 +91,10 @@
       "title": "Histórico, salvamento e proteção"
     },
     {
+      "id": "editor-24",
+      "title": "Tabelas gráficas e células"
+    },
+    {
       "id": "editor-23",
       "title": "Atalhos registrados que precisam de revisão de acesso"
     }
@@ -2376,11 +2380,14 @@
     },
     {
       "id": "FOR-01",
-      "title": "Menu Formas.",
+      "title": "Menu Elementos (antigo Formas).",
       "category": "editor-10",
       "keywords": [
         "formas",
-        "formas desenhar canvas"
+        "formas desenhar canvas",
+        "elementos",
+        "formas e tabela",
+        "adicionar tabela"
       ],
       "file": "formas-desenhar-canvas.md",
       "status": "published"
@@ -5690,6 +5697,204 @@
       "keywords": [],
       "file": null,
       "status": "review"
+    },
+    {
+      "id": "TBL-01",
+      "title": "Tabela gráfica: inserir e distinguir da planilha de dados.",
+      "category": "editor-24",
+      "keywords": [
+        "inserir tabela",
+        "elementos",
+        "formas",
+        "tabela gráfica",
+        "planilha de dados"
+      ],
+      "file": "tabela-inserir.md",
+      "status": "published"
+    },
+    {
+      "id": "TBL-02",
+      "title": "Selecionar células e editar texto na tabela.",
+      "category": "editor-24",
+      "keywords": [
+        "seleção",
+        "duplo clique",
+        "Enter",
+        "F2",
+        "Tab",
+        "Shift"
+      ],
+      "file": "tabela-selecionar-editar.md",
+      "status": "published"
+    },
+    {
+      "id": "TBL-03",
+      "title": "Adicionar ou remover linhas e colunas da tabela.",
+      "category": "editor-24",
+      "keywords": [
+        "estrutura",
+        "adicionar acima",
+        "adicionar abaixo",
+        "quantidade"
+      ],
+      "file": "tabela-linhas-colunas.md",
+      "status": "published"
+    },
+    {
+      "id": "TBL-04",
+      "title": "Mesclar e separar células da tabela.",
+      "category": "editor-24",
+      "keywords": [
+        "mesclagem",
+        "dividir células",
+        "cabeçalho"
+      ],
+      "file": "tabela-mesclar-separar.md",
+      "status": "published"
+    },
+    {
+      "id": "TBL-05",
+      "title": "Medidas da tabela, linhas e colunas em milímetros.",
+      "category": "editor-24",
+      "keywords": [
+        "largura",
+        "altura",
+        "redimensionar",
+        "medidas"
+      ],
+      "file": "tabela-medidas.md",
+      "status": "published"
+    },
+    {
+      "id": "TBL-06",
+      "title": "Texto, alinhamento, quebra e espaço interno das células.",
+      "category": "editor-24",
+      "keywords": [
+        "tipografia",
+        "padding",
+        "negrito",
+        "vertical",
+        "quebra de linha"
+      ],
+      "file": "tabela-texto-alinhamento.md",
+      "status": "published"
+    },
+    {
+      "id": "TBL-07",
+      "title": "Preenchimento e transparência das células.",
+      "category": "editor-24",
+      "keywords": [
+        "fundo",
+        "cor",
+        "opacidade",
+        "zebra"
+      ],
+      "file": "tabela-preenchimento.md",
+      "status": "published"
+    },
+    {
+      "id": "TBL-08",
+      "title": "Bordas das células: cor, espessura e opacidade.",
+      "category": "editor-24",
+      "keywords": [
+        "bordas",
+        "grade",
+        "espessura",
+        "contornos",
+        "opacidade"
+      ],
+      "file": "tabela-contornos.md",
+      "status": "published"
+    },
+    {
+      "id": "TBL-09",
+      "title": "Campos variáveis e placeholders nas células da tabela.",
+      "category": "editor-24",
+      "keywords": [
+        "placeholder",
+        "nota",
+        "campo dinâmico",
+        "negrito",
+        "dados vazios"
+      ],
+      "file": "tabela-campos-variaveis.md",
+      "status": "published"
+    },
+    {
+      "id": "TBL-10",
+      "title": "Copiar e colar células, intervalos ou texto na tabela.",
+      "category": "editor-24",
+      "keywords": [
+        "Excel",
+        "Google Planilhas",
+        "TSV",
+        "clipboard",
+        "Ctrl+C",
+        "Ctrl+V"
+      ],
+      "file": "tabela-copiar-colar.md",
+      "status": "published"
+    },
+    {
+      "id": "TBL-11",
+      "title": "Atalhos e desfazer/refazer por contexto na tabela.",
+      "category": "editor-24",
+      "keywords": [
+        "atalhos",
+        "Esc",
+        "Ctrl+A",
+        "Delete",
+        "Ctrl+D",
+        "Ctrl+Z",
+        "Ctrl+Y"
+      ],
+      "file": "tabela-atalhos-historico.md",
+      "status": "published"
+    },
+    {
+      "id": "TBL-12",
+      "title": "Tabela inteira: camadas, cópias, grupos e organograma.",
+      "category": "editor-24",
+      "keywords": [
+        "duplicar",
+        "bloquear",
+        "agrupar",
+        "rotação",
+        "legenda",
+        "cartão"
+      ],
+      "file": "tabela-objeto-organograma.md",
+      "status": "published"
+    },
+    {
+      "id": "TBL-13",
+      "title": "Texto excedente (overflow) e limites das tabelas.",
+      "category": "editor-24",
+      "keywords": [
+        "overflow",
+        "texto cortado",
+        "1000",
+        "2000",
+        "limites",
+        "aviso"
+      ],
+      "file": "tabela-overflow-limites.md",
+      "status": "published"
+    },
+    {
+      "id": "TBL-14",
+      "title": "Exemplo: boletim escolar com tabela e dados variáveis.",
+      "category": "editor-24",
+      "keywords": [
+        "boletim",
+        "escola",
+        "alunos",
+        "disciplinas",
+        "notas",
+        "média"
+      ],
+      "file": "tabela-boletim-escolar.md",
+      "status": "published"
     }
   ]
 }

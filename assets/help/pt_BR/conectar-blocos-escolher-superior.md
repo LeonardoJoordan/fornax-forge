@@ -9,7 +9,7 @@ Conectar vários conjuntos ao mesmo responsável com uma única ação.
 ## Como usar
 
 1. Selecione os blocos que ficarão subordinados, deixando um bloco disponível como superior.
-2. Clique em Conectar a elemento.
+2. Clique em Conectar a elemento, na barra flutuante dos blocos ou na lateral.
 3. Clique no superior no canvas ou na árvore.
 4. Para abandonar a escolha, pressione Esc ou clique em Cancelar conexão.
 

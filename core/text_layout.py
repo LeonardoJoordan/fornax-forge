@@ -4,6 +4,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QFontMetrics, QTextCursor, QTextCharFormat, QTextBlockFormat, QColor, QBrush
 from core.html_utils import TextOnlyDocument, normalize_text_decoration, sanitize_text_html
 from core.object_style import outline_pen
+from core.font_utils import resolve_bundled_font_aliases
+from core.ui_font import resolve_font_family
 
 ALIGNMENTS = {"left": Qt.AlignLeft, "center": Qt.AlignHCenter, "right": Qt.AlignRight, "justify": Qt.AlignJustify}
 REFERENCE_GLYPHS = "AÇgjpqy|{}"
@@ -159,12 +161,13 @@ def configure_text_document(doc, box, content):
         cleaned = re.sub(r"(?i)</h[1-6]>", "</p>", cleaned)
     cleaned = normalize_text_decoration(cleaned)
     cleaned = re.sub(r"(?i)</?a\b[^>]*>", "", cleaned)
-    from core.ui_font import DOCUMENT_FONT_FAMILY
-    font = QFont(box.get("font_family", DOCUMENT_FONT_FAMILY), int(box.get("font_size", 16)))
+    font = QFont(resolve_font_family(box.get("font_family")), int(box.get("font_size", 16)))
     font.setStyleStrategy(QFont.StyleStrategy.ForceOutline)
     doc.setDefaultFont(font)
     doc.setDefaultStyleSheet("body { color: " + box.get("font_color", "#000000") + "; }" if rich else "")
     doc.setHtml(cleaned)
+    if rich:
+        resolve_bundled_font_aliases(doc)
     options = doc.defaultTextOption()
     options.setAlignment(ALIGNMENTS.get(box.get("align", "left"), Qt.AlignLeft))
     doc.setDefaultTextOption(options)

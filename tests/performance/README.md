@@ -1,5 +1,22 @@
 # Medições do editor
 
+## Prova técnica de tabelas — etapa 01
+
+`table_layout_prototype.py` é um experimento isolado, sem schema persistente
+ou integração no menu do aplicativo. `run_table_prototype.py` compara o
+candidato QTextTable com medidas próprias, gera imagens/PDF de prova e mede
+construção/pintura de uma grade de 800 células. As evidências ficam locais.
+
+```bash
+QT_QPA_PLATFORM=offscreen QT_SCALE_FACTOR=1 .venv/bin/python tests/performance/run_table_prototype.py --output docs/implementacao_tabelas/etapa-01
+QT_QPA_PLATFORM=offscreen QT_SCALE_FACTOR=1 PYTHONPATH=tests .venv/bin/python -m unittest test_table_layout_prototype -v
+```
+
+O runner usa Poppler e `pypdf` para conferência independente do PDF, sem
+instalá-los. O teste funcional do protótipo não depende dessas ferramentas.
+Decisões, medições, limites e comandos estão no
+[relatório da etapa 01](../../docs/implementacao_tabelas/etapa-01/RELATORIO.md).
+
 ## O que é versionado
 
 Os testes, instrumentos, fixtures e relatórios em Markdown fazem parte do
@@ -386,3 +403,287 @@ As evidências da primeira execução, o mapa confirmado e a cópia dos fontes
 anteriores estão em `docs/implementacao_tabelas/etapa-00/`. Não confundir o
 arquivo de fontes com uma cópia completa do ambiente: assets e dependências
 ficam identificados separadamente e os modelos pessoais não são copiados.
+
+## Tabelas — dados e persistência (etapa 02)
+
+```bash
+.venv/bin/python tests/performance/run_table_data_checks.py --output /tmp/fornax-tabelas-dados.log
+.venv/bin/python tests/performance/benchmark_table_data.py --output /tmp/fornax-tabelas-dados.json
+```
+
+O runner usa processos, dados e preferências temporários. Confere contrato e
+operações puras, versões, campos/camadas, pacotes públicos/protegidos,
+snapshots de recuperação e abertura atômica no editor, além do
+protótipo e dos contratos de publicação já existentes. Exceções Qt também
+reprovam a rodada. A regressão geral continua no `run_regressions.py`.
+
+`table_document_fixtures.py` adapta as quatro especificações sintéticas da
+etapa 00 para documentos v6 somente em memória/pastas temporárias. Não
+modifica a biblioteca do aplicativo. `benchmark_table_data.py` mede dados
+síncronos com duas preparações e vinte amostras por caso; memória Python é
+medida em rodada separada. Não mede pintura nem digitação no canvas.
+
+`--reference-source /caminho/model_document-anterior.txt` executa apenas a
+normalização v4 contra uma cópia local histórica do módulo. Essa comparação
+é uma reconstrução isolada da referência, não uma medição de tabelas antigas.
+O teste do leitor anterior usa a mesma evidência local e registra um skip
+quando ela não existir em outro checkout. Relatório e contrato estão em
+`docs/implementacao_tabelas/etapa-02/`; resultados brutos permanecem ignorados.
+
+## Tabelas — layout, variáveis e saída (etapa 03)
+
+```bash
+.venv/bin/python tests/performance/run_table_render_checks.py --output /tmp/fornax-tabelas-render
+.venv/bin/python tests/performance/run_table_render_evidence.py --output /tmp/fornax-tabelas-evidencias
+```
+
+O primeiro runner executa os mesmos 27 testes de renderização nas escalas Qt
+1 e 2, isolando preferências/dados. Exercita células e mesclagens, formatação
+de placeholders, campos ausentes, cache estático, camadas, fontes, documentos
+públicos/protegidos e workers reais. A integração da cena é verificada
+separadamente pelos testes da etapa 04.
+
+O segundo instrumento gera PNG e PDF vetorial sintéticos. O Poppler rasteriza
+o PDF em 300 dpi; comparam-se caixas de tinta por célula, cores, tamanho físico
+e texto extraído. O PDF de prova usa a mesma escala física do organograma.
+`QPageSize` quantiza a página em pontos inteiros; não redistribuir o desenho
+para compensar essa pequena diferença. O PDF por item/folha do aplicativo
+continua com seu pipeline raster existente.
+
+Em seguida, o instrumento compara sequencialmente o protótipo da etapa 01 e
+o layout de produção com 800 células, duas preparações e vinte amostras.
+Construção + primeira pintura e pintura de um layout retido são medidas
+separadamente. O protótipo é uma referência técnica isolada, não uma versão
+anterior de tabelas utilizáveis no aplicativo. Memória RSS inclui o processo
+Qt e seus caches; não representa alocação exclusiva da tabela. Executar a
+medição sem outras suítes pesadas concorrentes.
+
+Relatório: `docs/implementacao_tabelas/etapa-03/RELATORIO.md`. Logs, PDF, PNG,
+JSON e fontes históricos ficam locais/ignorados; apenas documentação e
+instrumentos devem ser versionados. O módulo de teste usa `pypdf` já presente
+no ambiente de desenvolvimento e o Poppler disponível na máquina.
+
+## Tabelas — canvas e edição (etapa 04)
+
+```bash
+.venv/bin/python tests/performance/run_table_canvas_checks.py --output /tmp/fornax-tabelas-canvas
+.venv/bin/python tests/performance/benchmark_table_canvas.py --output /tmp/fornax-tabelas-canvas-desempenho.json
+```
+
+O runner executa os mesmos 25 testes nas escalas Qt 1 e 2, com dados e
+preferências temporários. Usa eventos nativos para clique/arraste, foco,
+teclado e composição Unicode; verifica células mescladas, atalhos por
+contexto, pintura parcial, limites, histórico local/global, páginas e
+recuperação da célula ativa em pacotes públicos e totalmente protegidos.
+Exceções de callbacks Qt e descarte de objetos reprovam os testes.
+
+O benchmark usa uma tabela sintética de 800 células, sem ler modelos
+pessoais. São duas preparações e vinte amostras por operação. Mede pintura
+completa/parcial diretamente no item retido; seleção/movimento, digitação
+e checkpoint incluem processamento de eventos da janela real. Não medir
+enquanto outras suítes pesadas estiverem rodando. A restauração da célula
+e a abertura da sessão ficam fora do tempo do checkpoint. RSS abrange todo
+o processo, incluindo janela, histórico e caches Qt.
+
+Confere a identidade do layout/documentos não afetados e que digitar não
+cria snapshots por tecla. O checkpoint inclui validação e captura completa
+de histórico; não representa o custo de cada caractere. Registra amostras,
+mediana, p95, hashes dos fontes/instrumento e da especificação da fixture.
+O recurso não existia antes desta etapa: a comparação do relatório é entre
+a implementação inicial da etapa 04 e seu recorte de pintura, não entre
+tabelas de duas versões públicas do programa.
+
+Inserção pelo menu e painel de propriedades pertencem à etapa 05; cópia de
+intervalos/objetos, duplicação e integração completa de camadas/histórico
+seguem as etapas 05/06. Relatório: `docs/implementacao_tabelas/etapa-04/RELATORIO.md`.
+
+## Tabelas — controles e intervalos (etapa 05)
+
+```bash
+.venv/bin/python tests/performance/run_table_controls_checks.py --output /tmp/fornax-tabelas-controles
+.venv/bin/python tests/performance/table_controls_evidence.py --output /tmp/fornax-tabelas-visual
+.venv/bin/python tests/performance/benchmark_table_controls.py --output /tmp/fornax-tabelas-controles-desempenho.json
+```
+
+O runner executa 11 testes de intervalos/dados e 16 testes de interface,
+estes repetidos nos temas dark/light e nas escalas Qt 1/2. Os processos usam
+preferências temporárias. Exercita inserção pública/cancelamento, limites,
+tipografia e fundo por seleção, estilos mistos, medidas, contornos,
+operações estruturais com undo/redo e clipboard por contexto. Inclui
+colagem inválida sem efeitos parciais, texto multilinha durante edição e
+texto literal semelhante a HTML, mantendo a recusa de recursos externos.
+Callbacks Qt e descarte tardio de wrappers também reprovam.
+
+O segundo script captura um boletim sintético e o painel Tabela nos dois
+temas, sem ler modelos pessoais. PNGs ficam locais/ignorados. Capturas
+offscreen não substituem testes de foco/touchpad no desktop real.
+
+Para comparar com a etapa 04, o mesmo `benchmark_table_canvas.py` mede as
+mesmas 800 células e operações, sem suíte pesada concorrente. Conferir
+viewport/hashes/fixture e distinguir custo de pintura, eventos e histórico.
+Relatório: `docs/implementacao_tabelas/etapa-05/RELATORIO.md`.
+
+
+## Tabelas — objetos, camadas e histórico (etapa 06)
+
+```bash
+.venv/bin/python tests/performance/run_table_integration_checks.py --output /tmp/fornax-tabelas-integracao
+.venv/bin/python tests/performance/benchmark_table_integration.py --output /tmp/fornax-tabelas-historico.json
+```
+
+O runner executa 20 testes distintos de integração, nos temas claro/escuro
+e escalas Qt 1/2, com dados/preferências temporários. Verifica identidade e
+independência de cópias, cópia entre páginas, grupos mistos e seleção parcial
+pelas camadas, ordenação, controles de visibilidade/bloqueio/nome, geometria
+e recusas sem efeitos parciais. Exercita texto ativo, formatação, mesclagem,
+inserção de coluna, duplicação, troca de página, gravação/reabertura pública,
+undo/redo, estado canônico e pixels do canvas contra o renderer.
+
+O benchmark mede uma tabela sintética de 800 células: checkpoint sem
+alterações e ciclo completo undo/redo de um preenchimento. Duas preparações
+e vinte amostras, com eventos Qt, mediana/p95, RSS do processo e hashes dos
+fontes. Execute sem testes/benchmarks pesados concorrentes. A restauração
+ainda usa o fallback completo; o resultado não demonstra restauração
+incremental ou desempenho de organogramas/exportações da etapa 07.
+
+Para comparar o editor/painel já existente, repetir também
+`benchmark_table_canvas.py` e `benchmark_table_controls.py`, separadamente.
+Relatório: `docs/implementacao_tabelas/etapa-06/RELATORIO.md`.
+
+Diagnóstico auxiliar de memória (não altera o editor):
+
+```bash
+.venv/bin/python tests/performance/check_table_history_memory.py --output /tmp/fornax-tabelas-memoria.json
+```
+
+Registra referências fracas a raízes/layouts antigos e RSS em um lote de
+undo/redo sem descarte explícito e com `DeferredDelete`/coleta Python entre
+operações. Serve para distinguir retenção transitória do lote offscreen de
+objetos ainda vivos; RSS alto sozinho não demonstra vazamento permanente.
+
+## Tabelas — integração de produto (etapa 07)
+
+```bash
+.venv/bin/python tests/performance/run_table_product_checks.py --output /tmp/fornax-tabelas-produto
+.venv/bin/python tests/performance/benchmark_table_product.py --output /tmp/fornax-tabelas-produto.json
+```
+
+O runner executa 19 testes distintos em escalas Qt 1/2, com biblioteca,
+preferências e modelos sintéticos temporários. Cobre limites/caches do
+organograma, Página 1 replicada em 1.000 cartões/20 conjuntos, prévia vazia,
+PNG/PDF, lote, frente/verso, múltiplos por folha e remontagem exata de
+ladrilhos. Exercita importar/exportar, duplicar/renomear/reabrir, miniatura
+de revisão atual, recuperação de texto ativo e corridas de fechamento,
+salvamento, publicação, alteração externa e expiração de autorização.
+Verifica snapshot independente de geração e transporte/importação protegida.
+
+O benchmark mede o cálculo leve de geometria com/sem tabela complementar
+de 800 células e construção/pintura de prévia real de 1.000 cartões com
+tabela de uma célula. Duas preparações, vinte amostras curtas/cinco caras,
+mediana/p95, RSS e hashes. Confere também se os limites calculados estão
+corretos; uma referência rápida que ignora a tabela não prova otimização.
+Execute sem suites/benchmarks pesados concorrentes. Não é medição de 1.000
+blocos individuais, impressão nativa ou exportação de 1.000 imagens em disco.
+Relatório: `docs/implementacao_tabelas/etapa-07/RELATORIO.md`.
+
+## Tabelas — ajuda, idiomas e fechamento (etapa 08)
+
+```bash
+.venv/bin/python tests/performance/run_table_help_checks.py --output /tmp/fornax-tabelas-ajuda
+QT_SCALE_FACTOR=1 .venv/bin/python tests/performance/table_final_evidence.py --output /tmp/fornax-tabelas-visual-1
+QT_SCALE_FACTOR=2 .venv/bin/python tests/performance/table_final_evidence.py --output /tmp/fornax-tabelas-visual-2
+```
+
+O runner verifica 21 testes distintos de ajuda e idiomas, repetidos nas
+escalas Qt 1/2, com preferências e dados temporários. Inclui os 416 tópicos
+públicos, links, seções, busca pelos nomes antigos/novos, os 14 artigos de
+tabelas, literais traduzíveis e mensagens operacionais fixas, preservação
+dos campos de formatação e uso dos arquivos QM pelos controles reais.
+Inglês e espanhol traduzem a interface; a ajuda mantém o conteúdo em
+português, seguindo o fallback atual.
+
+O segundo script gera 20 capturas por escala: três idiomas, dois temas,
+zooms 0,5/1,5, painel Tabela completo e ajuda. Usa a fonte Inter distribuída
+e uma célula em DejaVu Sans. Os campos longos demonstram também os
+indicadores de overflow; o zoom alto recorta naturalmente o viewport.
+Não lê modelos pessoais. As capturas offscreen não comprovam o foco,
+touchpad ou renderização nativa de outros sistemas.
+
+Para reproduzir a regressão final completa, executar também os runners de
+regressão (`--include-contracts`), dados, canvas, renderer, controles,
+integração e produto documentados acima. Somar módulos distintos, sem
+contar repetições de tema/escala como testes novos.
+
+Traduções usam o contexto vazio de `core.i18n.tr`. Manter chamadas com
+literais nas ações evita perder textos na extração pelo `pyside6-lupdate`.
+Validar os `.ts` e compilar para `.qm` com `pyside6-lrelease` após editar.
+Mensagens diagnósticas dinâmicas da validação podem permanecer em português;
+o núcleo de dados continua independente do Qt.
+
+Relatório: `docs/implementacao_tabelas/etapa-08/RELATORIO_FINAL.md`.
+
+## Tabelas — seleção, arraste e alças
+
+```bash
+.venv/bin/python tests/performance/run_table_interaction_checks.py --output /tmp/fornax-tabelas-interacao
+```
+
+Executa 36 testes distintos nos temas claro/escuro e escalas Qt 1/2,
+com dados/preferências isolados. Exercita clique no interior transparente,
+arraste pelo corpo, entrada na seleção de células, alças de canto/lateral
+com rotação e histórico, recusa de medidas sem mover a âncora, texto ativo,
+seleção múltipla/bloqueio, criação no contexto de objeto, medidas da barra
+superior, magnetismo de grupos e cancelamento de ponteiro. Verifica também
+o recolhimento imediato e bloqueio de seções indisponíveis, inclusive
+durante animação ou tentativa programática de expansão.
+
+Inclui a barra flutuante de tabela, seus menus reais, preservação de foco e
+texto ativo, cancelamento e troca de alvo, quadro/organograma, canvas estreito,
+zoom/rolagem/rotação, seleção suave sem alterar o documento e encontros de
+contornos grossos/translúcidos, conservando as fronteiras ocultas das mesclagens.
+
+O encaixe, recolhimento e aparência da barra incluem treze testes de arraste pelas quatro posições,
+orientação horizontal/vertical, três destinos destacados, seleção/texto/foco
+preservados e cancelamento por Esc, botão solto, desativação, perda de captura
+e troca de página. Verificam também fundo com 75% de opacidade, botões opacos nos
+dois temas, a mesma espessura/cantos arredondados nos seletores de alinhamento,
+fundo dos seletores com 75% de opacidade e transparência dos destinos (fundo cinza
+de aproximadamente 35% normalmente e 50% sob o mouse), recolhimento pela
+extremidade direita/inferior, expansão, arraste da barra recolhida e digitação
+preservada. Compara os destinos antes/depois de recolher a barra, inclusive com
+zoom, rotação e deslocamento da tabela. Verifica destaques limitados à largura/altura
+da tabela, sem sobreposição em torno de uma tabela visível, mantendo o tamanho
+normal das ferramentas após soltar, tanto abertas quanto recolhidas.
+O lado permanece durante a sessão, sem entrar no histórico do documento.
+Para capturas das quatro posições, abertas/recolhidas, e dos destinos nos dois temas:
+
+```bash
+.venv/bin/python tests/performance/table_controls_evidence.py --docking --output /tmp/fornax-tabelas-encaixe-visual
+```
+
+Os atalhos mínimos de retângulos/círculos, agrupamento e conexão de blocos
+reutilizam a estrutura de encaixe da tabela. A verificação específica fica em:
+
+```bash
+PYTHONPATH=tests QT_QPA_PLATFORM=offscreen .venv/bin/python -m unittest test_object_floating -v
+```
+
+São quinze testes: contextos permitidos/excluídos, cor/contorno/opacidade com
+undo/redo, cancelamento e troca de alvo, máscaras sem apagar imagens, agrupamento,
+conexão de blocos e encaixe/recolhimento sem histórico. Inclui recusa de ação
+antiga sobre outra seleção ou imagem removida da cena, seleção de imagem no
+canvas/em Camadas, cancelamento com Esc e atalho de imagem variável com histórico.
+O fluxo de máscara também recebe cliques pela `QWindow`, antes do encaminhamento
+ao widget, para cobrir a entrega de eventos que os cliques diretos de `QTest`
+em widgets não exercitam. Esse teste continua usando o backend offscreen.
+Inclui os botões flutuantes de Cancelar/Concluir no enquadramento: confirmação
+com undo/redo, cancelamento de máscaras novas/existentes e posição junto à forma,
+com zoom e a preferência de barra recolhida preservada.
+Preferências/dados pessoais
+ficam isolados pelos fixtures; os widgets não são adicionados à cena/exportação.
+
+A regressão complementar usa os runners de canvas, controles, integração,
+renderer, ajuda e `run_regressions.py --include-contracts`. O teste de
+captura de integração exige continuar evitando checkpoints completos sem
+mudanças e recusar atributos persistentes desconhecidos; as novas alças
+e os dados de ponteiro são apresentação, não conteúdo salvo.

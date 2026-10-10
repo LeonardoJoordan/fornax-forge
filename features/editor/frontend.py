@@ -542,6 +542,7 @@ class Section(QWidget):
     def __init__(self, title, content, expanded=False):
         super().__init__()
         self._content = content
+        self._available = True
         self._reveal = SectionReveal(content)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self._animation = QPropertyAnimation(self._reveal, b'maximumHeight', self)
@@ -573,6 +574,15 @@ class Section(QWidget):
                 self._reveal.hide()
 
         def toggle(opened):
+            if not self._available:
+                if opened:
+                    self.header.setChecked(False)
+                    return
+                refresh_header(False)
+                self._animation.stop()
+                self._reveal.setMaximumHeight(0)
+                self._reveal.hide()
+                return
             refresh_header(opened)
             if self._animation.state() == QAbstractAnimation.State.Running:
                 self._animation.stop()
@@ -594,6 +604,16 @@ class Section(QWidget):
         content.show()
         self._reveal.setVisible(expanded)
         self._reveal.setMaximumHeight(16777215 if expanded else 0)
+
+    def set_available(self, available):
+        """Seção sem conteúdo fica recolhida, inclusive durante animação."""
+        self._available = bool(available)
+        self.setEnabled(self._available)
+        if not self._available:
+            self.header.setChecked(False)
+            self._animation.stop()
+            self._reveal.setMaximumHeight(0)
+            self._reveal.hide()
 
 
 def install_frontend(w):
@@ -732,10 +752,12 @@ def install_frontend(w):
     left, ll = column()
     left.setMinimumWidth(220)
     ll.addWidget(QLabel(tr('ADICIONAR AO MODELO')))
-    forms = QPushButton(tr('Formas'))
+    forms = QPushButton(tr('Elementos'))
+    w.btn_elements = forms
     from .draw_shapes import ShapeDrawing
     w.shape_drawing = ShapeDrawing(w)
-    forms.setToolTip(tr('Escolha uma forma e arraste no canvas. Shift restringe proporções ou ângulo; Esc cancela.'))
+    forms.setToolTip(tr('Adicionar formas ou uma tabela. Para formas, arraste no canvas; Shift restringe proporções ou ângulo e Esc cancela.'))
+    forms.setAccessibleName(tr('Elementos (formas e tabela)'))
     shape_menu = QMenu(forms)
     shape_menu.setObjectName('shapeMenu')
     shape_menu.aboutToShow.connect(lambda: shape_menu.setMinimumWidth(forms.width()))
@@ -746,10 +768,13 @@ def install_frontend(w):
     ):
         action = shape_menu.addAction(themed_svg_icon(object_icon_path(asset_name)), name)
         action.triggered.connect(lambda checked=False, k=kind: w.shape_drawing.activate(k))
+    shape_menu.addSeparator()
+    w.action_add_table = shape_menu.addAction(themed_svg_icon(object_icon_path('table')), tr('Tabela'))
+    w.action_add_table.triggered.connect(lambda _=False: w.table_controller.show_create_dialog())
     forms.setMenu(shape_menu)
     for button, label, detail, tooltip, path, asset_name, object_name in [
         (w.btn_add, tr('Texto'), tr('Campo dinâmico'), tr('Adicionar uma caixa de texto ao modelo'), '<path d="M4 5h16M12 5v15M8 20h8"/>', 'text', 'Texto'),
-        (forms, tr('Formas'), tr('Preenchimento e borda'), forms.toolTip(), '<rect x="4" y="4" width="16" height="16" rx="3"/>', 'shapes', 'Formas'),
+        (forms, tr('Elementos'), tr('Formas e tabela'), forms.toolTip(), '<rect x="4" y="4" width="16" height="16" rx="3"/>', 'shapes', 'Formas'),
         (w.btn_add_img, tr('Imagens'), tr('Foto, logo ou QR'), tr('Adicionar uma imagem ao modelo'), '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="m3 16 5-5 5 5 3-3 5 5"/>', 'image', 'Imagens'),
         (w.btn_add_sig, tr('Assinatura'), tr('Imagem opcional'), tr('Adicionar uma assinatura opcional ao modelo'), '<path d="m4 17 3-1L19 4l2 2L9 18l-5 1zM4 22h16"/>', 'signature', 'Assinatura')]:
         button.setText('')
@@ -1347,6 +1372,9 @@ def install_frontend(w):
     mask_enabled.toggled.connect(toggle_mask_panel)
     mask_add_image.toggled.connect(mask_insert_controls.setVisible)
     w._refresh_mask_controls = refresh_mask_controls
+    # Atalhos usam os mesmos controles/validações da lateral.
+    w._shape_quick_controls = {'color': shape_color, 'outline': outline_enabled,
+                               'dynamic': dynamic_enabled}
 
     prop_section = Section(tr('Propriedades'), props)
     il.addWidget(prop_section)
@@ -1364,7 +1392,20 @@ def install_frontend(w):
     hint.setObjectName('muted')
     tl.addWidget(hint)
     typography_heading = property_heading(tl, tr('TIPOGRAFIA'))
-    font_row = row(tl, field(tr('Fonte'), t.cbo_font), field(tr('Tamanho'), t.spin_size))
+    from core.custom_widgets import MathDoubleSpinBox
+    size_container, size_layout = column()
+    size_layout.setContentsMargins(0, 0, 0, 0)
+    t.table_size = MathDoubleSpinBox()
+    t.table_size.setObjectName('tableFontSize')
+    t.table_size.setRange(1, 200)
+    t.table_size.setDecimals(2)
+    t.table_size.setKeyboardTracking(False)
+    t.table_size.setToolTip(tr('Tamanho da fonte das células, em pontos'))
+    t.table_size.valueChanged.connect(lambda value: w.table_controller.format_text('size', value))
+    size_layout.addWidget(t.spin_size)
+    size_layout.addWidget(t.table_size)
+    t.table_size.hide()
+    font_row = row(tl, field(tr('Fonte'), t.cbo_font), field(tr('Tamanho'), size_container))
     font_row.setStretch(0, 3)
     font_row.setStretch(1, 1)
     styles = row(tl, t.btn_bold, t.btn_italic, t.btn_underline)
@@ -1383,6 +1424,7 @@ def install_frontend(w):
     text_alpha.setDecimals(0)
     text_alpha.setValue(100)
     text_alpha.setKeyboardTracking(False)
+    t.text_alpha = text_alpha
     color_row, color_layout = column()
     color_layout.setContentsMargins(0, 0, 0, 0)
     text_color_row = row(color_layout, t.btn_color, t.color_hex, compact(
@@ -1522,6 +1564,11 @@ def install_frontend(w):
     text_section = Section(tr('Texto'), text_body)
     w._text_section = text_section
     il.addWidget(text_section)
+    from .table_panel import TablePanel
+    w.table_panel = TablePanel(w)
+    table_section = Section(tr('Tabela'), w.table_panel)
+    w._table_section = table_section
+    il.addWidget(table_section)
     doc, dl = column()
     dimensions_heading = property_heading(dl, tr('DIMENSÕES'))
     w.chk_doc_proporcao.setText('')
@@ -1719,6 +1766,9 @@ def install_frontend(w):
     selection_state = {'kind': None}
 
     def inspector_selection_kind(selected, text_available):
+        from .table_item import TableItem
+        if len(selected) == 1 and isinstance(selected[0], TableItem):
+            return 'table'
         if text_available:
             return 'text'
         if w._active_page_id == 'organogram':
@@ -1766,10 +1816,19 @@ def install_frontend(w):
             if isValid(control):
                 control.setEnabled(p.isEnabled())
         text_available = t.isEnabled()
-        properties_available = p.isEnabled() or w.organogram_panel.properties_available()
+        from .canvas_items import DesignerBox, ImageItem, SignatureItem
+        selected = w.scene.selectedItems()
+        mask_session = w._mask_edit_session
+        inspector_item = (mask_session.get('inspector_item') if mask_session
+                          else (selected[0] if len(selected) == 1 else None))
+        # Medidas/rotação ficam na barra superior. A seção lateral só abre
+        # quando existe um bloco de propriedades compatível para mostrar.
+        properties_available = ((p.isEnabled() and isinstance(
+            inspector_item, (DesignerBox, ImageItem, SignatureItem)))
+            or w.organogram_panel.properties_available())
         props.setEnabled(properties_available)
-        prop_section.setEnabled(properties_available)
-        text_section.setEnabled(text_available)
+        prop_section.set_available(properties_available)
+        text_section.set_available(text_available)
         text_body.setEnabled(t.isEnabled())
         selected = w.scene.selectedItems()
         current_kind = inspector_selection_kind(selected, text_available)
@@ -1777,10 +1836,11 @@ def install_frontend(w):
             # Undo/Redo reconstrói a cena e produz transições temporárias de
             # seleção. Elas não representam uma escolha nova do operador.
             if not getattr(w, '_restoring_history', False):
-                if current_kind != 'text':
+                if current_kind not in ('text', 'table'):
                     clear_text_presentation()
                 prop_section.header.setChecked(bool(properties_available))
                 text_section.header.setChecked(bool(text_available))
+                table_section.header.setChecked(current_kind == 'table')
                 selection_state['kind'] = current_kind
         from .canvas_items import DesignerBox, RectangleItem, ImageItem, BackgroundItem, SignatureItem
         mask_session = w._mask_edit_session
@@ -1806,6 +1866,7 @@ def install_frontend(w):
         if background_selected:
             for control in (w.spin_pos_x, w.spin_pos_y, p.spin_w, p.spin_h, p.spin_rot, p.chk_proporcao):
                 control.setEnabled(False)
+        from .table_item import TableItem
         w.btn_dup_layer.setEnabled(bool(selected) and not background_selected)
         w.btn_del_layer.setEnabled(bool(selected) and not background_selected)
         shape_controls.setVisible(is_shape)
@@ -1932,7 +1993,8 @@ def install_frontend(w):
             description = (getattr(inspector_item, 'layer_name', '') or tr('Objeto selecionado')
                            if inspector_item is not None else tr('Nenhum objeto'))
         selection.setText(tr('SELEÇÃO') + '\n' + description)
-        if t.isEnabled() and len(selected) == 1:
+        from .canvas_items import DesignerBox
+        if t.isEnabled() and len(selected) == 1 and isinstance(selected[0], DesignerBox):
             color_changed(getattr(selected[0].state, 'font_color', '#000000'))
             if hasattr(w, 'canvas_edit'):
                 w.canvas_edit.sync_panel()
@@ -1947,16 +2009,17 @@ def install_frontend(w):
         'document': document_section,
         'properties': prop_section,
         'text': text_section,
+        'table': table_section,
     }
 
     def restore_inspector_state(saved_state):
         """Restaura preferências visuais após uma reconstrução do histórico."""
         selected = w.scene.selectedItems()
         text_available = t.isEnabled()
-        properties_available = p.isEnabled() or w.organogram_panel.properties_available()
+        properties_available = prop_section.isEnabled()
         current_kind = inspector_selection_kind(selected, text_available)
         selection_state['kind'] = current_kind
-        if current_kind != 'text':
+        if current_kind not in ('text', 'table'):
             clear_text_presentation()
         document_section.header.setChecked(saved_state.get('document', True))
         prop_section.header.setChecked(
@@ -1965,6 +2028,7 @@ def install_frontend(w):
         text_section.header.setChecked(
             saved_state.get('text', False) if text_available else False
         )
+        table_section.header.setChecked(saved_state.get('table', False) if w.table_panel.isEnabled() else False)
 
     w._restore_inspector_state = restore_inspector_state
 

@@ -835,9 +835,10 @@ class OrganogramEditorMixin:
         self.change_board_border(_position=position)
 
     def _board_artwork_roots(self):
+        from .table_item import TableItem
         from .canvas_items import DesignerBox, ImageItem, BackgroundItem, RectangleItem
         return [item for item in self.scene.items()
-                if isinstance(item, (DesignerBox, ImageItem)) and not isinstance(item, BackgroundItem)
+                if isinstance(item, (DesignerBox, ImageItem, TableItem)) and not isinstance(item, BackgroundItem)
                 and not isinstance(item.parentItem(), RectangleItem)
                 and not getattr(item, "is_document_background", False)]
 
@@ -1153,6 +1154,7 @@ class OrganogramEditorMixin:
         # Somente dados geométricos: não serializar HTML, placeholders ou assets
         # para calcular limites ou mostrar o tamanho sugerido no painel.
         from .canvas_items import DesignerBox, ImageItem, BackgroundItem, RectangleItem
+        from .table_item import TableItem
         items = self.scene.items()
         groups = sorted((item.data for item in items if isinstance(item, BoardGroupItem)),
                         key=lambda data: data.get('order', 0))
@@ -1161,9 +1163,20 @@ class OrganogramEditorMixin:
                         and item.board_edge['source'] in identifiers and item.board_edge['target'] in identifiers),
                        key=lambda edge: (edge['source'], edge['target']))
         board = {'groups': groups, 'connections': edges, 'connector_style': self._board_connector_style,
-                 'margin_mm': self._board_margin_mm, 'boxes': [], 'images': [], 'shapes': []}
+                 'margin_mm': self._board_margin_mm, 'boxes': [], 'images': [], 'shapes': [], 'tables': []}
         for item in items:
-            if not isinstance(item, (DesignerBox, ImageItem)) or isinstance(item, BackgroundItem):
+            if not isinstance(item, (DesignerBox, ImageItem, TableItem)) or isinstance(item, BackgroundItem):
+                continue
+            if isinstance(item, TableItem):
+                # artwork_bounds expande o traço antes da rotação. Conserva
+                # essa geometria sem copiar células/HTML ou acessar a edição.
+                data = item.data
+                width = max([data['border']['width'],
+                             *(edge['style'].get('width', data['border']['width']) for edge in data['edges'])])
+                board['tables'].append({'x': float(item.x()), 'y': float(item.y()),
+                    'rotation': float(item.rotation()), 'visible': item.isVisible(),
+                    'column_widths': tuple(data['column_widths']), 'row_heights': tuple(data['row_heights']),
+                    'border': {'width': width}, 'edges': []})
                 continue
             rect = item.rect()
             entry = {'x': round(float(item.pos().x()), 2), 'y': round(float(item.pos().y()), 2),
@@ -1196,8 +1209,11 @@ class OrganogramEditorMixin:
         if cached is None or cached[0] != path_key:
             paths, crowded = self._build_board_paths(board)
             cached = self._board_path_cache = (path_key, paths, crowded)
+        table_key = tuple((entry['x'], entry['y'], entry['rotation'], entry['visible'],
+                           entry['column_widths'], entry['row_heights'], entry['border']['width'])
+                          for entry in board['tables'])
         bounds_key = (path_key, board['margin_mm'], tuple(tuple(tuple(sorted(entry.items()))
-                      for entry in board[key]) for key in ('boxes', 'images', 'shapes')))
+                      for entry in board[key]) for key in ('boxes', 'images', 'shapes')), table_key)
         extent = getattr(self, '_board_bounds_cache', None)
         if extent is None or extent[0] != bounds_key:
             extent = self._board_bounds_cache = (bounds_key, board_bounds(board, paths=cached[1]))
@@ -1212,11 +1228,12 @@ class OrganogramEditorMixin:
             self.scene.update(previous.boundingRect())
 
     def _build_board_cutouts(self):
+        from .table_item import TableItem
         from .canvas_items import DesignerBox
         result = QPainterPath()
         result.setFillRule(Qt.FillRule.WindingFill)
         for item in self.scene.items():
-            if (isinstance(item, DesignerBox) and item.isVisible() and item.opacity() > 0
+            if (isinstance(item, (DesignerBox, TableItem)) and item.isVisible() and item.opacity() > 0
                     and not getattr(item, 'board_behind', False)):
                 rect = QPainterPath()
                 rect.addPolygon(item.mapToScene(item.rect()))

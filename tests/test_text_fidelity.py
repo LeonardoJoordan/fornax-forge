@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication, QStyleOptionGraphicsItem
 
 from core.text_layout import build_document, resolve_rich_text, text_geometry, variables_in_html
 from core.starter_templates import model_from_starter, starter_catalog
+from core.ui_font import install_ui_font
 from features.editor.canvas_items import DesignerBox
 from features.generator.renderer import NativeRenderer
 
@@ -53,6 +54,7 @@ class TextFidelityTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
+        install_ui_font(cls.app)
 
     def assert_fidelity(self, data):
         editor = editor_text_image(data)
@@ -83,6 +85,16 @@ class TextFidelityTest(unittest.TestCase):
             "line_height": .8, "align": "center", "vertical_align": "center",
             "x": 70, "y": 90, "w": 410, "h": 190,
         })
+
+    def test_inter_alias_matches_bundled_family_in_editor_preview_and_generation(self):
+        data = {
+            'html': '<p style="font-family:Inter">Convite para <b>{nome}</b><br/><i>Confirmação</i></p>',
+            'font_family': 'Inter', 'rich_text_version': 1, 'font_size': 18,
+            'x': 70, 'y': 90, 'w': 410, 'h': 190,
+        }
+        self.assert_fidelity(data)
+        canonical = {**data, 'font_family': 'Inter 18pt', 'html': data['html'].replace('Inter', 'Inter 18pt')}
+        self.assertEqual(editor_text_image(data), editor_text_image(canonical))
 
     def test_mixed_rich_fonts_colors_and_rotation_match_editor(self):
         self.assert_fidelity({

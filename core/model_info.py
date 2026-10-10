@@ -6,7 +6,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 
-from core.font_utils import text_box_font_families
+from core.font_utils import text_box_font_families, table_font_families
 
 
 ORIGIN_INFO_KEY = "origin_info"
@@ -19,13 +19,20 @@ def _timestamp() -> str:
 def build_model_snapshot(document: dict, *, source: str, captured_at: str | None = None) -> dict:
     text_boxes = []
     assets = []
-    for page_number, page in enumerate(document.get("pages", []), 1):
+    pages = [*document.get("pages", []), *([document['organogram']] if document.get('organogram') else [])]
+    for page_number, page in enumerate(pages, 1):
+        if page.get('page_id') == 'organogram':
+            page_number = 'Organograma'
         for index, box in enumerate(page.get("boxes", []), 1):
             text_boxes.append({
                 "page": page_number,
                 "name": str(box.get("custom_name") or box.get("id") or f"Texto {index}"),
                 "fonts": text_box_font_families(box),
             })
+        for index, table in enumerate(page.get('tables', []), 1):
+            text_boxes.append({"page":page_number,
+                "name":str(table.get('custom_name') or f'Tabela {index}'),
+                "fonts":table_font_families(table)})
         background = page.get("background_path")
         if background:
             assets.append({"page": page_number, "name": Path(background).name})

@@ -12,11 +12,13 @@ import tempfile
 from typing import Any
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
-from core.html_utils import text_html_has_unsupported_resources
+from core.text_safety import text_html_has_unsupported_resources
+from core.table_model import validate_table, validate_document_tables, table_fields, TableValidationError
 
 
 SCHEMA_VERSION = 4
 ORGANOGRAM_SCHEMA_VERSION = 5
+TABLE_SCHEMA_VERSION = 6
 LEGACY_SCHEMA_VERSION = 3
 V4_FILENAME = "template_v4.json"
 V4_BACKUP_FILENAME = "template_v4.json.bak"
@@ -32,7 +34,7 @@ MAX_CANVAS_PIXELS = 32_000_000
 MAX_PHYSICAL_DIMENSION_MM = 5_000.0
 MAX_OBJECT_COORDINATE = MAX_CANVAS_DIMENSION * 16
 
-PAGE_COLLECTIONS = ("boxes", "images", "signatures", "shapes")
+PAGE_COLLECTIONS = ("boxes", "images", "signatures", "shapes", "tables")
 PAGE_KEYS = {
     *PAGE_COLLECTIONS,
     "background_path",
@@ -86,6 +88,44 @@ class UnsupportedSchemaError(ModelDocumentError):
 
 class ModelValidationError(ModelDocumentError):
     """O arquivo possui versão conhecida, mas estrutura inválida."""
+
+
+class TableFeatureUnavailableError(ModelDocumentError):
+    """Persistência pronta, mas um consumidor ainda não desenha/edita tabelas."""
+
+
+def document_contains_tables(document):
+    return bool(document.get("tables")) or any(
+        page.get("tables") for page in [*document.get("pages", []),
+                                        *([document["organogram"]] if document.get("organogram") else [])]
+    )
+
+
+def _document_tables(document):
+    pages = document.get("pages", [])
+    if not isinstance(pages, list):
+        raise ModelValidationError("pages deve ser uma lista.")
+    board = document.get("organogram")
+    if board is not None and not isinstance(board, dict):
+        raise ModelValidationError("organogram deve ser um objeto.")
+    tables = []
+    for page in [*pages, *([board] if board is not None else [])]:
+        if not isinstance(page, dict):
+            continue  # A validação de página apresenta o erro correspondente.
+        collection = page.get("tables", [])
+        if not isinstance(collection, list):
+            raise ModelValidationError("tables deve ser uma lista.")
+        tables.extend(collection)
+    return tables
+
+
+def require_table_free_editor(document):
+    # Remover esta barreira somente quando cena, serialização e histórico
+    # reconhecerem tabelas. Abrir e salvar hoje não pode descartá-las.
+    if document_contains_tables(document):
+        raise TableFeatureUnavailableError(
+            "Este modelo contém tabelas. A edição de tabelas ainda está em implementação."
+        )
 
 
 def _positive_number(value: Any) -> bool:
@@ -179,6 +219,7 @@ def _required_page_fields(page: dict) -> list[str]:
     """Campos funcionais também pertencem à tabela, inclusive no verso."""
     return _ordered_unique(
         [
+            *(field for table in page.get("tables", []) for field in table_fields(table)),
             *(
                 item.get("link_key")
                 for collection in ("boxes", "images", "shapes")
@@ -271,10 +312,15 @@ def _validate_page(page: Any, expected_id: str, *, legacy_source: bool) -> None:
 
     object_ids = []
     for collection in PAGE_COLLECTIONS:
-        items = page.get(collection)
+        items = page.get(collection, []) if collection == "tables" else page.get(collection)
         if not isinstance(items, list) or not all(isinstance(item, dict) for item in items):
             raise ModelValidationError(f"{collection} deve ser uma lista na página {expected_id}.")
         for item in items:
+            if collection == "tables":
+                try:
+                    validate_table(item)
+                except TableValidationError as error:
+                    raise ModelValidationError(f"Tabela inválida na página {expected_id}: {error}") from error
             object_id = item.get("object_id")
             if not isinstance(object_id, str) or not object_id.strip():
                 raise ModelValidationError(f"Objeto sem identidade na página {expected_id}.")
@@ -354,7 +400,7 @@ def _validate_page(page: Any, expected_id: str, *, legacy_source: bool) -> None:
 def validate_model_document(document: dict) -> None:
     if not isinstance(document, dict):
         raise ModelValidationError("O modelo deve ser um objeto JSON.")
-    if document.get("schema_version") not in (SCHEMA_VERSION, ORGANOGRAM_SCHEMA_VERSION):
+    if type(document.get("schema_version")) is not int or document.get("schema_version") not in (SCHEMA_VERSION, ORGANOGRAM_SCHEMA_VERSION, TABLE_SCHEMA_VERSION):
         raise UnsupportedSchemaError(f"Versão de modelo não suportada: {document.get('schema_version')!r}.")
     if "protection_preferences" in document:
         preferences = document["protection_preferences"]
@@ -367,6 +413,8 @@ def validate_model_document(document: dict) -> None:
                 "public_signatures_acknowledged deve ser um valor booleano."
             )
     _validate_dimensions(document)
+    if "tables" in document:
+        raise ModelValidationError("As tabelas pertencem às páginas, não à raiz do documento.")
     placeholders = document.get("placeholders", [])
     if not isinstance(placeholders, list) or not all(isinstance(value, str) for value in placeholders):
         raise ModelValidationError("placeholders deve ser uma lista de identificadores.")
@@ -376,7 +424,18 @@ def validate_model_document(document: dict) -> None:
     pages = document.get("pages")
     if not isinstance(pages, list) or not 1 <= len(pages) <= 2:
         raise ModelValidationError("O modelo deve possuir uma ou duas páginas.")
-    legacy_source = document.get("__source_schema_version") == LEGACY_SCHEMA_VERSION
+    legacy_source = (document["schema_version"] == SCHEMA_VERSION
+                     and document.get("__source_schema_version") == LEGACY_SCHEMA_VERSION)
+    tables = _document_tables(document)
+    if tables and document["schema_version"] != TABLE_SCHEMA_VERSION:
+        raise ModelValidationError("Tabelas exigem a versão 6 do documento.")
+    if tables or document["schema_version"] == TABLE_SCHEMA_VERSION:
+        try:
+            validate_document_tables(tables)
+            from core.json_limits import validate_json_budget
+            validate_json_budget(document)
+        except (ValueError, TypeError, OverflowError) as error:
+            raise ModelValidationError(str(error)) from error
     signature_ids = []
     for index, page in enumerate(pages):
         _validate_page(page, PAGE_IDS[index], legacy_source=legacy_source)
@@ -390,8 +449,8 @@ def validate_model_document(document: dict) -> None:
     if len(signature_ids) != len(set(signature_ids)):
         raise ModelValidationError("Há signature_id repetido no documento.")
     if document.get("organogram") is not None:
-        if document["schema_version"] != ORGANOGRAM_SCHEMA_VERSION or len(pages) != 1:
-            raise ModelValidationError("O organograma exige a versão 5 e apenas a página 1.")
+        if document["schema_version"] not in (ORGANOGRAM_SCHEMA_VERSION, TABLE_SCHEMA_VERSION) or len(pages) != 1:
+            raise ModelValidationError("O organograma exige a versão 5 ou 6 e apenas a página 1.")
         from core.organogram import validate_organogram
         _validate_page(document["organogram"], "organogram", legacy_source=False)
         validate_organogram(document["organogram"])
@@ -402,14 +461,31 @@ def normalize_model_document(source: dict) -> dict:
     if not isinstance(source, dict):
         raise ModelValidationError("O modelo deve ser um objeto JSON.")
     version = source.get("schema_version", LEGACY_SCHEMA_VERSION)
+    if type(version) is not int:
+        raise UnsupportedSchemaError(f"Versão de modelo não suportada: {version!r}.")
+    if version not in (LEGACY_SCHEMA_VERSION, SCHEMA_VERSION, ORGANOGRAM_SCHEMA_VERSION, TABLE_SCHEMA_VERSION):
+        raise UnsupportedSchemaError(f"Versão de modelo não suportada: {version!r}.")
+    if version != TABLE_SCHEMA_VERSION:
+        # Uma entrada com versão antiga não pode perder tabelas durante a
+        # conversão legada, inclusive se elas estiverem em páginas aninhadas.
+        if source.get("tables") or _document_tables(source):
+            raise ModelValidationError("Tabelas exigem a versão 6 do modelo.")
+    if version == TABLE_SCHEMA_VERSION:
+        # Validar as tabelas/limites antes de copiar a entrada ou alocar Qt.
+        from core.json_limits import validate_json_budget
+        try:
+            validate_json_budget(source)
+            validate_document_tables(_document_tables(source))
+        except (ValueError, TypeError, OverflowError) as error:
+            raise ModelValidationError(str(error)) from error
     if version == LEGACY_SCHEMA_VERSION:
         document = _normalize_legacy(source)
-    elif version in (SCHEMA_VERSION, ORGANOGRAM_SCHEMA_VERSION):
+    elif version in (SCHEMA_VERSION, ORGANOGRAM_SCHEMA_VERSION, TABLE_SCHEMA_VERSION):
         document = deepcopy(source)
     else:
         raise UnsupportedSchemaError(f"Versão de modelo não suportada: {version!r}.")
     _ensure_signature_ids(document)
-    if version == ORGANOGRAM_SCHEMA_VERSION:
+    if version in (ORGANOGRAM_SCHEMA_VERSION, TABLE_SCHEMA_VERSION) and document.get("organogram") is not None:
         from core.organogram import upgrade_legacy_block_names
         upgrade_legacy_block_names(document.get("organogram"))
     validate_model_document(document)
@@ -443,7 +519,7 @@ def adapt_model_page(document: dict, page_id: str = "front") -> dict:
             adapted[key] = deepcopy(value)
     adapted["__page_id"] = page_id
     adapted["__page_field_ids"] = deepcopy(page.get("field_ids", []))
-    adapted["__document_schema_version"] = SCHEMA_VERSION
+    adapted["__document_schema_version"] = normalized["schema_version"]
     return adapted
 
 
@@ -462,6 +538,8 @@ def replace_model_page(document: dict, page_data: dict, page_id: str = "front") 
         for key in ("margin_mm", "grid_mm"):
             board[key] = page_data.get("__board_" + key, board[key])
         board["connector_style"] = deepcopy(page_data.get("__board_connector_style", board.get("connector_style", {})))
+        if document_contains_tables(normalized):
+            normalized["schema_version"] = TABLE_SCHEMA_VERSION
         # Visibilidade e bloqueio das guias são comuns às páginas. O quadro
         # também deve registrar essas ações, sem alterar o tamanho da página 1.
         for key in ("guidelines_visible", "guidelines_locked"):
@@ -497,10 +575,29 @@ def replace_model_page(document: dict, page_data: dict, page_id: str = "front") 
         if key not in PAGE_KEYS and key not in DOCUMENT_ONLY_KEYS and not key.startswith("__"):
             normalized[key] = deepcopy(value)
     normalized["pages"][page_index] = replacement
+    if document_contains_tables(normalized):
+        normalized["schema_version"] = TABLE_SCHEMA_VERSION
     _reconcile_document_fields(normalized, page_data.get("placeholders", []))
     normalized.pop("__source_schema_version", None)
     validate_model_document(normalized)
     return normalized
+
+
+def add_model_table(document, table, page_id="front"):
+    """Anexa uma tabela validada e promove o documento, sem compartilhar dados."""
+    try:
+        validate_table(table)
+    except TableValidationError as error:
+        raise ModelValidationError(str(error)) from error
+    result = persistent_model_document(document)
+    page = (result.get("organogram") if page_id == "organogram" else
+            next((page for page in result["pages"] if page["page_id"] == page_id), None))
+    if page is None:
+        raise ModelValidationError(f"Página inexistente: {page_id!r}.")
+    page.setdefault("tables", []).append(deepcopy(table))
+    page["layer_order"].append(table["object_id"])
+    result["schema_version"] = TABLE_SCHEMA_VERSION
+    return normalize_model_document(result)
 
 
 def _blank_page(document: dict, page_id: str) -> dict:
@@ -526,7 +623,7 @@ def _blank_page(document: dict, page_id: str) -> dict:
     }
     return {
         "page_id": page_id, "field_ids": [],
-        "boxes": [], "images": [], "signatures": [], "shapes": [background],
+        "boxes": [], "images": [], "signatures": [], "shapes": [background], "tables": [],
         "background_path": None, "guidelines": [],
         "layer_order": [background["object_id"]],
         "editable_background_initialized": True,
@@ -550,6 +647,8 @@ def clear_model_page(document: dict, page_id: str) -> dict:
     if page_id == "organogram":
         from core.organogram import blank_organogram
         normalized["organogram"] = blank_organogram()
+        _reconcile_document_fields(normalized)
+        validate_model_document(normalized)
         return normalized
     index = next((i for i, page in enumerate(normalized["pages"])
                   if page["page_id"] == page_id), None)
@@ -566,8 +665,10 @@ def remove_model_page(document: dict, page_id: str) -> dict:
     normalized = normalize_model_document(document)
     if page_id == "organogram":
         normalized.pop("organogram", None)
-        normalized["schema_version"] = SCHEMA_VERSION
+        if normalized["schema_version"] != TABLE_SCHEMA_VERSION:
+            normalized["schema_version"] = SCHEMA_VERSION
         _reconcile_document_fields(normalized)
+        validate_model_document(normalized)
         return normalized
     if len(normalized["pages"]) == 1:
         raise ModelValidationError("A única página do documento não pode ser removida.")

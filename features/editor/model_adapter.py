@@ -13,7 +13,7 @@ def prepare_scene_page(page_data: dict) -> dict:
     antigas não gravavam e que o carregador da cena ainda acessa diretamente.
     """
     data = deepcopy(page_data)
-    entries = [item for collection in ('shapes', 'images', 'signatures', 'boxes')
+    entries = [item for collection in ('shapes', 'images', 'signatures', 'boxes', 'tables')
                for item in data.get(collection, [])]
     background = data.get('bg_props')
     background_id = background.get('layer_id') if isinstance(background, dict) else None

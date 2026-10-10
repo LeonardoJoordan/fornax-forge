@@ -2,7 +2,7 @@
 from copy import deepcopy
 from uuid import uuid4
 
-GROUPS = {"image": "images", "text": "boxes", "signature": "signatures", "shape": "shapes"}
+GROUPS = {"image": "images", "text": "boxes", "signature": "signatures", "shape": "shapes", "table": "tables"}
 
 
 def layer_entries(data):

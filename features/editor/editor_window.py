@@ -23,6 +23,7 @@ from .canvas_items import (DesignerBox, Guideline, px_to_mm, mm_to_px, Signature
                            _reader_logical_size, _set_resize_handles_visible,
                            _board_item_center, _board_snap_step)
 from .properties import CaixaDeTextoPanel
+from .table_item import TableItem
 from .document_session import DocumentSessionMixin
 from .organogram_editor import OrganogramEditorMixin, BoardGroupItem
 from .model_adapter import prepare_scene_page
@@ -357,6 +358,12 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         install_frontend(self)
         from .canvas_edit import CanvasEdit
         self.canvas_edit = CanvasEdit(self)
+        from .table_edit import TableEdit
+        self.table_edit = TableEdit(self)
+        from .table_controller import TableController
+        self.table_controller = TableController(self)
+        from .object_floating import ObjectFloatingBar
+        self.object_floating_bar = ObjectFloatingBar(self)
         self.refresh_layer_list()
 
 
@@ -406,7 +413,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         normalized = copy.deepcopy(state)
         normalized.pop("__active_page_id", None)
         normalized.pop("__action_page_id", None)
-        for key in ("boxes", "images", "signatures", "guidelines"):
+        for key in ("boxes", "images", "signatures", "guidelines", "tables"):
             if isinstance(normalized.get(key), list):
                 normalized[key].sort(key=self._state_item_sort_key)
         return normalized
@@ -690,6 +697,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             # Uma perda de grab pode impedir até a entrega da soltura sintética.
             # Limpe as sessões remanescentes sem desfazer o trabalho já feito.
             for item in self.scene.items():
+                if isinstance(item, TableItem):
+                    item._selecting_cells = False
                 for flag in ('_is_mouse_dragging', '_is_resizing'):
                     if getattr(item, flag, False):
                         active = True
@@ -737,6 +746,9 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             if event.type() in (QEvent.Type.MouseButtonDblClick, QEvent.Type.MouseButtonRelease) and event.button() == Qt.MouseButton.LeftButton:
                 return True
         if getattr(self, 'canvas_edit', None) and self.canvas_edit.box and event.type() in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease):
+            return False
+        if (getattr(self, 'table_edit', None) and self.table_edit.item
+                and event.type() in (QEvent.Type.KeyPress, QEvent.Type.KeyRelease)):
             return False
         # Escuta tanto a view principal quanto o viewport das barras de rolagem
         if source in (self.view, self.view.viewport()):
@@ -899,10 +911,13 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         session_manager, save_as_required=False, recovered=False,
     ):
         """Abre um snapshot autorizado sem extrair seus assets para o disco."""
+        document = normalize_model_document(document)
+        detached_provider = self._detached_asset_provider(document, asset_provider)
+        self._finish_page_interaction()
         self._fornax_path = Path(path).resolve()
         self._fornax_mode = mode
         self._fornax_model_id = model_id
-        self._fornax_asset_provider = self._detached_asset_provider(document, asset_provider)
+        self._fornax_asset_provider = detached_provider
         self._fornax_session_manager = session_manager
         self._fornax_save_as_required = bool(save_as_required)
         self._recovery_source_path = self._fornax_path
@@ -1063,9 +1078,12 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
 
     def load_starter_document(self, document, asset_provider=None):
         """Inicia uma cópia sem nome/destino de gravação e mantém o aviso de salvar."""
+        document = normalize_model_document(document)
+        detached_provider = self._detached_asset_provider(document, asset_provider) if asset_provider else None
+        self._finish_page_interaction()
         saved_scene = copy.deepcopy(self._last_saved_state)
         saved_document = copy.deepcopy(self._last_saved_document_state)
-        self._fornax_asset_provider = self._detached_asset_provider(document, asset_provider) if asset_provider else None
+        self._fornax_asset_provider = detached_provider
         self._load_document_into_scene(copy.deepcopy(document))
         self._current_model_name = None
         self.setWindowTitle(tr("Editor de modelos — FORNAX Forge"))
@@ -1073,6 +1091,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self._last_saved_document_state = saved_document
 
     def _load_document_into_scene(self, document):
+        document = normalize_model_document(document)
+        self._finish_page_interaction()
         self._invalidate_recovery()
         self._history_capture_cache = None
         data = prepare_scene_page(adapt_model_page(document, "front"))
@@ -1724,6 +1744,9 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                     add(name)
                 if getattr(item.state, 'has_link', False):
                     add(self._link_key_for_item(item))
+            elif isinstance(item, TableItem):
+                for name in item.get_placeholders():
+                    add(name)
             elif isinstance(item, RectangleItem) and not getattr(item, 'is_document_background', False):
                 add(getattr(item, 'dynamic_image_field', ''))
                 if getattr(item, 'has_link', False):
@@ -1847,7 +1870,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
     def _groupable_items(self):
         return [
             item for item in self.scene.items()
-            if isinstance(item, (DesignerBox, ImageItem, SignatureItem))
+            if isinstance(item, (DesignerBox, ImageItem, SignatureItem, TableItem))
             and not getattr(item, 'is_document_background', False)
             and not isinstance(item.parentItem(), RectangleItem)
         ]
@@ -1881,7 +1904,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         roots = []
         seen = set()
         for item in selected:
-            if not isinstance(item, (DesignerBox, ImageItem, SignatureItem)):
+            if not isinstance(item, (DesignerBox, ImageItem, SignatureItem, TableItem)):
                 continue
             root = self._group_root(item)
             if (
@@ -2039,6 +2062,9 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         return self.group_selected_items()
 
     def _capture_resize_snapshots(self, members):
+        # O editor temporário tem medidas próprias; encerra a célula antes
+        # de capturar a geometria inicial de um gesto sobre objetos inteiros.
+        self.table_edit.finish()
         snapshots = {}
         for item in members:
             rect = item.rect()
@@ -2047,12 +2073,14 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 'width': float(rect.width()),
                 'height': float(rect.height()),
             }
+            if isinstance(item, TableItem):
+                snapshots[item]['table'] = item.to_data()
             if isinstance(item, DesignerBox):
                 snapshots[item]['text'] = {
                     'font_size': float(item.state.font_size),
                     'indent_px': float(item.state.indent_px),
                     'html': item.state.html_content,
-                    'rich': item.state.rich_text_version == 1,
+                    'rich': getattr(item.state, 'rich_text_version', 0) == 1,
                 }
             if isinstance(item, RectangleItem):
                 snapshots[item]['shape_style'] = {
@@ -2070,6 +2098,18 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         angle = session['angle']
         cos_a, sin_a = math.cos(angle), math.sin(angle)
         anchor = session['anchor']
+        candidates = {}
+        try:
+            from core.table_model import resize_table
+            for item, snapshot in session['snapshots'].items():
+                if isinstance(item, TableItem) and item.scene() is self.scene:
+                    candidate = resize_table(snapshot['table'], snapshot['width'] * scale,
+                                             snapshot['height'] * scale)
+                    self.table_controller.preflight(item, candidate)
+                    candidates[item] = candidate
+        except ValueError as error:
+            self.table_controller.error(error)
+            return False
         for item, snapshot in session['snapshots'].items():
             if item.scene() is not self.scene:
                 continue
@@ -2083,7 +2123,9 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             )
             new_w = max(1.0, snapshot['width'] * scale)
             new_h = max(1.0, snapshot['height'] * scale)
-            if isinstance(item, DesignerBox):
+            if isinstance(item, TableItem):
+                item.publish_table_data(candidates[item])
+            elif isinstance(item, DesignerBox):
                 item.setRect(0, 0, new_w, new_h)
                 text = snapshot['text']
                 item.state.font_size = max(1, round(text['font_size'] * scale))
@@ -2184,7 +2226,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         if self._mask_edit_session:
             self.finish_mask_edit(True)
         selected_items = self.scene.selectedItems()
-        if any(getattr(self._group_root(item), 'group_id', None) is not None
+        if any(isinstance(item, TableItem) for item in selected_items) or any(
+            getattr(self._group_root(item), 'group_id', None) is not None
                for item in selected_items) or any(
             (isinstance(item, RectangleItem) and item.masked_images())
             or (self._is_mask_image(item) and isinstance(item.parentItem(), RectangleItem))
@@ -2192,12 +2235,14 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         ):
             previous_clipboard = copy.deepcopy(self._object_clipboard)
             previous_page = self._clipboard_source_page
+            previous_board = copy.deepcopy(getattr(self, '_board_clipboard', None))
             try:
-                self.copy_selected_items()
-                self.paste_copied_items()
+                self.copy_selected_items(whole_objects=True)
+                self.paste_copied_items(whole_objects=True)
             finally:
                 self._object_clipboard = previous_clipboard
                 self._clipboard_source_page = previous_page
+                self._board_clipboard = previous_board
             return
         valid_items = [
             i for i in selected_items
@@ -2273,8 +2318,10 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             self.sync_placeholders_list()
             self.save_snapshot()
 
-    def copy_selected_items(self):
+    def copy_selected_items(self, *, whole_objects=False):
         """Copia objetos como dados de página, sem duplicar os arquivos de asset."""
+        if not whole_objects and getattr(self, 'table_controller', None) and self.table_controller.copy_selection():
+            return
         if self.copy_board_selection():
             return
         if self._mask_edit_session:
@@ -2287,7 +2334,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             entry.get('object_id')
             for kind, collection in (
                 ('text', 'boxes'), ('image', 'images'),
-                ('signature', 'signatures'), ('shape', 'shapes'),
+                ('signature', 'signatures'), ('shape', 'shapes'), ('table', 'tables'),
             )
             for entry in state.get(collection, [])
             if (kind, entry.get('layer_id')) in selected
@@ -2308,7 +2355,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         candidates = {}
         for kind, collection in (
             ("text", "boxes"), ("image", "images"),
-            ("signature", "signatures"), ("shape", "shapes"),
+            ("signature", "signatures"), ("shape", "shapes"), ("table", "tables"),
         ):
             for entry in state.get(collection, []):
                 if entry.get('object_id') not in expanded:
@@ -2335,19 +2382,23 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             self._object_clipboard = clipboard
             self._clipboard_source_page = self._active_page_id
 
-    def paste_copied_items(self):
+    def paste_copied_items(self, *, whole_objects=False):
         """Cola a seleção na página ativa como objetos independentes."""
+        if not whole_objects and getattr(self, 'table_controller', None) and self.table_controller.paste_selection():
+            return
         if self.paste_board_selection():
             return
         if self._active_page_id == "organogram" and any(kind == "signature" for kind, _source in self._object_clipboard):
             return
         if not self._object_clipboard:
             return
-        self._finish_page_interaction()
+        copying_tables = any(kind == 'table' for kind, _ in self._object_clipboard)
+        if not copying_tables:
+            self._finish_page_interaction()
         state = self.get_current_scene_state()
         collections = {
             "text": "boxes", "image": "images",
-            "signature": "signatures", "shape": "shapes",
+            "signature": "signatures", "shape": "shapes", "table": "tables",
         }
         used_ids = {
             entry.get("layer_id")
@@ -2421,10 +2472,14 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         for order, (kind, source) in enumerate(self._object_clipboard, start=1):
             while next_id in used_ids:
                 next_id += 1
-            entry = copy.deepcopy(source)
+            if kind == "table":
+                from core.table_model import duplicate_table
+                entry = duplicate_table(source)
+            else:
+                entry = copy.deepcopy(source)
             entry["layer_id"] = next_id
             used_ids.add(next_id)
-            object_id = f"{kind}:{next_id}"
+            object_id = entry["object_id"] if kind == "table" else f"{kind}:{next_id}"
             while object_id in used_object_ids:
                 object_id += "-copy"
             used_object_ids.add(object_id)
@@ -2452,6 +2507,17 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
 
         from core.document_layers import upgrade_layers
         state = upgrade_layers(state)
+        # A página completa e todas as páginas inativas precisam caber antes
+        # de inserir Qt ou reordenar qualquer objeto existente.
+        if state.get("tables"):
+            try:
+                from core.model_document import replace_model_page
+                replace_model_page(self._model_document, state, self._active_page_id)
+            except ValueError as error:
+                self.table_controller.error(error)
+                return
+        if copying_tables:
+            self._finish_page_interaction()
         pasted_keys = set(pasted_ids)
         insertion = {"name": state.get("name", ""), "canvas_size": state["canvas_size"]}
         existing_z = {}
@@ -2476,6 +2542,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                     kind = ("text" if isinstance(item, DesignerBox) else
                             "signature" if isinstance(item, SignatureItem) else
                             "shape" if isinstance(item, RectangleItem) else
+                            "table" if isinstance(item, TableItem) else
                             "image" if isinstance(item, ImageItem) else None)
                     z = existing_z.get((kind, getattr(item, "layer_id", None)))
                     # parentItem() em uma guia sem pai pode devolver sua posse
@@ -2503,7 +2570,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             self.scene.clearSelection()
             self.canvas_edit.finish()
             for item in self.scene.items():
-                if not isinstance(item, (DesignerBox, ImageItem, SignatureItem, RectangleItem, BoardGroupItem)):
+                if not isinstance(item, (DesignerBox, ImageItem, SignatureItem, RectangleItem, BoardGroupItem, TableItem)):
                     continue
                 if getattr(item, "is_document_background", False) or not item.isVisible():
                     continue
@@ -2512,6 +2579,15 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 item.setSelected(True)
 
     def delete_selected_items(self):
+        if getattr(self, 'table_edit', None):
+            item = self.table_edit.selected_table()
+            if item is not None and item.selected_range is not None:
+                if self.table_edit.item:
+                    cursor = self.table_edit.text.textCursor()
+                    cursor.deleteChar()
+                else:
+                    self.table_edit.clear_selected(item)
+                return
         if getattr(self, "_board_connection_sources", None):
             self.cancel_board_connection()
         if self._mask_edit_session:
@@ -2587,6 +2663,9 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 item.setRect(0, 0, width_px, r.height())
                 item.recalculate_text_position()
                 item.update_center() 
+            elif isinstance(item, TableItem):
+                if not item.resize_custom(width_px, item.rect().height()):
+                    return
             elif isinstance(item, (ImageItem, SignatureItem)):
                 h_px = mm_to_px(self.caixa_texto_panel.spin_h.value())
                 item.resize_custom(width_px, h_px)
@@ -2611,6 +2690,9 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 item.setRect(0, 0, r.width(), height_px)
                 item.recalculate_text_position()
                 item.update_center()
+            elif isinstance(item, TableItem):
+                if not item.resize_custom(item.rect().width(), height_px):
+                    return
             elif isinstance(item, (ImageItem, SignatureItem)):
                 w_px = mm_to_px(self.caixa_texto_panel.spin_w.value())
                 item.resize_custom(w_px, height_px)
@@ -2679,11 +2761,13 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
 
     def update_text_html(self, html_content):
         box = self._get_selected()
-        if box: 
+        if isinstance(box, DesignerBox):
             box.state.html_content = html_content
             box.apply_state()
     
     def update_font_family(self, font):
+        if self.table_controller.format_text('family', font.family()):
+            return
         if self.canvas_edit.format('family', font.family()):
             self.canvas_edit.checkpoint()
             return
@@ -2693,6 +2777,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             box.apply_state()
 
     def update_font_size(self, size):
+        if self.table_controller.format_text('size', size):
+            return
         if self.canvas_edit.format('size', size):
             self.canvas_edit.checkpoint()
             return
@@ -2702,6 +2788,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             box.apply_state()
 
     def update_font_color(self, color_hex):
+        if self.table_controller.format_text('color', color_hex):
+            return
         if self.canvas_edit.format('color', color_hex):
             self.canvas_edit.checkpoint()
             return
@@ -2711,18 +2799,24 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             box.apply_state()
 
     def update_align(self, align_str):
+        if self.table_controller.format_text('align', align_str):
+            return
         box = self._get_selected()
         if box: box.set_alignment(align_str)
 
     def update_vertical_align(self, align_str):
+        if self.table_controller.format_text('vertical_align', align_str):
+            return
         box = self._get_selected()
         if box: box.set_vertical_alignment(align_str)
 
     def update_indent(self, val):
         box = self._get_selected()
-        if box: box.set_block_format(indent=val)
+        if isinstance(box, DesignerBox): box.set_block_format(indent=val)
 
     def update_line_height(self, val):
+        if self.table_controller.format_text('line_height', val):
+            return
         box = self._get_selected()
         if box: box.set_block_format(line_height=val)
 
@@ -2767,13 +2861,13 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                         self.finish_mask_edit(True)
                         sel = self.scene.selectedItems()
                 groupable = self._groupable_items() if any(
-                    isinstance(item, (DesignerBox, ImageItem, SignatureItem)) for item in sel
+                    isinstance(item, (DesignerBox, ImageItem, SignatureItem, TableItem)) for item in sel
                 ) else []
                 if not self._changing_group_selection and not self._selecting_from_layer_list:
                     group_ids = {
                         getattr(self._group_root(item), 'group_id', None)
                         for item in sel
-                        if isinstance(item, (DesignerBox, ImageItem, SignatureItem))
+                        if isinstance(item, (DesignerBox, ImageItem, SignatureItem, TableItem))
                     }
                     group_ids.discard(None)
                     selected = set(sel)
@@ -2796,7 +2890,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         boxes = [i for i in sel if isinstance(i, DesignerBox)]
         images = [i for i in sel if isinstance(i, ImageItem)]
         signatures = [i for i in sel if isinstance(i, SignatureItem)]
-        valid_items = [i for i in sel if isinstance(i, (DesignerBox, ImageItem, SignatureItem))]
+        tables = [i for i in sel if isinstance(i, TableItem)]
+        valid_items = [i for i in sel if isinstance(i, (DesignerBox, ImageItem, SignatureItem, TableItem))]
 
         if hasattr(self, 'btn_group_layer'):
             selected_groups = {getattr(self._group_root(i), 'group_id', None) for i in valid_items}
@@ -2852,8 +2947,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             self.caixa_texto_panel.load_from_item(target_box)
             self.caixa_texto_panel.set_group_mode(False)
             self.caixa_texto_panel.setEnabled(True)
-        elif images or signatures:
-            target = images[0] if images else signatures[0]
+        elif images or signatures or tables:
+            target = (images or signatures or tables)[0]
             self.editor_texto_panel.setEnabled(False)
             self.caixa_texto_panel.load_from_image(target)
             self.caixa_texto_panel.set_group_mode(False)
@@ -2864,9 +2959,13 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             self.caixa_texto_panel.setEnabled(False)
         if self._active_page_id == "organogram" and hasattr(self, "organogram_panel"):
             self.organogram_panel.refresh(refresh_inspector=False)
+        if getattr(self, 'table_controller', None):
+            self.table_controller.refresh()
         inspector = getattr(self, '_refresh_board_inspector', None)
         if inspector:
             inspector()
+        if getattr(self, 'object_floating_bar', None):
+            self.object_floating_bar.refresh()
 
     _DOC_PROPORTION_OFF_BG      = "rgba(220, 53, 69, 102)"
     _DOC_PROPORTION_OFF_HOVER   = "rgba(220, 53, 69, 130)"
@@ -3374,7 +3473,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
 
     def _next_object_z(self):
         highest = max((item.zValue() for item in self.scene.items()
-                    if isinstance(item, (DesignerBox, ImageItem, SignatureItem))
+                    if isinstance(item, (DesignerBox, ImageItem, SignatureItem, TableItem))
                     and not isinstance(item, BackgroundItem)
                     and not isinstance(item.parentItem(), RectangleItem)), default=-1)
         return max(highest, -1) + 1 if self._active_page_id == "organogram" else highest + 1
@@ -3413,7 +3512,16 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         )
         
         if ok and new_name.strip():
-            item.custom_name = self._unique_layer_name(new_name.strip(), exclude=item)
+            chosen_name = self._unique_layer_name(new_name.strip(), exclude=item)
+            if isinstance(item, TableItem):
+                candidate = item.to_data()
+                candidate['custom_name'] = chosen_name
+                try:
+                    self.table_controller.preflight(item, candidate)
+                except ValueError as error:
+                    self.table_controller.error(error)
+                    return
+            item.custom_name = chosen_name
             
             # 2. Atualizar a lista (isso limpa a seleção)
             self.refresh_layer_list()
@@ -3571,7 +3679,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             badge.setStyleSheet(
                 f"QPushButton {{ border: 1px solid {theme_color('accent')}; border-radius: 5px; "
                 f"padding: 0; background: transparent; color: {theme_color('accent')}; "
-                "font-family: Inter; font-size: 10px; font-weight: 700; } "
+                "font-size: 10px; font-weight: 700; } "
                 f"QPushButton:hover {{ background: {theme_color('selection')}; }}"
             )
         row.setSizeHint(QSize(widget.sizeHint().width(), max(24, widget.sizeHint().height())))
@@ -3603,7 +3711,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             if isinstance(item, BackgroundItem): fundo = item
             elif isinstance(item, SignatureItem): assinaturas.append(item)
             elif isinstance(item, DesignerBox): textos.append(item)
-            elif isinstance(item, ImageItem): imagens.append(item)
+            elif isinstance(item, (ImageItem, TableItem)): imagens.append(item)
             
             if not hasattr(item, 'layer_id') or item.layer_id is None:
                 item.layer_id = self._get_next_layer_id()
@@ -3740,7 +3848,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                     badge.setStyleSheet(
                         f"QPushButton {{ border: 1px solid {theme_color('accent')}; border-radius: 5px; "
                         f"padding: 0; background: transparent; color: {theme_color('accent')}; "
-                        "font-family: Inter; font-size: 10px; font-weight: 700; } "
+                        "font-size: 10px; font-weight: 700; } "
                         f"QPushButton:hover {{ background: {theme_color('selection')}; }}"
                     )
                     ly.addWidget(badge)
@@ -3869,10 +3977,13 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         boxes_data = []
         signatures_data = []
         images_data = []
+        tables_data = []
         guidelines_data = []
         
         for item in self.scene.items():
-            if isinstance(item, Guideline):
+            if isinstance(item, TableItem):
+                tables_data.append(item.to_data())
+            elif isinstance(item, Guideline):
                 guidelines_data.append({
                     "pos": round(float(item.pos().x() if item.is_vertical else item.pos().y()), 2),
                     "vertical": item.is_vertical,
@@ -3990,6 +4101,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             "doc_proportion_locked": self.chk_doc_proporcao.isChecked(),
             "doc_aspect_ratio": self._doc_aspect_ratio
         }
+        if tables_data:
+            data['tables'] = tables_data
         
         if self.bg_item and isinstance(self.bg_item, BackgroundItem):
             bg_rect = self.bg_item.rect() if hasattr(self.bg_item, 'rect') else self.bg_item.pixmap().rect()
@@ -4023,7 +4136,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         data.pop('bg_props', None)
         entries = []
         live_items = {getattr(item, 'layer_id', None): item for item in self.scene.items()
-                      if isinstance(item, (DesignerBox, ImageItem, SignatureItem))}
+                      if isinstance(item, (DesignerBox, ImageItem, SignatureItem, TableItem))}
         for kind, group in [('text', 'boxes'), ('image', 'images'), ('signature', 'signatures'), ('shape', 'shapes')]:
             for index, entry in enumerate(data[group]):
                 entry['object_id'] = f"{kind}:{entry.get('layer_id', index)}"
@@ -4034,6 +4147,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                         entry['board_behind'] = getattr(root, 'board_behind', False)
                         entry['z_value'] = item.zValue()
                 entries.append(entry)
+        entries.extend(tables_data)
         by_mask = {}
         for entry in data['images']:
             if entry.get('mask_shape_id'):
@@ -4076,6 +4190,10 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         loaded_items = []
         canvas_w = data.get("canvas_size", {}).get("w", 1000)
         canvas_h = data.get("canvas_size", {}).get("h", 1000)
+        for entry in data.get('tables', []):
+            table = TableItem(entry, self)
+            loaded_items.append(table)
+            self.scene.addItem(table)
         # Assinaturas
         for sig_data in data.get("signatures", []):
             sig = self._create_asset_item(SignatureItem, sig_data["path"], data.get("name", ""))
@@ -4252,6 +4370,11 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
 
     def apply_scene_state(self, data: dict, is_undo_redo: bool = False):
         """Limpa a cena e recria tudo com base no dicionário fornecido."""
+        for table in data.get('tables', []):
+            from core.table_model import validate_table
+            validate_table(table)
+        if getattr(self, 'table_edit', None):
+            self.table_edit.finish()
         self._clear_page_scenes()
         self._history_capture_cache = None
         # Salva qual layer estava selecionada antes de limpar
@@ -4275,7 +4398,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         if not getattr(self, '_switching_page', False):
             sel = self.scene.selectedItems()
             for s in sel:
-                if isinstance(s, (DesignerBox, ImageItem, SignatureItem)) and getattr(s, 'layer_id', None) is not None:
+                if isinstance(s, (DesignerBox, ImageItem, SignatureItem, TableItem)) and getattr(s, 'layer_id', None) is not None:
                     selected_layer_ids.add(s.layer_id)
 
         self.scene.clearSelection()
@@ -4400,7 +4523,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         if selected_layer_ids:
             for item in self.scene.items():
                 if (
-                    isinstance(item, (DesignerBox, ImageItem, SignatureItem))
+                    isinstance(item, (DesignerBox, ImageItem, SignatureItem, TableItem))
                     and getattr(item, 'layer_id', None) in selected_layer_ids
                 ):
                     item.setSelected(True)
@@ -4533,7 +4656,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
 
     def _get_selected_items(self):
         sel = self.scene.selectedItems()
-        return [i for i in sel if isinstance(i, (DesignerBox, ImageItem, SignatureItem))]
+        return [i for i in sel if isinstance(i, (DesignerBox, ImageItem, SignatureItem, TableItem))]
 
     def _enter_space_pan_mode(self):
         if self.view.dragMode() == QGraphicsView.DragMode.ScrollHandDrag:
@@ -4696,6 +4819,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         return f"{base} {suffix}"
 
     def _default_layer_name(self, item):
+        if isinstance(item, TableItem):
+            return 'Tabela'
         if getattr(item, 'is_document_background', False) or isinstance(item, BackgroundItem):
             return "Plano de fundo"
         if isinstance(item, DesignerBox):

@@ -31,6 +31,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
 
 from core.file_transactions import file_lock, publish_new, sync_directory
+from core.json_limits import MAX_JSON_BYTES, MAX_JSON_DEPTH, MAX_JSON_OBJECTS
 
 from core.model_document import (
     UnsupportedSchemaError,
@@ -62,13 +63,10 @@ INNER_ASSET_PREFIX = "assets/"
 MAX_PACKAGE_BYTES = 512 * 1024 * 1024
 MAX_ENTRIES = 4096
 MAX_MANIFEST_BYTES = 16 * 1024
-MAX_JSON_BYTES = 8 * 1024 * 1024
 MAX_ASSET_BYTES = 128 * 1024 * 1024
 MAX_PROTECTED_BYTES = 256 * 1024 * 1024 + 16
 MAX_INNER_BYTES = 256 * 1024 * 1024
 MAX_UNCOMPRESSED_BYTES = 512 * 1024 * 1024
-MAX_JSON_DEPTH = 64
-MAX_JSON_OBJECTS = 100_000
 MAX_IMAGE_DIMENSION = 32_768
 MAX_IMAGE_PIXELS = 64_000_000
 SUPPORTED_COMPRESSION = {zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED}

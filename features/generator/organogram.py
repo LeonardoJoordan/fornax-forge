@@ -35,6 +35,10 @@ class OrganogramRenderer:
             for box in self.board.get("boxes", []):
                 for name in variables_in_html(box.get("html", "")):
                     self.layout_values[name] = f"{{{name}}}"
+            from core.table_model import table_fields
+            for table in self.board.get('tables', []):
+                for name in table_fields(table):
+                    self.layout_values[name] = f'{{{name}}}'
             self.slots = [(group["id"], index, slot_rect(group, index), self.layout_values, self.layout_values)
                           for group in self.board["groups"]
                           for index in range(group["rows"] * group["columns"])]
@@ -47,8 +51,9 @@ class OrganogramRenderer:
         self.bounds = board_bounds(self.board, visible_slots=None if fixed_layout else self.slots)
         # O desenho complementar pode ultrapassar a página 1, mas não aloca raster.
         artwork = adapt_model_page(self.document)
-        for key in ("boxes", "images", "shapes", "signatures", "layer_order", "background_path"):
-            artwork[key] = deepcopy(self.board.get(key))
+        artwork['__page_id'] = 'organogram'
+        for key in ("boxes", "images", "shapes", "signatures", "tables", "layer_order", "background_path"):
+            artwork[key] = deepcopy(self.board.get(key, [] if key != 'background_path' else None))
         # Máscara e imagens contidas nela pertencem ao mesmo plano.
         mask_positions = {entry.get("object_id"): entry.get("board_behind", False)
                           for entry in artwork.get("shapes", [])}
@@ -56,15 +61,18 @@ class OrganogramRenderer:
         for behind in (True, False):
             plane = deepcopy(artwork)
             identifiers = set()
-            for collection in ("boxes", "images", "shapes"):
+            for collection in ("boxes", "images", "shapes", "tables"):
                 plane[collection] = [entry for entry in plane.get(collection, [])
                                      if mask_positions.get(entry.get("mask_shape_id"),
                                                            entry.get("board_behind", False)) == behind]
                 identifiers.update(entry.get("object_id") for entry in plane[collection])
             plane["layer_order"] = [key for key in (plane.get("layer_order") or []) if key in identifiers]
             self.artwork_planes[behind] = NativeRenderer(plane, asset_provider=asset_provider)
+        self.render_warnings = []
+        self.warning_callback = None
 
     def paint(self, painter, *, region=None, stop=None, out_links=None):
+        self.render_warnings = []
         region = region or self.bounds
         painter.save()
         try:
@@ -73,10 +81,14 @@ class OrganogramRenderer:
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
             artwork_values = self.layout_values if self.layout_preview else {}
             self.artwork_planes[True].paint_card(painter, artwork_values, artwork_values, out_links)
+            self.render_warnings.extend(self.artwork_planes[True].render_warnings)
             visible = {slot[0] for slot in self.slots}
             painter.save()
             try:
                 foreground_text = [box for box in self.board.get("boxes", []) if not box.get("board_behind", False)]
+                from core.table_model import table_size
+                foreground_text.extend({**table, 'w':table_size(table)[0], 'h':table_size(table)[1]}
+                                       for table in self.board.get('tables', []) if not table.get('board_behind',False))
                 painter.setClipPath(connector_clip(region, text_cutouts(foreground_text)), Qt.ClipOperation.IntersectClip)
                 for edge in self.board["connections"]:
                     if edge["source"] in visible and edge["target"] in visible:
@@ -100,14 +112,20 @@ class OrganogramRenderer:
                         painter.translate(rect.topLeft())
                         painter.scale(rect.width() / canvas["w"], rect.height() / canvas["h"])
                         self.card.paint_card(painter, plain, rich, out_links)
+                        self.render_warnings.extend({**warning,'block':group['name'],'slot':_index+1}
+                                                    for warning in self.card.render_warnings)
                     finally:
                         painter.restore()
                 # Vagas não ganham bordas; conjuntos totalmente vazios ficam ocultos.
                 if slots:
                     paint_group_borders(painter, group, (slot[2] for slot in slots))
             self.artwork_planes[False].paint_card(painter, artwork_values, artwork_values, out_links)
+            self.render_warnings.extend(self.artwork_planes[False].render_warnings)
         finally:
             painter.restore()
+
+        if self.warning_callback is not None:
+            self.warning_callback(self.render_warnings)
 
     def preview(self, max_side=1600, stop=None):
         scale = max_side / max(self.bounds.width(), self.bounds.height())
@@ -233,7 +251,8 @@ class OrganogramRenderer:
         if paper is None and plan is None and max(w_mm, h_mm) > 5000:
             raise ValueError(tr("Para quadros maiores que 5 m, divida o PDF em ladrilhos."))
         writer = QPdfWriter(str(path))
-        # O layout de texto usa o mesmo DPI lógico do editor/prévia.
+        # O destino não muda as métricas: caixas/células usam seus dispositivos
+        # lógicos, iguais aos da prévia (96/300 DPI respectivamente).
         writer.setResolution(96)
         writer.setTitle(tr("Quadro de pessoas — FORNAX Forge"))
         if plan is None and paper is not None:
@@ -304,6 +323,14 @@ class OrganogramWorker(QThread):
             renderer = OrganogramRenderer(*self.args, asset_provider=self.asset_provider,
                                          dynamic_image_dir=self.dynamic_image_dir,
                                          fixed_layout=self.tiling_options is not None or self.mode in ('a4', 'a3'))
+            from core.table_warnings import table_warning_messages
+            warned = set()
+            def report_warnings(warnings):
+                for message in table_warning_messages(warnings):
+                    if message not in warned:
+                        warned.add(message)
+                        self.log_updated.emit(message)
+            renderer.warning_callback = report_warnings
             if renderer.assignment_issues:
                 raise ValueError(tr("Corrija a distribuição dos registros antes de gerar:\n{pendencias}").format(
                     pendencias=assignment_issue_text(renderer.assignment_issues)))

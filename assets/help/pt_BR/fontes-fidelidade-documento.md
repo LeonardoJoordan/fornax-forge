@@ -1,6 +1,6 @@
 ## O que é
 
-A aparência depende das fontes disponíveis para o Qt no computador. Editor, prévia e geração compartilham a configuração do texto, mas uma fonte ausente pode ser substituída.
+O FORNAX inclui a família **Inter 18pt**, usada na interface e como padrão dos novos textos e tabelas. Ela não precisa ser instalada separadamente no computador. Editor, prévia e geração compartilham a configuração do texto; outras fontes escolhidas pelo usuário precisam estar disponíveis para o Qt.
 
 ## Para que serve
 
@@ -19,13 +19,14 @@ Um certificado feito com uma fonte específica pode mudar as quebras em outro co
 
 ## Dica de uso
 
-Para modelos compartilhados, use fontes que todos os computadores de destino tenham e teste o texto mais longo.
+Para modelos compartilhados entre instalações do FORNAX, a **Inter 18pt** já acompanha o programa. Se escolher outra família, confira se ela está disponível em todos os computadores de destino e teste o texto mais longo.
 
 ## Particularidades e limites
 
 - Não presuma que escolher uma fonte significa incorporá-la ao arquivo do modelo.
 - O tamanho da janela e o zoom mudam a escala de visualização, não o tamanho físico do documento.
 - A disponibilidade de caracteres também importa: outra fonte pode ser usada para símbolos não cobertos pela família.
+- A suavização das letras na tela pode variar entre sistemas e escalas de exibição, mesmo quando usam o mesmo arquivo de fonte.
 
 ## Veja também
 

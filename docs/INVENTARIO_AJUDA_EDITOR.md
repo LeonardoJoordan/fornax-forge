@@ -215,7 +215,7 @@ Para cada tópico, preencher posteriormente, quando aplicável:
 
 ## 10. Formas, preenchimento e contorno
 
-- [x] FOR-01 — Menu Formas.
+- [x] FOR-01 — Menu Elementos (antigo Formas).
 - [x] FOR-02 — Quadrado / retângulo.
 - [x] FOR-03 — Círculo / elipse.
 - [x] FOR-04 — Linha.
@@ -502,6 +502,23 @@ manual correspondente já está listada em VAR-01 e VAR-06.
 
 - [ ] REV-01 — Transformar seleção em placeholder (Ctrl+1).
 - [ ] REV-02 — Transformar seleção em trecho opcional (Ctrl+2).
+
+## 24. Tabelas gráficas e células
+
+- [x] TBL-01 — Tabela gráfica: inserir e distinguir da planilha de dados.
+- [x] TBL-02 — Selecionar células e editar texto na tabela.
+- [x] TBL-03 — Adicionar ou remover linhas e colunas da tabela.
+- [x] TBL-04 — Mesclar e separar células da tabela.
+- [x] TBL-05 — Medidas da tabela, linhas e colunas em milímetros.
+- [x] TBL-06 — Texto, alinhamento, quebra e espaço interno das células.
+- [x] TBL-07 — Preenchimento e transparência das células.
+- [x] TBL-08 — Contornos externos, internos e compartilhados da tabela.
+- [x] TBL-09 — Campos variáveis e placeholders nas células da tabela.
+- [x] TBL-10 — Copiar e colar células, intervalos ou texto na tabela.
+- [x] TBL-11 — Atalhos e desfazer/refazer por contexto na tabela.
+- [x] TBL-12 — Tabela inteira: camadas, cópias, grupos e organograma.
+- [x] TBL-13 — Texto excedente (overflow) e limites das tabelas.
+- [x] TBL-14 — Exemplo: boletim escolar com tabela e dados variáveis.
 
 ## Referências usadas no mapeamento
 

@@ -3,7 +3,7 @@
 ## Etapa atual
 
 Padrão de conteúdo aprovado pelo usuário. Execução contínua concluída:
-os **402 tópicos públicos** estão documentados. Última categoria: **Histórico, salvamento e proteção**.
+os **416 tópicos públicos** estão documentados. Última categoria: **Tabelas gráficas e células**.
 Cada recurso é conferido na implementação antes da redação. Controles
 complementares podem compartilhar um artigo, conforme previsto no inventário.
 O trabalho completou o conteúdo da ajuda, seu acompanhamento e as verificações
@@ -788,3 +788,16 @@ de abrir o editor, desfazer/refazer, proporções diferentes e compatibilidade
 com estruturas externas antigas), 15 da ajuda e 5 de contornos, conectores e
 exportação PDF. As galerias foram inspecionadas nos temas claro e escuro,
 com o cartão do modelo institucional e as seis opções visíveis.
+
+## Tabelas gráficas — 09/10/2026
+
+Adicionados 14 tópicos e artigos (TBL-01 a TBL-14), seguindo as sete seções
+aprovadas. Cobrem inserção, contextos de seleção/edição, estrutura, mesclagem,
+medidas, texto, preenchimento, contornos, campos variáveis, colagem, atalhos,
+camadas/organograma, limites/overflow e exemplo de boletim escolar.
+A busca distingue tabela gráfica de planilha de dados. FOR-01 mantém seu ID
+e aceita os termos Elementos e Formas, com referências visíveis atualizadas.
+O catálogo agora possui 416 tópicos públicos em 222 artigos; a interface de
+ajuda continua traduzível e os artigos continuam em português, com fallback
+local para os demais idiomas. Validação e limites nativos de plataforma em
+[relatório da etapa 08](implementacao_tabelas/etapa-08/RELATORIO_FINAL.md).

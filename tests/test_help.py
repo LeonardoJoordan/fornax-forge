@@ -27,12 +27,12 @@ class HelpCatalogTest(unittest.TestCase):
         inventory = (PROJECT_ROOT / "docs/INVENTARIO_AJUDA_EDITOR.md").read_text()
         expected = set(re.findall(r"^- \[[ x]\] ([A-Z]+-\d+) — ", inventory, re.M))
         self.assertEqual(set(catalog.by_id), expected - {"REV-01", "REV-02"})
-        self.assertEqual(len(catalog.topics), 402)
+        self.assertEqual(len(catalog.topics), 416)
         packaged = set(selected_files())
         self.assertIn(HELP_DIR / "pt_BR/catalog.json", packaged)
         entries = json.loads((HELP_DIR / "pt_BR/catalog.json").read_text())["topics"]
         public_entries = [entry for entry in entries if entry.get("status") != "review"]
-        self.assertEqual(len(public_entries), 402)
+        self.assertEqual(len(public_entries), 416)
         for entry in public_entries:
             self.assertEqual(entry["status"], "published", entry["id"])
             self.assertTrue(entry.get("file"), entry["id"])
@@ -53,7 +53,7 @@ class HelpCatalogTest(unittest.TestCase):
         self.assertEqual(catalog.search("Editar máscara")[0].id, "MAS-09")
         self.assertEqual(catalog.search("mascara")[0].category, "editor-12")
         self.assertEqual(catalog.search("texto inexistente xyz987"), ())
-        self.assertEqual(len(catalog.search()), 402)
+        self.assertEqual(len(catalog.search()), 416)
 
     def test_search_combines_terms_and_category_with_title_priority(self):
         catalog = HelpCatalog({"a": "Objetos", "b": "Máscaras"}, (
@@ -127,8 +127,8 @@ class HelpDialogTest(unittest.TestCase):
 
     def test_search_selects_item_by_keyboard_and_shows_article(self):
         dialog = self.dialog()
-        self.assertEqual(len(self.visible_ids(dialog)), 402)
-        self.assertEqual(dialog.results.topLevelItemCount(), 22)
+        self.assertEqual(len(self.visible_ids(dialog)), 416)
+        self.assertEqual(dialog.results.topLevelItemCount(), 23)
         QTest.keyClicks(dialog.search, "editar mascara")
         self.assertEqual(dialog.article_title.text(), "Editar máscara.")
         self.assertIn("Editar máscara abre um modo temporário", dialog.content.toPlainText())
@@ -152,7 +152,7 @@ class HelpDialogTest(unittest.TestCase):
         dialog.search.clear()
         self.assertEqual(len(self.visible_ids(dialog)), 16)
         dialog.category_filter.setCurrentIndex(0)
-        self.assertEqual(len(self.visible_ids(dialog)), 402)
+        self.assertEqual(len(self.visible_ids(dialog)), 416)
 
     def test_category_name_and_arrow_toggle_once_and_keep_open_article(self):
         dialog = self.dialog()

@@ -10,8 +10,8 @@ recolher seus tópicos. Essa navegação mantém o artigo aberto no painel de le
 ## Conteúdo do editor
 
 O catálogo inicial vem de [INVENTARIO_AJUDA_EDITOR.md](INVENTARIO_AJUDA_EDITOR.md).
-São 402 tópicos públicos. **402 tópicos já têm conteúdo**, distribuídos em
-**208 artigos**. Controles complementares podem compartilhar a explicação
+São 416 tópicos públicos. **416 tópicos já têm conteúdo**, distribuídos em
+**222 artigos**. Controles complementares podem compartilhar a explicação
 quando fazem parte do mesmo fluxo. Todos os tópicos públicos estão documentados.
 As duas entradas REV-01 e REV-02 permanecem no catálogo com estado `review`, fora da busca pública,
 até a revisão do acesso desses atalhos pela interface.

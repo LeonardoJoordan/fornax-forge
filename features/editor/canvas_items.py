@@ -757,6 +757,8 @@ class ResizeHandle(QGraphicsRectItem):
             self._is_resizing = True
             parent = self.parentItem()
             if parent:
+                if hasattr(parent, 'begin_resize_from_handle'):
+                    parent.begin_resize_from_handle()
                 self._shift_proportion = False
                 self._initial_w, self._initial_h = _item_size(parent)
                 self.initial_ratio = self._initial_w / self._initial_h if self._initial_h > 0 else 1.0
@@ -825,7 +827,9 @@ class ResizeHandle(QGraphicsRectItem):
                 new_w, new_h = self._snap_size_to_guides(parent, anchor_scene, new_w, new_h)
 
                 if hasattr(parent, 'resize_from_handle'):
-                    parent.resize_from_handle(new_w, new_h)
+                    if parent.resize_from_handle(new_w, new_h) is False:
+                        event.accept()
+                        return
                     new_anchor_local = self._anchor_local_point(new_w, new_h)
                     new_pos = _item_pos_for_local_scene_point(parent, new_anchor_local, anchor_scene)
                     parent._resizing_from_handle = True
@@ -1051,6 +1055,7 @@ def _update_resize_handles(item):
 def _set_resize_handles_visible(item, visible):
     if not hasattr(item, 'resize_handles'):
         return
+    visible = bool(visible and getattr(item, 'overlays_enabled', True))
     scene = item.scene()
     if visible and scene:
         roots = {

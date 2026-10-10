@@ -1,6 +1,6 @@
 ## O que é
 
-A aba Organograma também aceita caixas de texto, imagens comuns e formas livres, independentes dos cartões replicados.
+A aba Organograma também aceita caixas de texto, imagens comuns e formas ou tabelas livres, independentes dos cartões replicados.
 
 ## Para que serve
 
@@ -9,7 +9,7 @@ Adicionar títulos, legendas, logotipos e faixas ao quadro completo.
 ## Como usar
 
 1. Entre na aba Organograma.
-2. Use Texto, Imagens ou Formas para criar o elemento.
+2. Use Texto, Imagens ou Elementos para criar o elemento.
 3. Posicione e formate o objeto.
 4. Escolha sua posição à frente ou atrás do organograma.
 

@@ -8,7 +8,7 @@ Criar selos, separadores e detalhes consistentes com os demais objetos.
 
 ## Como usar
 
-1. Desenhe uma elipse ou linha pelo menu Formas.
+1. Desenhe uma elipse ou linha pelo menu Elementos.
 2. Ajuste as dimensões e a rotação.
 3. Use preenchimento para a cor do corpo e contorno, se necessário, para seu acabamento.
 

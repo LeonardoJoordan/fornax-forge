@@ -79,7 +79,7 @@ def upgrade_legacy_block_names(board):
 def blank_organogram():
     return {
         "page_id": "organogram", "field_ids": [], "boxes": [], "images": [],
-        "shapes": [], "signatures": [], "layer_order": [], "guidelines": [],
+        "shapes": [], "signatures": [], "tables": [], "layer_order": [], "guidelines": [],
         "background_path": None, "editable_background_initialized": True,
         "groups": [], "connections": [], "grid_mm": 5.0, "margin_mm": 10.0,
         "connector_style": connector_style(),
@@ -88,11 +88,12 @@ def blank_organogram():
 
 
 def add_organogram(document):
-    from core.model_document import normalize_model_document, persistent_model_document
+    from core.model_document import normalize_model_document, persistent_model_document, TABLE_SCHEMA_VERSION
     result = persistent_model_document(document)
     if len(result["pages"]) != 1 or result.get("organogram") is not None:
         raise ModelValidationError("Escolha uma segunda página ou um organograma.")
-    result["schema_version"] = 5
+    if result["schema_version"] != TABLE_SCHEMA_VERSION:
+        result["schema_version"] = 5
     result["organogram"] = blank_organogram()
     return normalize_model_document(result)
 
@@ -130,7 +131,7 @@ def slot_rect(group, index):
 
 def validate_organogram(board):
     validate_connector_style(board.get("connector_style", {}))
-    for collection in ("boxes", "images", "shapes"):
+    for collection in ("boxes", "images", "shapes", "tables"):
         for entry in board.get(collection, []):
             if type(entry.get("board_behind", False)) is not bool:
                 raise ModelValidationError("Posição do elemento no organograma inválida.")
@@ -213,6 +214,10 @@ def card_fields(document):
     for box in page.get("boxes", []):
         if box.get("visible", True):
             fields.update(variables_in_html(box.get("html", "")))
+    from core.table_model import table_fields
+    for table in page.get('tables', []):
+        if table.get('visible',True):
+            fields.update(table_fields(table))
     for shape in page.get("shapes", []):
         if shape.get("visible", True) and shape.get("dynamic_image_field"):
             images.add(shape["dynamic_image_field"])
@@ -307,15 +312,25 @@ def assignment_issue_text(issues):
 
 def artwork_bounds(board):
     bounds = QRectF()
-    for collection in ("boxes", "images", "shapes"):
+    for collection in ("boxes", "images", "shapes", "tables"):
         for item in board.get(collection, []):
             if not item.get("visible", True):
                 continue
-            w, h = item.get("w", item.get("width", 1)), item.get("h", item.get("height", 1))
+            if collection == "tables":
+                from core.table_model import table_size
+                w, h = table_size(item)
+            else:
+                w, h = item.get("w", item.get("width", 1)), item.get("h", item.get("height", 1))
             transform = QTransform()
             transform.translate(item.get("x", 0) + w / 2, item.get("y", 0) + h / 2)
             transform.rotate(item.get("rotation", 0))
-            rect = transform.mapRect(QRectF(-w / 2, -h / 2, w, h))
+            local_rect = QRectF(-w / 2, -h / 2, w, h)
+            if collection == "tables":
+                padding = max([item["border"]["width"], *(edge["style"].get("width", item["border"]["width"])
+                              for edge in item["edges"])]) / 2
+                bounds = bounds.united(transform.mapRect(local_rect.adjusted(-padding, -padding, padding, padding)))
+                continue
+            rect = transform.mapRect(local_rect)
             # Inclui folga de borda das formas na sugestão de impressão.
             padding = float(item.get("outline_width", 0))
             bounds = bounds.united(rect.adjusted(-padding, -padding, padding, padding))

@@ -2876,6 +2876,10 @@ Haga clic en el icono para marcar o desmarcar toda la columna.</translation>
       <source>Alinhamento horizontal</source>
       <translation>Alineación horizontal</translation>
     </message>
+    <message><source>Alinhamento vertical</source><translation>Alineación vertical</translation></message>
+    <message><source>Arraste para reposicionar a barra</source><translation>Arrastre para recolocar la barra</translation></message>
+    <message><source>Recolher barra da tabela</source><translation>Contraer la barra de la tabla</translation></message>
+    <message><source>Expandir barra da tabela</source><translation>Expandir la barra de la tabla</translation></message>
     <message>
       <source>O conteúdo agora está centralizado entre as laterais da caixa.</source>
       <translation>El contenido ahora está centrado entre los lados del cuadro.</translation>
@@ -3711,7 +3715,563 @@ cargo: Alcaldesa</translation>
     <message><source>Usados recentemente</source><translation>Usadas recientemente</translation></message>
     <message><source>Formato</source><translation>Formato</translation></message>
     <message><source>Predefinição</source><translation>Preajuste</translation></message>
-  </context>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="17" />
+      <location filename="../../features/editor/table_panel.py" line="198" />
+      <location filename="../../features/editor/table_controller.py" line="395" />
+      <location filename="../../features/editor/table_controller.py" line="410" />
+      <source>Vários</source>
+      <translation>Varios</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="40" />
+      <source>Selecione uma tabela ou suas células.</source>
+      <translation>Seleccione una tabla o sus celdas.</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="43" />
+      <source>ESTRUTURA</source>
+      <translation>ESTRUCTURA</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="47" />
+      <source>Quantidade a adicionar</source>
+      <translation>Cantidad a añadir</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="52" />
+      <source>Adicionar acima</source>
+      <translation>Añadir arriba</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="52" />
+      <source>Adicionar abaixo</source>
+      <translation>Añadir abajo</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="53" />
+      <source>Adicionar à esquerda</source>
+      <translation>Añadir a la izquierda</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="53" />
+      <source>Adicionar à direita</source>
+      <translation>Añadir a la derecha</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="54" />
+      <source>Remover linhas</source>
+      <translation>Eliminar filas</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="54" />
+      <source>Remover colunas</source>
+      <translation>Eliminar columnas</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="55" />
+      <source>Mesclar células</source>
+      <translation>Combinar celdas</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="55" />
+      <source>Separar células</source>
+      <translation>Separar celdas</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="62" />
+      <source>MEDIDAS</source>
+      <translation>MEDIDAS</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="65" />
+      <source>Largura (mm)</source>
+      <translation>Ancho (mm)</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="65" />
+      <source>Altura (mm)</source>
+      <translation>Altura (mm)</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="68" />
+      <source>Altura das linhas selecionadas, em milímetros</source>
+      <translation>Altura de las filas seleccionadas, en milímetros</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="69" />
+      <source>Largura das colunas selecionadas, em milímetros</source>
+      <translation>Ancho de las columnas seleccionadas, en milímetros</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="70" />
+      <source>Linhas (mm)</source>
+      <translation>Filas (mm)</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="71" />
+      <source>Colunas (mm)</source>
+      <translation>Columnas (mm)</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="76" />
+      <source>CÉLULAS</source>
+      <translation>CELDAS</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="79" />
+      <source>Espaçamento interno (mm)</source>
+      <translation>Espacio interior (mm)</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="80" />
+      <source>Quebrar texto automaticamente</source>
+      <translation>Ajustar texto automáticamente</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="90" />
+      <source>Cor do preenchimento das células</source>
+      <translation>Color de relleno de las celdas</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="98" />
+      <source>CONTORNOS</source>
+      <translation>CONTORNOS</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="100" />
+      <source>Todos</source>
+      <translation>Todos</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="100" />
+      <source>Externos</source>
+      <translation>Externos</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="100" />
+      <source>Internos</source>
+      <translation>Internos</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="104" />
+      <source>Aplicar aos contornos</source>
+      <translation>Aplicar a los contornos</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="110" />
+      <source>Cor dos contornos selecionados</source>
+      <translation>Color de los contornos seleccionados</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="118" />
+      <source>Espessura (mm)</source>
+      <translation>Grosor (mm)</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="118" />
+      <source>Opacidade (%)</source>
+      <translation>Opacidad (%)</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="119" />
+      <source>Exibir contornos</source>
+      <translation>Mostrar contornos</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_panel.py" line="174" />
+      <source>{rows} linhas × {columns} colunas; seleção: {count} células.</source>
+      <translation>{rows} filas × {columns} columnas; selección: {count} celdas.</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_controller.py" line="109" />
+      <source>Adicionar tabela</source>
+      <translation>Añadir tabla</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_controller.py" line="114" />
+      <source>Linhas</source>
+      <translation>Filas</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_controller.py" line="114" />
+      <source>Colunas</source>
+      <translation>Columnas</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_controller.py" line="115" />
+      <source>Até 1.000 posições por tabela e 2.000 por modelo.</source>
+      <translation>Hasta 1.000 posiciones por tabla y 2.000 por modelo.</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_controller.py" line="136" />
+      <location filename="../../features/editor/frontend.py" line="752" />
+      <location filename="../../features/editor/frontend.py" line="1546" />
+      <source>Tabela</source>
+      <translation>Tabla</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_controller.py" line="221" />
+      <source>O tamanho da fonte deve estar entre 1 e 200 pontos.</source>
+      <translation>El tamaño de fuente debe estar entre 1 y 200 puntos.</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_controller.py" line="405" />
+      <source>Vários valores</source>
+      <translation>Varios valores</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/table_edit.py" line="142" />
+      <source>O texto excede o limite de conteúdo da tabela.</source>
+      <translation>El texto supera el límite de contenido de la tabla.</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/frontend.py" line="735" />
+      <location filename="../../features/editor/frontend.py" line="757" />
+      <source>Elementos</source>
+      <translation>Elementos</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/frontend.py" line="739" />
+      <source>Adicionar formas ou uma tabela. Para formas, arraste no canvas; Shift restringe proporções ou ângulo e Esc cancela.</source>
+      <translation>Añada formas o una tabla. Para las formas, arrastre en el lienzo; Shift restringe las proporciones o el ángulo y Esc cancela.</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/frontend.py" line="740" />
+      <source>Elementos (formas e tabela)</source>
+      <translation>Elementos (formas y tabla)</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/frontend.py" line="757" />
+      <source>Formas e tabela</source>
+      <translation>Formas y tabla</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/frontend.py" line="796" />
+      <source>Adicionar bloco</source>
+      <translation>Añadir bloque</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/frontend.py" line="797" />
+      <source>Conectar a elemento</source>
+      <translation>Conectar a elemento</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/frontend.py" line="798" />
+      <source>Editar bloco selecionado</source>
+      <translation>Editar bloque seleccionado</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/frontend.py" line="1380" />
+      <source>Tamanho da fonte das células, em pontos</source>
+      <translation>Tamaño de fuente de las celdas, en puntos</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/frontend.py" line="1583" />
+      <source>Estrutura do quadro</source>
+      <translation>Estructura del cuadro</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/frontend.py" line="1687" />
+      <source>Organograma</source>
+      <translation>Organigrama</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/frontend.py" line="1712" />
+      <location filename="../../features/editor/frontend.py" line="1713" />
+      <source>Adicionar página ou organograma</source>
+      <translation>Añadir página u organigrama</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/frontend.py" line="1715" />
+      <source>Adicionar página</source>
+      <translation>Añadir página</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/frontend.py" line="1716" />
+      <source>Adicionar organograma</source>
+      <translation>Añadir organigrama</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/frontend.py" line="1958" />
+      <source>Conector selecionado</source>
+      <translation>Conector seleccionado</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/frontend.py" line="1959" />
+      <source>{numero} conectores</source>
+      <translation>{numero} conectores</translation>
+    </message>
+    <message>
+      <location filename="../../core/table_warnings.py" line="8" />
+      <source>Bloco {bloco}, cartão {cartao}</source>
+      <translation>Bloque {bloco}, tarjeta {cartao}</translation>
+    </message>
+    <message>
+      <location filename="../../core/table_warnings.py" line="10" />
+      <source>Registro {registro}</source>
+      <translation>Registro {registro}</translation>
+    </message>
+    <message>
+      <location filename="../../core/table_warnings.py" line="11" />
+      <source>frente</source>
+      <translation>anverso</translation>
+    </message>
+    <message>
+      <location filename="../../core/table_warnings.py" line="11" />
+      <source>verso</source>
+      <translation>reverso</translation>
+    </message>
+    <message>
+      <location filename="../../core/table_warnings.py" line="11" />
+      <source>organograma</source>
+      <translation>organigrama</translation>
+    </message>
+    <message>
+      <location filename="../../core/table_warnings.py" line="12" />
+      <source>⚠ Texto excede a célula {linha},{coluna} da tabela “{tabela}” ({pagina}). {contexto}</source>
+      <translation>⚠ El texto supera la celda {linha},{coluna} de la tabla «{tabela}» ({pagina}). {contexto}</translation>
+    </message>
+    <message>
+      <source>Estilo de tabela inválido ou com campos desconhecidos.</source>
+      <translation>Estilo de tabla no válido o con campos desconocidos.</translation>
+    </message>
+    <message>
+      <source>Tabela inválida ou com campos desconhecidos.</source>
+      <translation>Tabla no válida o con campos desconocidos.</translation>
+    </message>
+    <message>
+      <source>Tabela sem identidade ou dados obrigatórios.</source>
+      <translation>La tabla no tiene identidad o datos obligatorios.</translation>
+    </message>
+    <message>
+      <source>Nome de tabela inválido.</source>
+      <translation>Nombre de tabla no válido.</translation>
+    </message>
+    <message>
+      <source>Linhas e colunas devem estar entre 1 e 100.</source>
+      <translation>Las filas y columnas deben estar entre 1 y 100.</translation>
+    </message>
+    <message>
+      <source>A tabela admite até 1000 posições.</source>
+      <translation>La tabla admite hasta 1000 posiciones.</translation>
+    </message>
+    <message>
+      <source>Medidas de linhas/colunas inválidas.</source>
+      <translation>Medidas de filas/columnas no válidas.</translation>
+    </message>
+    <message>
+      <source>Geometria de tabela inválida.</source>
+      <translation>Geometría de tabla no válida.</translation>
+    </message>
+    <message>
+      <source>Opacidade de tabela inválida.</source>
+      <translation>Opacidad de tabla no válida.</translation>
+    </message>
+    <message>
+      <source>Estado de tabela inválido.</source>
+      <translation>Estado de tabla no válido.</translation>
+    </message>
+    <message>
+      <source>Identidade de camada inválida.</source>
+      <translation>Identidad de capa no válida.</translation>
+    </message>
+    <message>
+      <source>Identidade de grupo inválida.</source>
+      <translation>Identidad de grupo no válida.</translation>
+    </message>
+    <message>
+      <source>Fronteiras inválidas.</source>
+      <translation>Límites de celdas no válidos.</translation>
+    </message>
+    <message>
+      <source>Fronteira com campos inválidos.</source>
+      <translation>El límite de celda tiene campos no válidos.</translation>
+    </message>
+    <message>
+      <source>Orientação de fronteira inválida.</source>
+      <translation>Orientación del límite de celda no válida.</translation>
+    </message>
+    <message>
+      <source>Fronteira fora da grade.</source>
+      <translation>El límite de celda está fuera de la cuadrícula.</translation>
+    </message>
+    <message>
+      <source>Fronteira repetida.</source>
+      <translation>Límite de celda repetido.</translation>
+    </message>
+    <message>
+      <source>Células inválidas.</source>
+      <translation>Celdas no válidas.</translation>
+    </message>
+    <message>
+      <source>Célula inválida ou sem identidade.</source>
+      <translation>Celda no válida o sin identidad.</translation>
+    </message>
+    <message>
+      <source>Identidade de célula repetida.</source>
+      <translation>Identidad de celda repetida.</translation>
+    </message>
+    <message>
+      <source>Índice ou alcance de mesclagem inválido.</source>
+      <translation>Índice o alcance de combinación no válido.</translation>
+    </message>
+    <message>
+      <source>Mesclagens sobrepostas.</source>
+      <translation>Celdas combinadas superpuestas.</translation>
+    </message>
+    <message>
+      <source>Conteúdo da célula excede o limite.</source>
+      <translation>El contenido de la celda supera el límite.</translation>
+    </message>
+    <message>
+      <source>Texto Unicode inválido.</source>
+      <translation>Texto Unicode no válido.</translation>
+    </message>
+    <message>
+      <source>Texto da tabela excede o limite.</source>
+      <translation>El texto de la tabla supera el límite.</translation>
+    </message>
+    <message>
+      <source>A célula não admite recursos externos, gráficos ou tabelas aninhadas.</source>
+      <translation>La celda no admite recursos externos, gráficos ni tablas anidadas.</translation>
+    </message>
+    <message>
+      <source>Espaçamento/contorno não cabe na célula.</source>
+      <translation>El espacio interior/contorno no cabe en la celda.</translation>
+    </message>
+    <message>
+      <source>A grade possui posições sem célula.</source>
+      <translation>La cuadrícula tiene posiciones sin celda.</translation>
+    </message>
+    <message>
+      <source>O documento admite até 20 tabelas.</source>
+      <translation>El documento admite hasta 20 tablas.</translation>
+    </message>
+    <message>
+      <source>Identidade de célula repetida entre tabelas.</source>
+      <translation>Identidad de celda repetida entre tablas.</translation>
+    </message>
+    <message>
+      <source>O documento excede o limite de posições/texto das tabelas.</source>
+      <translation>El documento supera el límite de posiciones/texto de las tablas.</translation>
+    </message>
+    <message>
+      <source>Dimensões inválidas para criar uma tabela.</source>
+      <translation>Dimensiones no válidas para crear una tabla.</translation>
+    </message>
+    <message>
+      <source>Célula fora da grade.</source>
+      <translation>La celda está fuera de la cuadrícula.</translation>
+    </message>
+    <message>
+      <source>Intervalo de células inválido.</source>
+      <translation>Intervalo de celdas no válido.</translation>
+    </message>
+    <message>
+      <source>O intervalo corta uma mesclagem existente.</source>
+      <translation>El intervalo corta una celda combinada existente.</translation>
+    </message>
+    <message>
+      <source>Alvo de contorno inválido.</source>
+      <translation>Destino de contorno no válido.</translation>
+    </message>
+    <message>
+      <source>Posição/quantidade inválida para alterar a tabela.</source>
+      <translation>Posición/cantidad no válida para modificar la tabla.</translation>
+    </message>
+    <message>
+      <source>A tabela precisa conservar ao menos uma linha e uma coluna.</source>
+      <translation>La tabla debe conservar al menos una fila y una columna.</translation>
+    </message>
+    <message>
+      <source>Inserção excede os limites da tabela.</source>
+      <translation>La inserción supera los límites de la tabla.</translation>
+    </message>
+    <message>
+      <source>Medida de linha/coluna inválida.</source>
+      <translation>Medida de fila/columna no válida.</translation>
+    </message>
+    <message>
+      <source>Dimensões inválidas para redimensionar.</source>
+      <translation>Dimensiones no válidas para redimensionar.</translation>
+    </message>
+    <message>
+      <source>Eixo inválido.</source>
+      <translation>Eje no válido.</translation>
+    </message>
+    <message>
+      <source>O intervalo excede o limite da área de transferência.</source>
+      <translation>El intervalo supera el límite del portapapeles.</translation>
+    </message>
+    <message>
+      <source>Área de transferência inválida ou excessiva.</source>
+      <translation>Datos del portapapeles no válidos o excesivos.</translation>
+    </message>
+    <message>
+      <source>Versão de intervalo não reconhecida.</source>
+      <translation>Versión de intervalo no reconocida.</translation>
+    </message>
+    <message>
+      <source>O intervalo intercepta uma mesclagem incompatível.</source>
+      <translation>El intervalo intercepta una celda combinada incompatible.</translation>
+    </message>
+    <message>
+      <source>Texto da área de transferência excessivo.</source>
+      <translation>El texto del portapapeles es excesivo.</translation>
+    </message>
+    <message>
+      <source>O intervalo colado excede os limites da tabela.</source>
+      <translation>El intervalo pegado supera los límites de la tabla.</translation>
+    </message>
+    <message>
+      <source>A área de transferência está vazia.</source>
+      <translation>El portapapeles está vacío.</translation>
+    </message>
+    <message>
+      <source>Área de transferência excessiva.</source>
+      <translation>Los datos del portapapeles son excesivos.</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/frontend.py" line="1631" />
+      <source>Alterar senha</source>
+      <translation>Cambiar contraseña</translation>
+    </message>
+    <message>
+      <source>Operação de estrutura inválida.</source>
+      <translation>Operación de estructura no válida.</translation>
+    </message>
+    <message><source>Expandir barra de ferramentas</source><translation>Expandir barra de herramientas</translation></message>
+    <message><source>Recolher barra de ferramentas</source><translation>Contraer barra de herramientas</translation></message>
+      <message>
+      <source>Clique em uma imagem no canvas ou em Camadas. Esc cancela.</source>
+      <translation>Haz clic en una imagen en el lienzo o en Capas. Esc cancela.</translation>
+    </message>
+    <message>
+      <source>Selecionar imagem no canvas ou em Camadas</source>
+      <translation>Seleccionar imagen en el lienzo o en Capas</translation>
+    </message>
+    <message>
+      <source>Imagem variável</source>
+      <translation>Imagen variable</translation>
+    </message>
+    <message>
+      <source>Ajuste o enquadramento da imagem e clique em Concluir.</source>
+      <translation>Ajusta el encuadre de la imagen y haz clic en Finalizar.</translation>
+    </message>
+    <message>
+      <source>BORDAS</source>
+      <translation>BORDES</translation>
+    </message>
+    <message>
+      <source>Cor das bordas das células</source>
+      <translation>Color de los bordes de las celdas</translation>
+    </message>
+    <message>
+      <source>Opacidade das bordas</source>
+      <translation>Opacidad de los bordes</translation>
+    </message>
+</context>
   <context>
     <name>EditorProtection</name>
     <message><source>Alterar senha</source><translation>Cambiar contraseña</translation></message>

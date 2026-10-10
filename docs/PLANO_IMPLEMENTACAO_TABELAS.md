@@ -2,13 +2,13 @@
 
 Data: 09/10/2026.
 
-**Status: etapa 00 autorizada e concluída em 09/10/2026, com referência, cenários, testes e medições registrados. Etapas 01–08 pendentes. Nenhuma alteração no código de produção ou na interface nesta etapa.**
+**Status: etapas 00–06 autorizadas e concluídas em 09/10/2026. Inserção pública em Elementos → Tabela, painel lateral, operações estruturais, formatação múltipla, clipboard de intervalos/objetos, camadas, grupos, páginas e histórico integrados. Abordagem: layout próprio com texto Qt por célula; restauração pelo fallback completo. Etapas 07–08 pendentes.**
 
 ## 1. Instruções para a instância responsável
 
 Implementar um elemento de tabela editável no canvas, integrado ao editor, ao formato do modelo, à prévia e à geração. A tabela deve permitir compor boletins, escalas, fichas e quadros de informações, sem cálculos ou fórmulas.
 
-Este documento registra o pedido, recomendações de comportamento, pontos de integração encontrados no código e critérios de conclusão. O usuário autorizou a execução da primeira etapa (00), concluída conforme o relatório abaixo. As etapas seguintes serão executadas conforme as instruções de continuidade do usuário, sem solicitar confirmação para cada decisão técnica rotineira dentro da etapa autorizada.
+Este documento registra o pedido, recomendações de comportamento, pontos de integração encontrados no código e critérios de conclusão. O usuário autorizou as etapas 00–06, concluídas conforme os relatórios abaixo. As etapas seguintes serão executadas conforme as instruções de continuidade do usuário, sem solicitar confirmação para cada decisão técnica rotineira dentro da etapa autorizada.
 
 - Ler as instruções locais aplicáveis e conferir o estado real dos arquivos antes de editar. Os nomes de funções abaixo são referências; números de linha não são contratos.
 - Preservar as alterações locais existentes. Na análise, a branch `upgrade-01` continha mudanças e arquivos não versionados das otimizações anteriores. Não restaurar arquivos inteiros para o `HEAD`, limpar a árvore ou usar o commit como única identidade da referência.
@@ -244,6 +244,8 @@ Não marcar uma etapa concluída apenas porque o elemento aparece na tela. Cada 
 - Escolher e documentar representação das fronteiras, medidas e política de overflow. Medir o custo inicial de 40 × 20 células antes de definir limites.
 - Avançar quando os requisitos couberem na abordagem. Se for necessário retirar uma função solicitada, relatar a limitação ao usuário antes de reduzir o escopo.
 
+**Registro da execução:** [relatório da etapa 01](implementacao_tabelas/etapa-01/RELATORIO.md). A grade própria manteve medidas fixas, alinhamento, mesclagens e clipping. QTextTable cresceu com conteúdo ou deixou texto exceder a área prevista; o ciclo HTML também mudou sua altura. Treze testes do protótipo passaram nas escalas de tela 1 e 2, além de treze testes existentes. Canvas/imagem coincidiram em pixels; PDF rasterizado foi conferido com tolerância registrada. A referência de 800 células mede construção/pintura em 398,69 ms e repintura em 37,91 ms (medianas). Nenhuma função solicitada foi retirada nem arquivo de produção alterado. A próxima etapa é contrato, operações e persistência (02).
+
 ### Etapa 02 — Dados, compatibilidade e operações atômicas
 
 - Implementar estrutura persistente, validação e helpers de inserir/remover/mesclar/dividir, com entradas/saídas independentes e sem Qt na parte de dados.
@@ -251,6 +253,8 @@ Não marcar uma etapa concluída apenas porque o elemento aparece na tela. Cada 
 - Definir limites consistentes com o contêiner; testar exatamente no limite e acima dele. Uma operação inválida deve deixar o documento anterior intacto.
 - Cobrir leitura 3/4/5, versão nova, arquivo desconhecido, ida e volta pública/protegida e rejeição do novo formato pelo leitor antigo, em processo/check-out isolado quando necessário.
 - Não aplicar teste de compatibilidade salvando uma cópia com a aplicação antiga sobre o arquivo original.
+
+**Registro da execução:** [relatório da etapa 02](implementacao_tabelas/etapa-02/RELATORIO.md) e [contrato dos dados](implementacao_tabelas/etapa-02/CONTRATO.md). Schema 6, operações por cópia e fronteiras canônicas implementados. Os 39 testes novos passaram, assim como 23 complementares existentes e os mesmos 209 testes da regressão antes/depois. Pacotes públicos/protegidos e snapshots de recuperação preservam tabelas; o leitor anterior recusa v6 sem alterar o original. Limites e custos de 800 células registrados. Ao encerrar a etapa 02, editor e renderizadores recusavam tabelas temporariamente; as barreiras de renderização foram retiradas na etapa 03. A de edição permanece.
 
 ### Etapa 03 — Layout e saída antes de completar a UI
 
@@ -260,7 +264,20 @@ Não marcar uma etapa concluída apenas porque o elemento aparece na tela. Cada 
 - Integrar o renderer e sua classificação estática/dinâmica. Gerar registros alternados com valores, vazios e estilos diferentes, sem vazamento entre saídas.
 - Comparar PNG/prévia/PDF em dimensões equivalentes; não aceitar apenas um teste em que as duas saídas chamam a mesma função sem verificar medidas e conteúdo esperado.
 
+**Registro da execução:** [relatório da etapa 03](implementacao_tabelas/etapa-03/RELATORIO.md). Layout/pintura compartilhados, resolução de células sem ocultar a grade, fontes e dispatch de tabelas na prévia/geração implementados. Os mesmos 209 testes existentes passaram antes/depois; 62 complementares aprovados e 27 novos testes aprovados nas escalas Qt 1 e 2. PDF rasterizado independentemente apresentou diferença máxima de 2 px a 300 DPI nas dez caixas de tinta; medidas, conteúdo e cores conferidos. Referência com 800 células: 379,795 ms para montar/pintar e 39,650 ms para repintar layout retido. Editor continua protegido contra abertura/edição incompleta. A próxima etapa é canvas/sessão (04).
+
 ### Etapa 04 — Canvas e sessão de edição
+
+**Concluída em 09/10/2026:** item raiz e editor temporário por célula, seleção
+e navegação, texto Unicode, atalhos por contexto, serialização e histórico
+básico, páginas e recuperação ativa verificados. Os 209 testes anteriores
+passaram antes/depois; 25 testes de canvas e 27 de renderização passaram nas
+escalas 1 e 2; 62 verificações de dados/persistência também passaram. Na
+tabela de 800 células, a pintura isolada da região de uma célula caiu de
+38,87 para 3,54 ms; a digitação com eventos permaneceu perto de 24 ms.
+Histórico global usa o fallback completo por segurança. Inserção/painel e
+cópia/duplicação seguem nas etapas 05/06. Evidências, limites e medições no
+[relatório da etapa 04](implementacao_tabelas/etapa-04/RELATORIO.md).
 
 - Implementar item raiz, coordenadas locais, hit testing de células mescladas, moldura e seleção interna.
 - Reutilizar edição textual e encaminhar atalhos por contexto; preservar acentos, caracteres compostos e entrada por método de composição.
@@ -269,6 +286,12 @@ Não marcar uma etapa concluída apenas porque o elemento aparece na tela. Cada 
 - Garantir que apenas a região afetada seja invalidada. Não usar `scene.clear()` ou reconstrução global para cada tecla.
 
 ### Etapa 05 — Painel e operações completas
+
+**Concluída em 09/10/2026.** Inserção pública, seções Texto/Tabela, estados
+mistos, medidas em milímetros, estrutura e intervalos com MIME validado/TSV.
+Texto literal semelhante a HTML permanece literal após formatar/editar,
+sem permitir recursos externos na marcação. Ver
+[relatório da etapa 05](implementacao_tabelas/etapa-05/RELATORIO.md).
 
 - Renomear visualmente Formas → Elementos; manter os IDs internos estáveis quando não houver necessidade de alterá-los. Atualizar tooltip, acessibilidade e descrições relacionadas.
 - Criar seção Tabela abaixo de Texto com títulos centralizados em caixa alta, divisores e espaçamentos atuais. Reutilizar ícones com cor de tema; não usar caracteres improvisados como ícones.
@@ -280,6 +303,12 @@ Não marcar uma etapa concluída apenas porque o elemento aparece na tela. Cada 
 
 ### Etapa 06 — Histórico, camadas e cenas completas
 
+**Concluída em 09/10/2026.** Tabela integrada aos objetos/camadas/grupos,
+cópias com IDs independentes, transformações e captura completa dos dados
+no histórico. Restauração conserva o fallback completo. 370 testes distintos
+passaram; comparações antes/depois, pioras e diagnóstico de descarte Qt em
+[relatório da etapa 06](implementacao_tabelas/etapa-06/RELATORIO.md).
+
 - Incluir tabela nos caminhos de nome, grupo, bloqueio, visibilidade, exclusão, geometria, seleção múltipla e ordenação. Manter as regras de grupo aprovadas no projeto.
 - Duplicar/colar cria novas identidades de tabela/células, sem referências compartilhadas mutáveis. As células de uma cópia não alteram a original.
 - Completar captura e restauração do histórico. Se o caminho incremental não puder provar equivalência, usar o fallback correto; não ignorar células para obter velocidade.
@@ -288,6 +317,13 @@ Não marcar uma etapa concluída apenas porque o elemento aparece na tela. Cada 
 
 ### Etapa 07 — Integração de produto
 
+**Concluída em 09/10/2026.** Corrigida a inclusão das tabelas complementares
+nos limites/tamanho sugerido do organograma. Verificados Página 1 replicada
+em 1.000 cartões/20 conjuntos, saídas PNG/PDF, frente/verso, múltiplos por
+folha, ladrilhos, biblioteca e proteção/recuperação com texto ativo.
+389 testes distintos passaram; medições antes/depois, repetição e pioras
+registradas no [relatório da etapa 07](implementacao_tabelas/etapa-07/RELATORIO.md).
+
 - Validar tabela na Página 1 replicada nos cartões e como desenho complementar no organograma, inclusive ordem de camadas, limites, conectores e prévia sem dados.
 - Validar todos os formatos já suportados, múltiplos por folha, frente/verso e ladrilhos. A tabela não introduz impressão direta nem paginação própria.
 - Verificar miniaturas, biblioteca, importar/exportar modelo, duplicar/renomear e reabrir. A nova versão não pode resultar em aviso falso de modelo protegido.
@@ -295,6 +331,14 @@ Não marcar uma etapa concluída apenas porque o elemento aparece na tela. Cada 
 - Usar dados sintéticos para todos os cenários protegidos e excluir conteúdo/chaves de logs e evidências.
 
 ### Etapa 08 — Fechamento e documentação
+
+**Concluída em 09/10/2026.** Adicionados 14 artigos de tabela e atualizadas
+as buscas/referências de Formas para Elementos. Interface e mensagens fixas
+traduzidas para inglês/espanhol, com catálogos QM compilados. A rodada final
+passou em 410 testes distintos; capturas offscreen cobrem temas, idiomas,
+zooms e escalas. Desempenho, pioras anteriores e indisponibilidade de
+validação nativa Linux/Windows estão no
+[relatório final](implementacao_tabelas/etapa-08/RELATORIO_FINAL.md).
 
 - Adicionar ajuda para inserir, selecionar/editar, medidas, mesclagem, contornos, alinhamento, texto variável, overflow e atalhos. Incluir exemplo de boletim, limites e distinção para a planilha de dados.
 - Atualizar referências visíveis ao botão Formas para Elementos mantendo buscas por ambos os termos. Seguir o fluxo de traduções já usado pelo projeto.
@@ -354,14 +398,14 @@ Os runners atuais não incluem automaticamente os testes novos nem todos os mód
 ## 9. Critérios de conclusão e entrega à próxima instância
 
 - [x] Etapa 00: referência e instrumentos registrados — [relatório](implementacao_tabelas/etapa-00/RELATORIO.md).
-- [ ] Etapa 01: abordagem de layout comprovada e decisões registradas.
-- [ ] Etapa 02: contrato, versão, limites e operações estruturais verificados.
-- [ ] Etapa 03: renderer e placeholders com fidelidade demonstrada.
-- [ ] Etapa 04: canvas e edição com foco/atalhos/histórico básico corretos.
-- [ ] Etapa 05: controles e funções solicitadas completos.
-- [ ] Etapa 06: integração com camadas, cópia, histórico e páginas completa.
-- [ ] Etapa 07: organograma, exportações e proteção/recuperação verificados.
-- [ ] Etapa 08: regressão, desempenho, ajuda e revisão visual registrados.
+- [x] Etapa 01: abordagem de layout comprovada e decisões registradas — [relatório](implementacao_tabelas/etapa-01/RELATORIO.md).
+- [x] Etapa 02: contrato, versão, limites e operações estruturais verificados — [relatório](implementacao_tabelas/etapa-02/RELATORIO.md).
+- [x] Etapa 03: renderer e placeholders com fidelidade demonstrada — [relatório](implementacao_tabelas/etapa-03/RELATORIO.md).
+- [x] Etapa 04: canvas e edição com foco/atalhos/histórico básico corretos — [relatório](implementacao_tabelas/etapa-04/RELATORIO.md).
+- [x] Etapa 05: controles e funções solicitadas completos — [relatório](implementacao_tabelas/etapa-05/RELATORIO.md).
+- [x] Etapa 06: integração com camadas, cópia, histórico e páginas completa — [relatório](implementacao_tabelas/etapa-06/RELATORIO.md).
+- [x] Etapa 07: organograma, exportações e proteção/recuperação verificados — [relatório](implementacao_tabelas/etapa-07/RELATORIO.md).
+- [x] Etapa 08: regressão, desempenho, ajuda e revisão visual registrados — [relatório final](implementacao_tabelas/etapa-08/RELATORIO_FINAL.md).
 
 Uma etapa só pode ser marcada concluída com evidência correspondente. Não relaxar validações, rasterizar a tabela como substituto da função editável ou omitir o histórico para apresentar um protótipo como funcionalidade terminada.
 

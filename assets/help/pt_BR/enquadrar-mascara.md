@@ -13,6 +13,11 @@ Escolher a posição da foto dentro da moldura sem deslocar a moldura inteira.
 3. Clique em Concluir ou pressione Enter para guardar o ajuste.
 4. Clique em Cancelar ou pressione Esc para voltar ao estado anterior da sessão.
 
+Durante o enquadramento, a barra flutuante é substituída pelos botões
+**Cancelar** e **Concluir**, posicionados junto à forma da máscara. Eles ficam
+visíveis mesmo se a barra estava recolhida. Ao usar um desses botões, a forma
+volta a ficar selecionada e sua barra normal reaparece no estado anterior.
+
 ## Exemplo de uso
 
 Reposicione uma foto para centralizar o rosto dentro de uma área 3×4 sem mudar a posição da área no cartão.

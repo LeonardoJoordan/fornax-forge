@@ -11,6 +11,7 @@ from core.i18n import current_locale
 from core.model_document import adapt_model_page
 from core.themes import theme_manager
 from .model_adapter import prepare_scene_page
+from .table_item import TableItem
 
 # Estado exclusivo da página. Controles, histórico, autorização e view são globais.
 PAGE_ATTRIBUTES = (
@@ -59,6 +60,8 @@ class PageScenesMixin:
                  (scene.changed, self.update_position_ui)]
         if getattr(self, 'canvas_edit', None):
             pairs.append((scene.selectionChanged, self.canvas_edit.selection_changed))
+        if getattr(self, 'table_edit', None):
+            pairs.append((scene.selectionChanged, self.table_edit.selection_changed))
         for signal, slot in pairs:
             if connect:
                 signal.connect(slot)
@@ -104,6 +107,10 @@ class PageScenesMixin:
         estimate = len(items) * 8192
         pixmaps = set()
         for item in items:
+            if isinstance(item, TableItem):
+                # Cada célula retém um QTextDocument, não só bytes de JSON.
+                estimate += len(item.layout.cells) * 16384
+                estimate += sum(len(c['html'].encode()) * 4 for c in item.data['cells'])
             if hasattr(item, 'pixmap'):
                 pixmap = item.pixmap()
                 if pixmap.cacheKey() not in pixmaps:
@@ -180,13 +187,13 @@ class PageScenesMixin:
         from core.document_layers import upgrade_layers
         from .canvas_items import DesignerBox, ImageItem, SignatureItem, Guideline
         ordered = upgrade_layers(data)
-        entries = {entry['layer_id']: entry for group in ('boxes', 'images', 'signatures', 'shapes')
+        entries = {entry['layer_id']: entry for group in ('boxes', 'images', 'signatures', 'shapes', 'tables')
                    for entry in ordered.get(group, [])}
         guides = []
         for item in self.scene.items():
             if isinstance(item, Guideline):
                 guides.append(item)
-            elif isinstance(item, (DesignerBox, ImageItem, SignatureItem)):
+            elif isinstance(item, (DesignerBox, ImageItem, SignatureItem, TableItem)):
                 entry = entries.get(item.layer_id)
                 if entry is not None:
                     z = (-100 if getattr(item, 'is_document_background', False)

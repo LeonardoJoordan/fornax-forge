@@ -64,6 +64,7 @@ from core.model_document import (
     iter_page_link_items,
     load_model_document,
     normalize_model_document,
+    document_contains_tables,
     resolve_model_file,
     save_model_document,
 )
@@ -1950,6 +1951,12 @@ class MainWindow(QMainWindow):
     def _load_fornax_document(self, document, asset_provider, status):
         """Apresenta um snapshot autorizado sem criar arquivos de cache abertos."""
         data = adapt_model_page(document, "front")
+        if document_contains_tables(document):
+            from core.font_utils import missing_template_fonts, format_font_list
+            missing = missing_template_fonts(document)
+            if missing:
+                self.log_panel.append(tr("Fontes ausentes no modelo; o sistema usará substitutas: {fontes}").format(
+                    fontes=format_font_list(missing)))
         self.current_filename_suffix = data.get("output_suffix", "")
         last_fmt = data.get("last_export_format", "PNG")
         last_single = data.get("last_single_pdf", False)

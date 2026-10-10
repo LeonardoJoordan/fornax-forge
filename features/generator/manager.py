@@ -202,6 +202,7 @@ class RenderManager(QObject):
         worker.progress.connect(self._on_secure_grouped_progress)
         worker.finished_assembly.connect(self._on_secure_grouped_finished)
         worker.error_occurred.connect(self._on_worker_error)
+        worker.warning_occurred.connect(self.log_updated.emit)
         self.workers.append(worker)
         worker.start()
 
@@ -286,6 +287,7 @@ class RenderManager(QObject):
             )
             w.page_finished.connect(self._on_page_finished)
             w.error_occurred.connect(self._on_worker_error)
+            w.warning_occurred.connect(self.log_updated.emit)
             
             self.workers.append(w)
             w.start()
@@ -309,6 +311,7 @@ class RenderManager(QObject):
             )
             w.card_finished.connect(self._on_direct_card_finished)
             w.error_occurred.connect(self._on_worker_error)
+            w.warning_occurred.connect(self.log_updated.emit)
             
             self.workers.append(w)
             w.start()

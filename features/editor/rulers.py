@@ -27,7 +27,9 @@ class Ruler(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.fillRect(self.rect(), QColor(theme_color('panel')))
-        painter.setFont(QFont('sans-serif', 8))
+        font = QFont(self.font())
+        font.setPointSize(8)
+        painter.setFont(font)
         view = self.window.view
         doc = self.window._get_document_rect()
         transform = view.viewportTransform()

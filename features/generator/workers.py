@@ -10,6 +10,12 @@ from core.i18n import tr
 from core.model_document import resolve_model_file
 from core.naming_engine import confined_output_path
 from core.render_cache import publish_thumbnail_cache, source_revision
+from core.table_warnings import table_warning_messages
+
+
+def emit_table_warnings(worker, renderer, source_row):
+    for message in table_warning_messages(renderer.render_warnings,source_row):
+        worker.warning_occurred.emit(message)
 
 
 def physical_page(width_mm, height_mm):
@@ -28,6 +34,7 @@ def pdf_painter(writer):
 class DirectRenderWorker(QThread):
     card_finished = Signal(object, int, object)
     error_occurred = Signal(str)
+    warning_occurred = Signal(str)
 
     def __init__(self, chunk_data, renderers, output_dir, export_format="PNG", single_pdf=False, target_w_mm=100.0, target_h_mm=150.0, secure_output=False):
         super().__init__()
@@ -79,6 +86,7 @@ class DirectRenderWorker(QThread):
                             writer.newPage()
                         local_links = []
                         image = renderer.render_to_qimage(row_plain, row_rich, out_links=local_links)
+                        emit_table_warnings(self,renderer,source_row)
                         painter.drawImage(layout.paintRectPixels(writer.resolution()), image)
                         links_by_page[page_index] = local_links
                     painter.end()
@@ -122,6 +130,7 @@ class DirectRenderWorker(QThread):
                             row_plain, row_rich, temporary, out_links=local_links,
                             target_w_mm=self.target_w_mm, target_h_mm=self.target_h_mm,
                         )
+                        emit_table_warnings(self,renderer,source_row)
                         links_by_page[page_index] = local_links
                         staged.append((temporary, out_path))
                     if not self._is_running:
@@ -154,6 +163,7 @@ class DirectRenderWorker(QThread):
             self.error_occurred.emit(str(e))
 
 class PageRenderWorker(QThread):
+    warning_occurred = Signal(str)
     page_finished = Signal(int, object, int, object, str)
     error_occurred = Signal(str)
 
@@ -214,6 +224,7 @@ class PageRenderWorker(QThread):
                         _, _, _, row_plain, row_rich, _ = task
                         links = []
                         card_images.append(renderer.render_to_qimage(row_plain, row_rich, out_links=links))
+                        emit_table_warnings(self,renderer,task[1])
                         card_links.append(links)
                     sheet_links = []
                     canvas = renderer.tpl.get("canvas_size", {})
@@ -320,6 +331,7 @@ class SecureGroupedPdfWorker(QThread):
     progress = Signal(int, str)
     finished_assembly = Signal(str)
     error_occurred = Signal(str)
+    warning_occurred = Signal(str)
 
     def __init__(self, tasks, renderers, output_dir, imposition_settings,
                  target_w_mm, target_h_mm):
@@ -381,6 +393,7 @@ class SecureGroupedPdfWorker(QThread):
                             card_images.append(renderer.render_to_qimage(
                                 row_plain, row_rich, out_links=local_links,
                             ))
+                            emit_table_warnings(self,renderer,task[1])
                             card_links.append(local_links)
                         sheet_links = []
                         canvas = renderer.tpl.get("canvas_size", {})
@@ -417,6 +430,7 @@ class SecureGroupedPdfWorker(QThread):
                         image = renderer.render_to_qimage(
                             row_plain, row_rich, out_links=local_links,
                         )
+                        emit_table_warnings(self,renderer,_source_row)
                         painter.drawImage(layout.paintRectPixels(writer.resolution()), image)
                         links_by_page[page_number] = local_links
                         page_number += 1

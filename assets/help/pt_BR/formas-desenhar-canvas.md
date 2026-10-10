@@ -1,6 +1,6 @@
 ## O que é
 
-O menu Formas oferece Quadrado/retângulo, Círculo/elipse e Linha. A opção escolhida inicia um desenho por clique e arrasto no canvas.
+O menu **Elementos**, antes chamado **Formas**, oferece Quadrado/retângulo, Círculo/elipse, Linha e Tabela. As formas são desenhadas por clique e arrasto; a tabela abre um diálogo para definir linhas e colunas.
 
 ## Para que serve
 
@@ -8,9 +8,15 @@ Criar fundos, molduras, separadores e áreas que também podem receber imagens v
 
 ## Como usar
 
-1. Abra Formas e escolha o tipo.
+1. Abra **Elementos** e escolha o tipo de forma.
 2. Clique no ponto inicial, mantenha o botão esquerdo pressionado e arraste.
 3. Solte para criar a forma; selecione-a para ajustar dimensões e estilo em Propriedades.
+
+Ao selecionar um retângulo ou círculo/elipse, a barra flutuante oferece atalhos
+para cor do preenchimento, habilitar/desabilitar contorno, opacidade geral e
+adicionar/remover máscara. Arraste a alça para encaixar a barra nos quatro lados
+da forma; o botão **−/+** recolhe ou expande as ferramentas. Linhas e o plano de
+fundo continuam usando os controles da lateral.
 
 ## Exemplo de uso
 
@@ -27,6 +33,8 @@ O nome “Quadrado” não limita o desenho a lados iguais; sem Shift, você pod
 - Criar uma forma não preenche automaticamente os dados de uma imagem variável.
 
 ## Veja também
+
+- [Inserir uma tabela gráfica](help:TBL-01).
 
 - [Restringir proporções com Shift durante o desenho](help:FOR-06).
 - [Cor de preenchimento pelo seletor](help:FOR-09).

@@ -2,7 +2,7 @@ from core.themes import themed_style
 from PySide6.QtWidgets import (QWidget, QSpinBox, QTextEdit, QFontComboBox,
                                QPushButton, QComboBox, QDoubleSpinBox, QColorDialog,
                                QGraphicsOpacityEffect, QMessageBox)
-from PySide6.QtCore import Qt, Signal, QMimeData, QSize
+from PySide6.QtCore import Qt, Signal, QMimeData, QSize, QSignalBlocker
 from PySide6.QtGui import QFont, QTextCursor, QTextBlockFormat, QTextCharFormat, QIcon
 import re
 
@@ -314,9 +314,12 @@ class CaixaDeTextoPanel(QWidget):
         self._restore_available = True
         self._link_available = isinstance(img, ImageItem) and not isinstance(img, BackgroundItem)
         rect = img.rect() if hasattr(img, 'rect') else img.pixmap().rect()
-        self.spin_h.setMinimum(0.01 if getattr(img, 'shape_type', '') == 'line' else 1.0)
-        self.spin_w.setValue(px_to_mm(rect.width()))
-        self.spin_h.setValue(px_to_mm(rect.height()))
+        # Carregar medidas não é um gesto de redimensionamento. Os sinais
+        # internos usavam a proporção da seleção anterior e alteravam o campo irmão.
+        with QSignalBlocker(self.spin_w), QSignalBlocker(self.spin_h):
+            self.spin_h.setMinimum(0.01 if getattr(img, 'shape_type', '') == 'line' else 1.0)
+            self.spin_w.setValue(px_to_mm(rect.width()))
+            self.spin_h.setValue(px_to_mm(rect.height()))
         self.spin_rot.setValue(self._normalize_rotation(img.rotation()))
         if rect.height() > 0: self._aspect_ratio = rect.width() / rect.height()
         self.spin_opacity.setValue(img.opacity() * 100.0)
@@ -422,13 +425,13 @@ class EditorDeTextoPanel(QWidget):
         self.cbo_align.addItems([tr("Esquerda"), tr("Centro"), tr("Direita"), tr("Justificado")])
         self._align_map = ["left", "center", "right", "justify"]
         self.cbo_align.currentIndexChanged.connect(
-            lambda idx: self.alignChanged.emit(self._align_map[idx])
+            lambda idx: self.alignChanged.emit(self._align_map[idx]) if idx >= 0 else None
         )
         self.cbo_valign = QComboBox(self)
         self.cbo_valign.addItems([tr("Topo"), tr("Meio"), tr("Base")])
         self._valign_map = ["top", "center", "bottom"]
         self.cbo_valign.currentIndexChanged.connect(
-            lambda idx: self.verticalAlignChanged.emit(self._valign_map[idx])
+            lambda idx: self.verticalAlignChanged.emit(self._valign_map[idx]) if idx >= 0 else None
         )
 
         self.spin_indent = MathDoubleSpinBox(self)
@@ -529,12 +532,25 @@ class EditorDeTextoPanel(QWidget):
 
     def set_font_family(self, font):
         self.fontFamilyChanged.emit(font)
-        self.txt_content.setFocus()
+        if not getattr(self, '_table_mode', False):
+            self.txt_content.setFocus()
+
+    def set_table_mode(self, enabled):
+        self._table_mode = enabled
+        if hasattr(self, 'table_size'):
+            self.spin_size.setVisible(not enabled)
+            self.table_size.setVisible(enabled)
+            self.spin_indent.setEnabled(not enabled)
+            self.alignment_buttons[3].setVisible(not enabled)
 
     def set_font_size(self, size):
         self.fontSizeChanged.emit(size)
 
     def set_format_attribute(self, attr_type):
+        table = getattr(self.window(), 'table_controller', None)
+        button = getattr(self, 'btn_' + attr_type)
+        if table and table.format_text(attr_type, button.isChecked()):
+            return
         controller = getattr(self.window(), 'canvas_edit', None)
         button = getattr(self, 'btn_' + attr_type)
         if controller and controller.format(attr_type, button.isChecked()):
@@ -572,7 +588,8 @@ class EditorDeTextoPanel(QWidget):
             themed_style(self.btn_color, f"background-color: {hex_color}; border: 1px solid @border_strong@; border-radius: 3px;")
             self.fontColorChanged.emit(hex_color)
             self.snapshotRequested.emit()
-            self.txt_content.setFocus()
+            if not getattr(self, '_table_mode', False):
+                self.txt_content.setFocus()
 
     def _on_indent_changed(self, val):
         self.indentChanged.emit(val)

@@ -13,6 +13,21 @@ Enquadrar fotos em retângulos, cantos arredondados ou elipses.
 3. Escolha no menu a imagem ou forma de destino e clique em Inserir imagem ou Aplicar.
 4. Ajuste o enquadramento e conclua.
 
+Na barra flutuante da forma, o atalho de máscara oferece duas opções:
+
+- **Selecionar imagem no canvas ou em Camadas**: ativa a seleção por clique.
+  Clique na imagem no desenho ou na sua linha em **Camadas** para iniciar o
+  enquadramento. Clicar em outro tipo de item, fora da seleção ou pressionar
+  **Esc** cancela sem aplicar a máscara.
+- **Imagem variável**: usa a forma para receber imagens diferentes por linha
+  da tabela de dados. Ajuste o **Campo da tabela** e o **Enquadramento** em
+  **Propriedades → IMAGEM VARIÁVEL**; a pasta das imagens é escolhida na tela principal.
+
+Quando a forma já tem máscara, esse atalho passa a removê-la, soltando suas
+imagens sem apagá-las. Para uma imagem variável, ele desativa o campo variável.
+Durante o enquadramento, use **Concluir/Cancelar** na barra flutuante, os
+controles da lateral ou **Enter/Esc**.
+
 ## Exemplo de uso
 
 Use uma elipse para recortar uma foto de perfil circular no cartão.

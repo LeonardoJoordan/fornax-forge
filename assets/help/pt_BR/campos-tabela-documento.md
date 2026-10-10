@@ -1,6 +1,6 @@
 ## O que é
 
-Documento → Campos da tabela reúne os nomes usados pelos textos, links e imagens variáveis do modelo. A ordem pode ser ajustada arrastando os itens.
+Documento → Campos da tabela reúne os nomes usados pelos textos, células de tabelas gráficas, links e imagens variáveis do modelo. A ordem pode ser ajustada arrastando os itens.
 
 ## Para que serve
 
