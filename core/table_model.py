@@ -306,6 +306,49 @@ def format_cells(table, top, left, bottom, right, style):
     return _done(result)
 
 
+def _cells_by_ids(table, cell_ids):
+    if not isinstance(cell_ids, (list, tuple, set, frozenset)) or not cell_ids:
+        _fail('Seleção de células inválida.')
+    if not all(isinstance(identity, str) for identity in cell_ids):
+        _fail('Seleção de células inválida.')
+    cell_ids = set(cell_ids)
+    selected = [cell for cell in table['cells'] if cell['id'] in cell_ids]
+    if {cell['id'] for cell in selected} != cell_ids:
+        _fail('Seleção de células inválida.')
+    return selected
+
+
+def format_cell_ids(table, cell_ids, style):
+    """Formata células avulsas numa única transação validada."""
+    validate_style(style)
+    result = _copy(table)
+    for cell in _cells_by_ids(result, cell_ids):
+        cell['style'].update(deepcopy(style))
+    return _done(result)
+
+
+def cell_edge_keys(cells):
+    """Fronteiras das posições escolhidas, incluindo divisas de mesclagens."""
+    keys = set()
+    for cell in cells:
+        r, c, rs, cs = (cell[k] for k in ('row', 'column', 'row_span', 'column_span'))
+        keys.update(('h', y, x) for y in range(r, r+rs+1) for x in range(c, c+cs))
+        keys.update(('v', y, x) for y in range(r, r+rs) for x in range(c, c+cs+1))
+    return keys
+
+
+def format_cell_edge_ids(table, cell_ids, style):
+    """Altera apenas as fronteiras das células escolhidas, sem preencher lacunas."""
+    validate_style(style, border=True)
+    result = _copy(table)
+    keys = cell_edge_keys(_cells_by_ids(result, cell_ids))
+    mapping = deepcopy(_edge_map(result))
+    for key in keys:
+        mapping.setdefault(key, {}).update(deepcopy(style))
+    _store_edges(result, mapping)
+    return _done(result)
+
+
 class _PlainText(HTMLParser):
     BLOCK_TAGS = {'p', 'div', 'br', 'li', 'hr', 'pre', 'blockquote', 'h1', 'h2', 'h3',
                   'h4', 'h5', 'h6', 'ul', 'ol', 'dl', 'dt', 'dd'}

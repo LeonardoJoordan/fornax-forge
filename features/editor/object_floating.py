@@ -1,7 +1,7 @@
-"""Atalhos mínimos para formas, agrupamento e conexão de blocos."""
+"""Ferramentas contextuais de texto, formas, agrupamento e conexão de blocos."""
 from PySide6.QtCore import Qt, QSignalBlocker, QRect, QRectF, QObject, QEvent
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QColorDialog, QDoubleSpinBox, QWidget, QHBoxLayout, QVBoxLayout, QWidgetAction, QGraphicsItem, QApplication, QLabel
+from PySide6.QtWidgets import QColorDialog, QDoubleSpinBox, QWidget, QGraphicsItem, QApplication, QLabel
 from shiboken6 import isValid
 
 from core.i18n import tr
@@ -11,7 +11,8 @@ from core.themes import themed_style
 from .canvas_items import RectangleItem, DesignerBox, ImageItem, SignatureItem, BackgroundItem
 from .organogram_editor import BoardGroupItem
 from .table_item import TableItem
-from .floating_bar import FloatingBar
+from .floating_bar import FloatingBar, BarPresentation
+from .text_floating import TextFloatingTools
 
 
 class MaskImagePicker(QObject):
@@ -121,50 +122,24 @@ class ObjectFloatingBar(FloatingBar):
         self.kind = None
         super().__init__(self)
         self.setObjectName('objectFloatingBar')
-        # A orientação pertence à sessão de enquadramento; os demais contextos
-        # mantêm a mesma linha de ferramentas, sem espaço reservado para texto.
-        tools_row = QWidget(self)
-        tools_row.setObjectName('objectFloatingTools')
-        tools_row.setLayout(self._layout)
-        themed_style(tools_row, 'QWidget#objectFloatingTools { background: transparent; border: none; }')
-        outer_layout = QVBoxLayout(self)
-        outer_layout.setContentsMargins(0, 0, 0, 0)
-        outer_layout.setSpacing(0)
-        self.mask_edit_hint = QLabel(tr('Ajuste o enquadramento da imagem e clique em Concluir.'), self)
-        self.mask_edit_hint.setObjectName('maskEditHint')
-        self.mask_edit_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.mask_edit_hint.setWordWrap(True)
-        self.mask_edit_hint.setFixedWidth(260)
-        self.mask_edit_hint.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        themed_style(self.mask_edit_hint, 'QLabel#maskEditHint { background: transparent; color: @text@; '
-                     'font-size: 12px; border: none; padding: 8px 8px 2px 8px; }')
-        self.mask_edit_hint.hide()
-        outer_layout.addWidget(self.mask_edit_hint, 0, Qt.AlignmentFlag.AlignHCenter)
-        outer_layout.addWidget(tools_row, 0, Qt.AlignmentFlag.AlignHCenter)
-        button = self.button('fill', '', tool_icon(
-            '<path d="m12 3 8 8-9 9-8-8 9-9ZM3 12h17M8 2l5 5"/>'), tr('Cor do preenchimento'))
+        self.mask_edit_hint = self.hint
+        button = self.color_button('fill', tr('Cor do preenchimento'))
         button.clicked.connect(self.choose_fill)
         button = self.button('outline', '', tool_icon('<rect x="4" y="4" width="16" height="16"/>'),
                              tr('Habilitar contorno'))
         button.setCheckable(True)
         button.clicked.connect(lambda: self.invoke('outline'))
-        opacity = self.button('opacity', '', themed_svg_icon(state_icon_path('opacity')), tr('Opacidade'))
-        menu = self.menu(opacity)
-        menu.setObjectName('tableFloatingAlignmentMenu')
-        menu.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        menu.setWindowFlag(Qt.WindowType.NoDropShadowWindowHint, True)
-        self.alignment_menus['opacity'] = menu
-        picker = QWidget(menu)
-        picker.setObjectName('tableFloatingAlignmentPicker')
-        layout = QHBoxLayout(picker); layout.setContentsMargins(5, 5, 5, 5)
+        self.text_tools = TextFloatingTools(self)
+        self.button('opacity', '', themed_svg_icon(state_icon_path('opacity')), tr('Opacidade'))
+        picker, layout = self.picker('opacity')
         self.opacity_spin = QDoubleSpinBox(picker)
         self.opacity_spin.setRange(0, 100); self.opacity_spin.setDecimals(0)
         self.opacity_spin.setSuffix(' %'); self.opacity_spin.setKeyboardTracking(False)
         self.opacity_spin.setAccessibleName(tr('Opacidade'))
         layout.addWidget(self.opacity_spin)
-        action = QWidgetAction(menu); action.setDefaultWidget(picker); menu.addAction(action)
+        self.set_popup_focus('opacity', self.opacity_spin)
         self.opacity_spin.editingFinished.connect(self.apply_opacity)
-        mask = self.button('mask', '', tool_icon('<rect x="3" y="3" width="18" height="18"/><circle cx="12" cy="12" r="6"/>'),
+        mask = self.button('mask', '', themed_svg_icon(state_icon_path('mask')),
                            tr('Usar como máscara'))
         mask.setCheckable(True)
         self.mask_menu = self.menu(mask)
@@ -175,10 +150,10 @@ class ObjectFloatingBar(FloatingBar):
                              tr('Conectar a elemento'))
         button.clicked.connect(lambda: self.invoke('connect'))
         button = self.button('mask_cancel', tr('Cancelar'), tool_icon('<path d="m6 6 12 12M18 6 6 18"/>'),
-                             tr('Cancelar'))
+                             tr('Cancelar'), label_mode='always')
         button.clicked.connect(lambda: self.finish_mask(False))
         button = self.button('mask_finish', tr('Concluir'), tool_icon('<path d="m5 12 4 4L19 6"/>'),
-                             tr('Concluir'))
+                             tr('Concluir'), label_mode='always')
         button.clicked.connect(lambda: self.finish_mask(True))
         self.finish_setup()
         controls = window._shape_quick_controls
@@ -215,6 +190,8 @@ class ObjectFloatingBar(FloatingBar):
         if (len(items) == 1 and isinstance(items[0], RectangleItem)
                 and items[0].shape_type in ('rectangle', 'ellipse', 'circle')):
             return 'shape', items
+        if len(items) == 1 and isinstance(items[0], DesignerBox):
+            return 'text', items
         return None, ()
 
     def selected(self):
@@ -246,24 +223,16 @@ class ObjectFloatingBar(FloatingBar):
 
     def tool_keys(self):
         return {'shape': ('fill', 'outline', 'opacity', 'mask'),
+                'text': self.text_tools.keys,
                 'group': ('group',), 'board': ('connect',),
                 'mask_edit': ('mask_cancel', 'mask_finish')}.get(self.kind, ())
 
-    def configure_orientation(self, side, compact, *, collapsed=None):
+    def presentation(self):
         editing = self.kind == 'mask_edit'
-        super().configure_orientation(side, compact, collapsed=False if editing else collapsed)
-        self.mask_edit_hint.setVisible(editing)
-        self.grip.setVisible(not editing)
-        if editing:
-            self.mask_edit_hint.ensurePolished()
-            self.mask_edit_hint.setFixedHeight(self.mask_edit_hint.heightForWidth(self.mask_edit_hint.width()))
-            # As decisões da sessão ficam sempre acessíveis, mesmo quando a
-            # barra normal estava recolhida; sua preferência é preservada.
-            self.collapse_button.hide()
-            for key in self.tool_keys():
-                button = self.buttons[key]
-                width = button.fontMetrics().horizontalAdvance(button.text()) + button.iconSize().width() + 28
-                button.setFixedWidth(width)
+        return BarPresentation(
+            self.tool_keys(),
+            tr('Ajuste o enquadramento da imagem e clique em Concluir.') if editing else '',
+            dockable=not editing, collapsible=not editing)
 
     def finish_mask(self, commit):
         w = self.window
@@ -290,6 +259,10 @@ class ObjectFloatingBar(FloatingBar):
         if self.mask_picker.shape is not None and not self.mask_picker.valid_target():
             self.mask_picker.cancel(refresh=False)
         self.kind, items = self.selection()
+        if self.kind in ('text', 'shape'):
+            with QSignalBlocker(self.opacity_spin):
+                self.opacity_spin.setValue(items[0].opacity()*100)
+            self.buttons['opacity'].setToolTip(tr('Opacidade do objeto') if self.kind == 'text' else tr('Opacidade'))
         if self.kind == 'shape':
             item = items[0]
             outline = self.buttons['outline']
@@ -300,9 +273,9 @@ class ObjectFloatingBar(FloatingBar):
             mask.setChecked(masked)
             mask.setEnabled(True)
             mask.setToolTip(tr('Remover máscara') if masked else tr('Usar como máscara'))
-            with QSignalBlocker(self.opacity_spin):
-                self.opacity_spin.setValue(item.opacity()*100)
             themed_style(self.buttons['fill'], 'border: 1px solid '+item.fill_color+';')
+        elif self.kind == 'text':
+            self.text_tools.refresh()
         elif self.kind == 'group':
             source = self.window.btn_group_layer
             self.buttons['group'].setIcon(source.icon())
@@ -319,6 +292,8 @@ class ObjectFloatingBar(FloatingBar):
         if self.mask_picker.shape is not None and not self.mask_picker.valid_target():
             self.mask_picker.cancel(refresh=False)
         self.kind, _ = self.selection()
+        if self.kind == 'text':
+            self.text_tools.refresh()
         super().reposition()
 
     def invoke(self, operation):
@@ -347,6 +322,12 @@ class ObjectFloatingBar(FloatingBar):
 
     def popup(self, button, menu):
         kind, items = self.selection()
+        if kind == 'text' and menu in self.text_tools.menus.values():
+            self.text_tools.popup(button, menu)
+            return
+        if kind == 'text' and menu is self.alignment_menus['opacity']:
+            super().popup(button, menu)
+            return
         if kind != 'shape':
             return
         target = self.target_key(items[0])
@@ -368,9 +349,6 @@ class ObjectFloatingBar(FloatingBar):
             action = menu.addAction(tr('Imagem variável'))
             action.triggered.connect(lambda _=False: self.use_dynamic_image(target))
         super().popup(button, menu)
-        if menu is self.alignment_menus['opacity']:
-            self.opacity_spin.setFocus(Qt.FocusReason.PopupFocusReason)
-            self.opacity_spin.selectAll()
 
     def use_dynamic_image(self, target):
         shape = self.selected()
@@ -391,7 +369,7 @@ class ObjectFloatingBar(FloatingBar):
 
     def apply_opacity(self):
         kind, items = self.selection()
-        if kind != 'shape' or self.target_key(items[0]) != self._menu_target:
+        if kind not in ('shape', 'text') or self.target_key(items[0]) != self._menu_target:
             return
         value = self.opacity_spin.value()
         if abs(items[0].opacity()*100-value) > .0001:
@@ -399,3 +377,9 @@ class ObjectFloatingBar(FloatingBar):
             control.setValue(value); control.editingFinished.emit()
         self.alignment_menus['opacity'].close()
         self.refresh(); self.restore_focus()
+
+    def restore_focus(self):
+        super().restore_focus()
+        box = self.window.canvas_edit.box
+        if box is not None and isValid(box):
+            box.text_item.setFocus(Qt.FocusReason.OtherFocusReason)

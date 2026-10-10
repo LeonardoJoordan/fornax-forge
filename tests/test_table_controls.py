@@ -17,6 +17,7 @@ from core.model_document import normalize_model_document, add_model_table
 from core.html_utils import TextOnlyDocument
 from core.themes import theme_manager
 from features.editor.table_item import TableItem
+from features.editor.canvas_items import DesignerBox
 
 
 class TableControlsTest(unittest.TestCase):
@@ -84,6 +85,31 @@ class TableControlsTest(unittest.TestCase):
         multi = TableLayout(set_cell_html(item.to_data(), 0, 0, '<p>Nome</p><p>Função</p>'))
         self.assertTrue(multi.warnings[0]['overflow_y'])
         self.assertEqual(old.to_data(), source)
+
+    def test_add_default_table_after_multi_selection_ignores_selection_overlay(self):
+        w, old = self.editor()
+        w.add_new_box()
+        box = next(i for i in w.scene.items() if isinstance(i, DesignerBox))
+        with w._selection_batch():
+            w.scene.clearSelection()
+            old.setSelected(True)
+            box.setSelected(True)
+        w.refresh_layer_list()
+        self.app.processEvents()
+        self.assertTrue(w._selection_frame.isVisible())
+        self.assertIsNotNone(getattr(w._selection_frame, 'layer_id', None))
+        expected_z = max(old.zValue(), box.zValue())+1
+        before = deepcopy(w._capture_document_history_state()['document'])
+        self.assertTrue(w.table_controller.add_table())
+        item = w.table_controller.selected()
+        self.assertEqual((item.data['rows'], item.data['columns']), (3, 3))
+        self.assertEqual(item.zValue(), expected_z)
+        validate_table(item.to_data())
+        final = deepcopy(w._capture_document_history_state()['document'])
+        w.undo()
+        self.assertEqual(w._capture_document_history_state()['document'], before)
+        w.redo()
+        self.assertEqual(w._capture_document_history_state()['document'], final)
 
     def test_mixed_selection_sync_does_not_edit_or_snapshot(self):
         table = new_table(2,2)

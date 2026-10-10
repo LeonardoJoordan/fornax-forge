@@ -33,6 +33,7 @@ class TableI18nTest(unittest.TestCase):
         sources=set()
         for name in ('features/editor/table_panel.py','features/editor/table_controller.py','features/editor/table_floating.py',
                      'features/editor/floating_bar.py', 'features/editor/object_floating.py',
+                     'features/editor/text_floating.py', 'features/editor/table_selectors.py',
                      'features/editor/table_edit.py','core/table_warnings.py','core/table_model.py','core/table_clipboard.py'):
             for node in ast.walk(ast.parse((PROJECT_ROOT/name).read_text())):
                 if (isinstance(node,ast.Call) and isinstance(node.func,ast.Name)
@@ -63,6 +64,10 @@ class TableI18nTest(unittest.TestCase):
                 self.assertEqual(w.table_controller.floating_bar.buttons['merge'].accessibleName(), merge)
                 self.assertEqual(w.table_controller.floating_bar.buttons['vertical_align'].toolTip(),
                                  tr('Alinhamento vertical'))
+                item.setSelected(True)
+                w.table_controller.selectors.reposition()
+                self.assertEqual(w.table_controller.selectors.buttons['row', 0].accessibleName(),
+                                 tr('Selecionar linha {number}').format(number=1))
                 self.assertEqual(w.object_floating_bar.collapse_button.toolTip(), collapse)
                 self.assertEqual(tr('Linhas'),rows)
                 self.assertTrue(any(elements in label.text() for label in w.btn_elements.findChildren(QLabel)))

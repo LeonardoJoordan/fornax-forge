@@ -143,9 +143,9 @@ class TablePanel(QWidget):
             self.summary.setText(tr('{rows} linhas × {columns} colunas; seleção: {count} células.').format(
                 rows=item.data['rows'], columns=item.data['columns'], count=len(styles)))
             mixed = lambda values: values[0] if values and all(v == values[0] for v in values) else None
-            for control,key,start,stop in ((self.row_height,'row_heights',top,bottom),
-                                           (self.column_width,'column_widths',left,right)):
-                value = mixed(item.data[key][start:stop+1])
+            for control,key,axis in ((self.row_height,'row_heights','row'),
+                                     (self.column_width,'column_widths','column')):
+                value = mixed([item.data[key][index] for index in item.selected_track_indexes(axis)])
                 mixed_spin(control, px_to_mm(value) if value is not None else None)
             for control,key,factor in ((self.padding,'padding',25.4/300),
                                         (self.fill_opacity,'fill_opacity',100),

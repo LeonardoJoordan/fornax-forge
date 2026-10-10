@@ -27,6 +27,7 @@ Crie linhas e colunas suficientes antes de colar. A colagem de um intervalo não
 - Para programas externos também é disponibilizado texto tabular. A colagem externa inicial traz texto, sem importar cores, fórmulas ou HTML arbitrário.
 - Um intervalo que não cabe ou intercepta uma mesclagem incompatível é recusado antes de alterar a tabela; não é truncado silenciosamente.
 - Uma seleção parcial de mesclagem é expandida para incluir a célula inteira.
+- Copiar e colar células exige uma seleção retangular completa. Se as células escolhidas com Ctrl + clique deixarem lacunas, o programa pede um intervalo completo e preserva os dados e a área de transferência.
 
 ## Veja também
 

@@ -41,6 +41,22 @@ class CellTextItem(QGraphicsTextItem):
         super().focusOutEvent(event)
         self.session.changed()
 
+    def mousePressEvent(self, event):
+        if (event.button() == Qt.MouseButton.LeftButton
+                and event.modifiers() & Qt.KeyboardModifier.ControlModifier):
+            item = self.session.item
+            hit = item.layout.hit(item.mapFromScene(event.scenePos()))
+            if hit is not None:
+                self.session.finish()
+                item.begin_ctrl_cell_selection(hit, event.screenPos())
+                # O editor temporário foi removido; a tabela recebe o restante
+                # do gesto, incluindo o release, em vez de perder o arraste.
+                item.grabMouse()
+                item._ctrl_cell_grabbed = True
+                event.accept()
+                return
+        super().mousePressEvent(event)
+
 
 class TableEdit(QObject):
     SHORTCUTS = ('shortcut_delete','shortcut_dup','shortcut_copy','shortcut_paste',
@@ -214,9 +230,7 @@ class TableEdit(QObject):
             self.begin(item,target)
 
     def clear_selected(self, item):
-        top,left,bottom,right = item.selected_range
-        anchors = [(c['row'],c['column']) for c in item.data['cells']
-                   if top <= c['row'] <= bottom and left <= c['column'] <= right]
+        anchors = [(c['row'], c['column']) for c in item.selected_cells()]
         item.publish_cells_html({anchor:'' for anchor in anchors})
         self.window.sync_placeholders_list()
         self.window.save_snapshot()

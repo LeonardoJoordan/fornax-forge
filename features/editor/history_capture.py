@@ -88,7 +88,8 @@ def history_inputs(window):
                          '_is_mouse_dragging', 'overlays_enabled', 'custom_name', 'layer_id', 'group_id',
                          'board_behind', 'keep_proportion', '_drag_start', '_resizing_from_handle',
                          '_board_cutout_owner', 'resize_handles', 'handle_br',
-                         '_pending_cell', '_overlays_enabled'}
+                         '_pending_cell', '_overlays_enabled', '_selected_cell_ids', '_ctrl_cell_selection',
+                         '_ctrl_cell_drag', '_ctrl_cell_grabbed'}
                 if set(vars(item)) - known:
                     return None
                 # Toda a fonte persistente, não a revisão nem o cache Qt. Assim,

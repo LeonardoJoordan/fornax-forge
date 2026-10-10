@@ -15,7 +15,11 @@ Formatar um intervalo de uma vez, escrever conteúdo ou mover a tabela sem confu
 5. Use **Tab** e **Shift + Tab** para visitar as células. As mescladas são tratadas como uma célula.
 6. **Esc** encerra a edição; outro **Esc** limpa a seleção interna, permitindo voltar ao arraste pelo corpo. A moldura e a camada também permitem selecionar o objeto inteiro.
 
-As células selecionadas recebem um realce suave e um contorno contínuo. Uma barra flutuante próxima à tabela oferece linhas, colunas, mesclar/separar, alinhamento e cor de preenchimento. Com um intervalo selecionado, as ferramentas atuam nesse intervalo; sem seleção interna, atuam na tabela inteira. Os controles da lateral continuam disponíveis.
+Na seleção interna, segure **Ctrl** e clique para adicionar células separadas. Clique novamente com Ctrl numa célula escolhida para removê-la da seleção. Com **Ctrl + arrastar**, adicione uma área retangular sem perder as células escolhidas antes do arraste, mesmo se começar sobre uma delas. Uma célula mesclada entra ou sai por inteiro. **Shift + clique** volta a formar um intervalo contínuo. Fora da seleção interna, Ctrl + clique continua selecionando objetos no canvas.
+
+Com a tabela selecionada, as setas acima selecionam colunas inteiras e as setas à esquerda selecionam linhas inteiras. A seta diagonal no canto superior esquerdo seleciona todas as células. Segure **Ctrl** ao clicar numa seta para acrescentar a linha ou coluna à seleção atual. Células mescladas entram por inteiro. Esses controles aparecem somente no editor e acompanham a tabela; se estiverem fora da área visível, mova a visualização para acessá-los. Em zoom muito reduzido, aumente o zoom para acessar os seletores das linhas ou colunas estreitas. Eles não aparecem na prévia nem nos arquivos gerados.
+
+As células selecionadas recebem um realce suave e um contorno. Quando a seleção é separada, cada célula escolhida é destacada individualmente. Uma barra flutuante próxima à tabela oferece linhas, colunas, mesclar/separar, alinhamento e cor de preenchimento. Com células selecionadas, a formatação e Delete atuam apenas nelas; sem seleção interna, as ferramentas atuam na tabela inteira. Os controles da lateral continuam disponíveis.
 
 Para reposicionar a barra, segure a alça de pontinhos e arraste para um dos destinos destacados em grafite claro. Solte para encaixar acima, abaixo, à esquerda ou à direita da tabela. Acima/abaixo a barra é horizontal; nas laterais é vertical. O lado escolhido permanece durante a sessão do editor, acompanhando a tabela e o zoom. **Esc** ou soltar fora dos destinos cancela o arrasto e mantém a posição anterior.
 
@@ -41,6 +45,8 @@ fundo/contorno a 75% de opacidade e botões opacos.
 ## Exemplo de uso
 
 Selecione o cabeçalho inteiro para aplicar negrito. Depois, entre apenas na célula “Disciplina” para corrigir uma palavra.
+
+Para destacar notas específicas, selecione a primeira nota e use Ctrl + clique nas demais. Altere o preenchimento para destacar somente essas células.
 
 ## Dica de uso
 

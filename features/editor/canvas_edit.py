@@ -151,6 +151,9 @@ class CanvasEdit(QObject):
         if alpha:
             with QSignalBlocker(alpha):
                 alpha.setValue(round(color.alphaF()*100))
+        bar = getattr(self.window, 'object_floating_bar', None)
+        if bar is not None:
+            bar.text_tools.refresh()
 
     def eventFilter(self, source, event):
         if event.type() == QEvent.Type.ShortcutOverride and self.box:

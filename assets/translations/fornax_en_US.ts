@@ -2,6 +2,13 @@
 <TS version="2.1" language="en_US" sourcelanguage="pt_BR">
   <context>
     <name />
+    <message><source>Selecionar linha {number}</source><translation>Select row {number}</translation></message>
+    <message><source>Selecionar coluna {number}</source><translation>Select column {number}</translation></message>
+    <message><source>Selecionar todas as células</source><translation>Select all cells</translation></message>
+    <message><source>Seleção de células inválida.</source><translation>Invalid cell selection.</translation></message>
+    <message><source>Para mesclar, selecione um retângulo completo de células.</source><translation>To merge, select a complete rectangle of cells.</translation></message>
+    <message><source>Para copiar ou colar, selecione um retângulo completo de células.</source><translation>To copy or paste, select a complete rectangle of cells.</translation></message>
+    <message><source>Opacidade do objeto</source><translation>Object opacity</translation></message>
     <message>
       <location filename="../../features/workspace/main_window.py" line="1198" />
       <source> [Imposição ativada]</source>

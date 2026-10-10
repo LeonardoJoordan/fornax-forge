@@ -1,13 +1,25 @@
 """Estrutura compartilhada das barras flutuantes do editor."""
+from dataclasses import dataclass
 from PySide6.QtCore import Qt, QEvent, QTimer, QSize, QPoint, QRect, QRectF
-from PySide6.QtGui import QColor, QPainter
-from PySide6.QtWidgets import (QFrame, QHBoxLayout, QBoxLayout, QLayout, QWidget,
-                              QPushButton, QMenu, QGraphicsItem, QGraphicsOpacityEffect)
+from PySide6.QtGui import QColor, QPainter, QAction
+from PySide6.QtWidgets import (QFrame, QHBoxLayout, QVBoxLayout, QBoxLayout, QLayout, QWidget,
+                              QPushButton, QMenu, QGraphicsItem, QGraphicsOpacityEffect,
+                              QLabel, QWidgetAction, QAbstractSpinBox, QComboBox)
 from shiboken6 import isValid
 
 from core.i18n import tr
-from core.theme_icons import tool_icon
+from core.resources import state_icon_path
+from core.theme_icons import tool_icon, themed_svg_icon
 from core.themes import themed_style, theme_color, theme_manager
+
+
+@dataclass(frozen=True)
+class BarPresentation:
+    """O contexto escolhe o conteúdo; o componente cuida de toda a apresentação."""
+    tools: tuple
+    hint: str = ''
+    dockable: bool = True
+    collapsible: bool = True
 
 
 class FloatingBarGrip(QWidget):
@@ -28,7 +40,7 @@ class FloatingBarGrip(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QColor(theme_color('muted')))
-        vertical = self.bar.dock_side in ('left', 'right')
+        vertical = self.bar.is_vertical
         for column in range(3 if vertical else 2):
             for row in range(2 if vertical else 3):
                 x = self.width()/2 + (column-(1 if vertical else .5))*5
@@ -63,6 +75,17 @@ class FloatingBarGrip(QWidget):
 
 
 class FloatingBar(QWidget):
+    """Registrar botões/menus e suas ações basta para compor uma nova barra.
+
+    `presentation()` declara ferramentas, orientação textual e disponibilidade
+    de arraste/recolhimento. Os contextos só fornecem seleção, estado e ações;
+    não precisam implementar layouts, medidas, temas ou ancoragens.
+    """
+    DOCK_GAP = 20
+    DOCK_SEPARATION = 30
+    DOCK_SIDES = tuple(side + suffix for side in ('top', 'bottom', 'left', 'right')
+                       for suffix in ('', '_far'))
+
     def __init__(self, controller):
         self.controller = controller
         self.view = controller.window.view
@@ -75,6 +98,8 @@ class FloatingBar(QWidget):
         self.alignment_choices = {}
         self.alignment_menus = {}
         self.alignment_layouts = {}
+        self._popup_focus = {}
+        self._button_labels = {}
         self._menu_target = None
         self.dock_side = 'top'
         self.collapsed = False
@@ -86,7 +111,27 @@ class FloatingBar(QWidget):
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
         self._timer.timeout.connect(self.reposition)
-        layout = QHBoxLayout(self)
+        # Todas as barras usam a mesma árvore visual, inclusive quando há
+        # orientação acima dos botões (por exemplo, durante o enquadramento).
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+        outer.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
+        self.hint = QLabel(self)
+        self.hint.setObjectName('floatingHint')
+        self.hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.hint.setWordWrap(True)
+        self.hint.setFixedWidth(260)
+        self.hint.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        themed_style(self.hint, 'QLabel#floatingHint { background: transparent; color: @text@; '
+                     'font-size: 12px; border: none; padding: 8px 8px 2px 8px; }')
+        self.hint.hide()
+        self.tools_row = QWidget(self)
+        self.tools_row.setObjectName('floatingTools')
+        themed_style(self.tools_row, 'QWidget#floatingTools { background: transparent; border: none; }')
+        outer.addWidget(self.hint, 0, Qt.AlignmentFlag.AlignHCenter)
+        outer.addWidget(self.tools_row, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout = QHBoxLayout(self.tools_row)
         layout.setContentsMargins(8, 6, 8, 6)
         layout.setSpacing(4)
         self._layout = layout
@@ -108,6 +153,7 @@ class FloatingBar(QWidget):
         self.hide()
 
     def refresh_surface_style(self):
+        self._size_cache.clear()
         # Transparência só na superfície; os controles mantêm contraste integral.
         def surface_color(role):
             color = QColor(theme_color(role))
@@ -138,8 +184,9 @@ class FloatingBar(QWidget):
                 QWidget#tableFloatingAlignmentPicker { background: transparent; border: none; }
             '''.replace('SURFACE', surface_color('panel'))
                 .replace('OUTLINE', surface_color('border_strong')))
+        self.schedule()
 
-    def button(self, key, text, icon, tooltip):
+    def button(self, key, text, icon, tooltip, *, label_mode='compact'):
         button = QPushButton(text, self)
         button.setObjectName('tableFloating_'+key)
         button.setIcon(icon)
@@ -151,7 +198,11 @@ class FloatingBar(QWidget):
             button.setFixedWidth(32)
         self._layout.addWidget(button)
         self.buttons[key] = button
+        self._button_labels[key] = (text, label_mode)
         return button
+
+    def color_button(self, key, tooltip):
+        return self.button(key, '', themed_svg_icon(state_icon_path('palette')), tooltip)
 
     def separator(self):
         separator = QFrame(self)
@@ -168,6 +219,60 @@ class FloatingBar(QWidget):
         self.menus.append(menu)
         button.clicked.connect(lambda: self.popup(button, menu))
         return menu
+
+    def picker(self, key):
+        """Popup de controles com a mesma superfície e opacidade da barra."""
+        menu = self.menu(self.buttons[key])
+        menu.setObjectName('tableFloatingAlignmentMenu')
+        menu.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        menu.setWindowFlag(Qt.WindowType.NoDropShadowWindowHint, True)
+        self.alignment_menus[key] = menu
+        picker = QWidget(menu)
+        picker.setObjectName('tableFloatingAlignmentPicker')
+        layout = QHBoxLayout(picker)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(4)
+        action = QWidgetAction(menu)
+        action.setDefaultWidget(picker)
+        menu.addAction(action)
+        return picker, layout
+
+    def choice_menu(self, key, choices, callback):
+        """Escolhas (valor, ícone, legenda), orientadas junto com a barra."""
+        picker, layout = self.picker(key)
+        menu = self.alignment_menus[key]
+        self.alignment_layouts[key] = layout
+        self.alignment_choices[key] = {}
+        for value, icon, label in choices:
+            action = QAction(icon, label, menu)
+            action.setCheckable(True)
+            self.actions[key+'_'+value] = action
+            choice = QPushButton(icon, '', picker)
+            choice.setObjectName('tableFloatingChoice_'+key+'_'+value)
+            choice.setFixedSize(32, 34)
+            choice.setIconSize(QSize(18, 18))
+            choice.setToolTip(label)
+            choice.setAccessibleName(label)
+            choice.setCheckable(True)
+            layout.addWidget(choice)
+            self.alignment_choices[key][value] = choice
+            choice.clicked.connect(lambda _=False, m=menu, a=action: (m.close(), a.trigger()))
+            action.triggered.connect(lambda _=False, v=value: callback(v))
+        return menu
+
+    def set_popup_focus(self, key, widget):
+        self._popup_focus[self.alignment_menus[key]] = widget
+
+    def presentation(self):
+        return BarPresentation(self.tool_keys())
+
+    @staticmethod
+    def dock_edge(side):
+        return side.removesuffix('_far')
+
+    @property
+    def is_vertical(self):
+        return self.dock_edge(self.dock_side) in ('left', 'right')
 
     def target_key(self, item):
         return item.data['object_id']
@@ -194,16 +299,40 @@ class FloatingBar(QWidget):
         self.show_menu(button, menu)
 
     def show_menu(self, button, menu):
+        axis = next((key for key in self.alignment_layouts
+                     if self.alignment_menus[key] is menu), None)
+        if axis is not None:
+            layout = self.alignment_layouts[axis]
+            direction = (QBoxLayout.Direction.TopToBottom if self.is_vertical
+                         else QBoxLayout.Direction.LeftToRight)
+            changed = layout.direction() != direction
+            layout.setDirection(direction)
+            layout.activate()
+            layout.parentWidget().adjustSize()
+            if changed:
+                # QMenu guarda as medidas do QWidgetAction entre aberturas.
+                action = menu.actions()[0]
+                action.setVisible(False)
+                action.setVisible(True)
         menu.adjustSize()
-        if self.dock_side == 'left':
+        edge = self.dock_edge(self.dock_side)
+        if edge == 'left':
             position = QPoint(button.width()+4, 0)
-        elif self.dock_side == 'right':
+        elif edge == 'right':
             position = QPoint(-menu.sizeHint().width()-4, 0)
-        elif self.dock_side == 'bottom':
+        elif edge == 'bottom':
             position = QPoint(0, -menu.sizeHint().height()-4)
         else:
             position = QPoint(0, button.height()+4)
         menu.popup(button.mapToGlobal(position))
+        focus = self._popup_focus.get(menu)
+        if axis is not None:
+            choices = list(self.alignment_choices[axis].values())
+            focus = next((choice for choice in choices if choice.isChecked()), choices[0])
+        if focus is not None:
+            focus.setFocus(Qt.FocusReason.PopupFocusReason)
+            if isinstance(focus, QAbstractSpinBox) or isinstance(focus, QComboBox) and focus.isEditable():
+                focus.lineEdit().selectAll()
 
     def restore_focus(self):
         self.view.setFocus(Qt.FocusReason.OtherFocusReason)
@@ -237,13 +366,19 @@ class FloatingBar(QWidget):
         return False
 
     def configure_orientation(self, side, compact, *, collapsed=None):
-        collapsed = self.collapsed if collapsed is None else collapsed
-        vertical = side in ('left', 'right')
-        labels = (tr('Linhas'), tr('Colunas'))
-        state = vertical, compact, labels, collapsed, self.tool_keys()
+        presentation = self.presentation()
+        collapsed = (self.collapsed if collapsed is None else collapsed) and presentation.collapsible
+        vertical = self.dock_edge(side) in ('left', 'right')
+        state = vertical, compact, collapsed, presentation
         if state == self._orientation:
             return
         self._orientation = state
+        self.hint.setVisible(bool(presentation.hint))
+        if presentation.hint:
+            self.hint.setText(presentation.hint)
+            self.hint.ensurePolished()
+            self.hint.setFixedHeight(self.hint.heightForWidth(self.hint.width()))
+        self.grip.setVisible(presentation.dockable)
         self._layout.setDirection(QBoxLayout.Direction.TopToBottom if vertical
                                   else QBoxLayout.Direction.LeftToRight)
         self._layout.setContentsMargins(*( (6, 8, 6, 8) if vertical else
@@ -251,10 +386,15 @@ class FloatingBar(QWidget):
         self._layout.setSpacing(1 if compact and not vertical else 4)
         self.grip.setFixedSize(32, 16) if vertical else self.grip.setFixedSize(16, 32)
         for key, button in self.buttons.items():
-            button.setVisible(key == 'collapse' or (not collapsed and key in self.tool_keys()))
-            if key in ('rows', 'columns'):
-                button.setText('' if vertical or compact else labels[0 if key == 'rows' else 1])
-            if vertical or compact or key not in ('rows', 'columns'):
+            button.setVisible(presentation.collapsible if key == 'collapse'
+                              else not collapsed and key in presentation.tools)
+            label, label_mode = self._button_labels[key]
+            if label_mode == 'horizontal':
+                button.setText('' if vertical or compact else label)
+            if label_mode == 'always':
+                width = button.fontMetrics().horizontalAdvance(button.text()) + button.iconSize().width() + 28
+                button.setFixedWidth(width)
+            elif vertical or compact or label_mode != 'horizontal':
                 button.setFixedWidth(28 if compact and not vertical else 32)
             else:
                 button.setMinimumWidth(0)
@@ -264,16 +404,22 @@ class FloatingBar(QWidget):
             separator.setFixedSize(22, 1) if vertical else separator.setFixedSize(1, 22)
         self.collapse_button.setIcon(tool_icon('<path d="M5 12h14M12 5v14"/>' if collapsed
                                                else '<path d="M5 12h14"/>'))
-        self.collapse_button.setToolTip(tr('Expandir barra da tabela') if collapsed
-                                       else self.collapse_tooltip(False))
+        self.collapse_button.setToolTip(self.collapse_tooltip(collapsed))
         self.collapse_button.setAccessibleName(self.collapse_button.toolTip())
         self._layout.invalidate()
+        # A medição das variantes é síncrona. Invalidar também os contêineres
+        # evita reusar a largura horizontal ao recolher ou encaixar na lateral.
+        self.tools_row.updateGeometry()
+        self.layout().invalidate()
         self.grip.update()
+
+    def dock_gap(self, edge):
+        return self.DOCK_GAP
 
     def dock_geometries(self, rectangle, available, *, collapsed=None):
         collapsed = self.collapsed if collapsed is None else collapsed
         compact = available.width() < 420
-        key = compact, tr('Linhas'), tr('Colunas'), self.tool_keys()
+        key = compact, self.presentation()
         if key not in self._size_cache:
             sizes = []
             for size_collapsed in (False, True):
@@ -287,21 +433,26 @@ class FloatingBar(QWidget):
         expanded = self._size_cache[key][0]
         horizontal, vertical = self._size_cache[key][int(collapsed)]
         geometries = {}
-        for side, size in (('top', horizontal), ('bottom', horizontal),
-                           ('left', vertical), ('right', vertical)):
+        for side in self.DOCK_SIDES:
+            edge = self.dock_edge(side)
+            size = horizontal if edge in ('top', 'bottom') else vertical
+            full_size = expanded[0 if edge in ('top', 'bottom') else 1]
+            thickness = full_size.height() if edge in ('top', 'bottom') else full_size.width()
+            # A segunda posição começa depois da barra na primeira posição,
+            # deixando 30 px livres entre elas, também quando recolhida.
+            gap = self.dock_gap(edge) + (thickness + self.DOCK_SEPARATION if side.endswith('_far') else 0)
             width, height = size.width(), size.height()
             if width > available.width() or height > available.height():
                 continue
             # Recolher preserva a extremidade onde ficam o botão e a alça.
-            full_size = expanded[0 if side in ('top', 'bottom') else 1]
             full_width, full_height = full_size.width(), full_size.height()
-            if side in ('top', 'bottom'):
+            if edge in ('top', 'bottom'):
                 x = rectangle.center().x()-full_width//2
-                y = rectangle.top()-height-16 if side == 'top' else rectangle.bottom()+17
+                y = rectangle.top()-height-gap if edge == 'top' else rectangle.bottom()+gap+1
                 x = max(available.left(), min(x, available.right()-full_width+1))
                 x += full_width-width
             else:
-                x = rectangle.left()-width-16 if side == 'left' else rectangle.right()+17
+                x = rectangle.left()-width-gap if edge == 'left' else rectangle.right()+gap+1
                 y = rectangle.center().y()-full_height//2
                 y = max(available.top(), min(y, available.bottom()-full_height+1))
                 y += full_height-height
@@ -311,10 +462,11 @@ class FloatingBar(QWidget):
         return geometries
 
     def dock_target_geometries(self, rectangle, available):
-        # Só os destaques são encurtados; o encaixe continua usando a barra inteira.
+        # O destaque conserva a espessura da barra. Só seu comprimento é
+        # limitado pelo objeto, como nas quatro ancoragens originais.
         geometries = self.dock_geometries(rectangle, available, collapsed=False)
         for side, geometry in geometries.items():
-            if side in ('top', 'bottom'):
+            if self.dock_edge(side) in ('top', 'bottom'):
                 width = min(geometry.width(), max(1, rectangle.width()))
                 geometry.setWidth(width)
                 x = rectangle.center().x()-width//2
@@ -324,15 +476,21 @@ class FloatingBar(QWidget):
                 geometry.setHeight(height)
                 y = rectangle.center().y()-height//2
                 geometry.moveTop(max(available.top(), min(y, available.bottom()-height+1)))
-        return geometries
+        # O limite do viewport pode fazer dois destinos coincidirem por inteiro.
+        # Sobreposição parcial mantém ambas as opções disponíveis.
+        distinct = {}
+        for side, geometry in geometries.items():
+            if geometry not in distinct.values():
+                distinct[side] = geometry
+        return distinct
 
     def begin_dock_drag(self, global_position):
         item = self.controller.selected()
-        if item is None or self.isHidden():
+        if item is None or self.isHidden() or not self.presentation().dockable:
             return
         available = self.parentWidget().rect().adjusted(8, 8, -8, -8)
         rectangle = self.target_rectangle(item)
-        # Os destinos acompanham os limites da tabela também com a barra recolhida.
+        # Os destinos acompanham os limites do objeto também com a barra recolhida.
         self._drag_geometries = self.dock_target_geometries(rectangle, available)
         self._drag_target_id = self.target_key(item)
         self._drag_offset = self.parentWidget().mapFromGlobal(global_position)-self.pos()
@@ -371,8 +529,11 @@ class FloatingBar(QWidget):
                      '; border-radius: 8px; }')
 
     def target_at(self, point):
-        candidates = [side for side, rect in self._drag_geometries.items()
-                      if rect.adjusted(-20, -20, 20, 20).contains(point)]
+        exact = [side for side, rect in self._drag_geometries.items() if rect.contains(point)]
+        # Destinos próximos podem se sobrepor: prevalece aquele cujo centro
+        # estiver mais perto do ponteiro, mantendo ambas as ancoragens acessíveis.
+        candidates = exact or [side for side, rect in self._drag_geometries.items()
+                               if rect.adjusted(-20, -20, 20, 20).contains(point)]
         return min(candidates, key=lambda side: (self._drag_geometries[side].center()-point).manhattanLength()) if candidates else None
 
     def move_dock_drag(self, global_position):

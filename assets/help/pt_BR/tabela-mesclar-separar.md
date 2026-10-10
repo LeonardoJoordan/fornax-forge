@@ -27,6 +27,7 @@ Mescle antes de preencher um cabeçalho longo. Isso facilita avaliar o espaço r
 - Ao separar, o texto reunido fica na célula superior esquerda; as novas células ficam vazias. Separar não restaura automaticamente a distribuição anterior dos textos. Use Desfazer para isso.
 - A grade continua contando as posições originais para os limites, mesmo quando estão mescladas.
 - Uma mesclagem existente precisa ser incluída por inteiro na operação.
+- Uma seleção feita com Ctrl + clique pode ser mesclada se preencher um retângulo completo. Se houver lacunas, o botão de mesclar fica desabilitado.
 
 ## Veja também
 

@@ -50,15 +50,18 @@ class TableFloatingDragTest(unittest.TestCase):
         self.assertTrue(all(target.isHidden() for target in bar._dock_targets.values()))
         self.assertEqual(bar.grip.cursor().shape(), Qt.CursorShape.OpenHandCursor)
 
-    def test_grip_shows_only_other_three_targets_without_editing_document(self):
-        w, item = self.editor(); item.select_cell(1, 1); self.drain()
+    def test_grip_shows_other_seven_targets_without_editing_document(self):
+        w, item = self.editor()
+        # Deixar espaço acima para ambas as ancoragens, incluindo os seletores.
+        item.setPos(item.pos()+QPointF(0, 160))
+        item.select_cell(1, 1); self.drain()
         bar = w.table_controller.floating_bar
         self.assertEqual(bar.dock_side, 'top')
         source, layout, roots, selection = item.to_data(), item.layout, tuple(w.scene.items()), item.selected_range
         with patch.object(w, 'save_snapshot') as save:
             self.begin(bar)
             self.assertEqual({side for side, target in bar._dock_targets.items() if target.isVisible()},
-                             {'left', 'right', 'bottom'})
+                             set(bar.DOCK_SIDES) - {'top'})
             self.assertTrue(all(target.graphicsEffect().opacity() == .5
                                 for target in bar._dock_targets.values()))
             self.assertEqual(bar.grip.cursor().shape(), Qt.CursorShape.ClosedHandCursor)
@@ -273,7 +276,7 @@ class TableFloatingDragTest(unittest.TestCase):
                 rectangle = w.view.mapFromScene(item.mapToScene(item.rect())).boundingRect()
                 available = bar.parentWidget().rect().adjusted(8, 8, -8, -8)
                 slots = bar.dock_geometries(rectangle, available, collapsed=False)
-                self.assertEqual(set(slots), {'top', 'bottom', 'left', 'right'})
+                self.assertEqual(set(slots), set(bar.DOCK_SIDES))
                 for collapsed in (False, True):
                     if bar.collapsed != collapsed:
                         bar.toggle_collapsed(); self.drain()
@@ -283,7 +286,7 @@ class TableFloatingDragTest(unittest.TestCase):
                             targets = bar._drag_geometries
                             for target_side, target in targets.items():
                                 full = slots[target_side]
-                                if target_side in ('top', 'bottom'):
+                                if bar.dock_edge(target_side) in ('top', 'bottom'):
                                     self.assertEqual(target.width(), min(full.width(), rectangle.width()))
                                     self.assertEqual(target.height(), full.height())
                                     self.assertLessEqual(abs(target.center().x()-rectangle.center().x()), 1)
@@ -294,7 +297,7 @@ class TableFloatingDragTest(unittest.TestCase):
                                 self.assertTrue(available.contains(target))
                                 self.assertFalse(target.intersects(rectangle))
                                 for other_side, other in targets.items():
-                                    if target_side != other_side:
+                                    if bar.dock_edge(target_side) != bar.dock_edge(other_side):
                                         self.assertFalse(target.intersects(other))
                             point = targets[side].center()
                             self.move(bar, point)

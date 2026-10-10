@@ -4,7 +4,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from PySide6.QtCore import Qt, QPointF
+from PySide6.QtCore import Qt, QPoint, QPointF, QRect
 from PySide6.QtGui import QImage, QColor
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QGraphicsItem, QLabel
@@ -106,7 +106,11 @@ class ObjectFloatingTest(unittest.TestCase):
             self.assertTrue(bar.isVisible())
             self.assertEqual(self.tools(bar), {'fill', 'outline', 'opacity', 'mask'})
             self.assertFalse(w.table_controller.floating_bar.isVisible())
-        excluded = [item for item in w.scene.items() if isinstance(item, (DesignerBox, SignatureItem))
+        text = next(item for item in w.scene.items() if isinstance(item, DesignerBox))
+        self.select(w, text)
+        self.assertTrue(bar.isVisible())
+        self.assertEqual(self.tools(bar), set(bar.text_tools.keys))
+        excluded = [item for item in w.scene.items() if isinstance(item, SignatureItem)
                     or isinstance(item, ImageItem) and not isinstance(item, RectangleItem)
                     or getattr(item, 'is_document_background', False)]
         excluded.append(self.shape(w, 3))
@@ -419,6 +423,7 @@ class ObjectFloatingTest(unittest.TestCase):
                     self.assert_clean(bar); self.assertEqual(bar.dock_side, side)
                     self.assertEqual(bar.collapsed, collapsed)
                     self.assertTrue(w.view.viewport().rect().contains(bar.geometry()))
+                    self.assert_toolbar_geometry(bar, side)
             self.begin(bar)
             self.select(w, self.shape(w, 2))
             self.assert_clean(bar)
@@ -427,6 +432,52 @@ class ObjectFloatingTest(unittest.TestCase):
             # Restore the movement made only to check tracking.
             self.shape(w, 2).setPos(QPointF(120, 160)); self.drain()
             save.assert_not_called()
+        self.assertEqual(w._document_with_active_page(), before)
+
+    def assert_toolbar_geometry(self, bar, side):
+        self.assertTrue(bar.isVisible())
+        widgets = [bar.buttons[key] for key in (*bar.tool_keys(), 'collapse')
+                   if bar.buttons[key].isVisible()] + [bar.grip]
+        rectangles = [QRect(widget.mapTo(bar, QPoint()), widget.size()) for widget in widgets]
+        for rect in rectangles:
+            self.assertTrue(bar.rect().contains(rect), (bar.rect(), rect))
+        vertical = side in ('left', 'right')
+        if vertical:
+            self.assertGreater(bar.height(), bar.width())
+        else:
+            self.assertGreater(bar.width(), bar.height())
+        for first, second in zip(rectangles, rectangles[1:]):
+            if vertical:
+                self.assertEqual(first.center().x(), second.center().x())
+                self.assertLess(first.bottom(), second.top())
+            else:
+                self.assertEqual(first.center().y(), second.center().y())
+                self.assertLess(first.right(), second.left())
+
+    def test_shape_collapse_keeps_grip_anchor_and_restores_size_on_every_side(self):
+        w = self.editor(); shape = self.shape(w); self.select(w, shape)
+        bar = w.object_floating_bar
+        before = deepcopy(w._document_with_active_page())
+        for side in ('top', 'left', 'bottom', 'right'):
+            with self.subTest(side=side):
+                bar.dock_side = side; bar.reposition(); self.drain()
+                expanded = bar.geometry()
+                anchor = bar.grip.mapTo(w.view.viewport(), QPoint())
+                self.assert_toolbar_geometry(bar, side)
+                self.click_through_window(bar.collapse_button); self.drain()
+                self.assertTrue(bar.collapsed)
+                self.assertEqual(bar.grip.mapTo(w.view.viewport(), QPoint()), anchor)
+                if side in ('top', 'bottom'):
+                    self.assertEqual(bar.geometry().right(), expanded.right())
+                    self.assertLess(bar.width(), expanded.width()/2)
+                else:
+                    self.assertEqual(bar.geometry().bottom(), expanded.bottom())
+                    self.assertLess(bar.height(), expanded.height()/2)
+                self.assert_toolbar_geometry(bar, side)
+                self.click_through_window(bar.collapse_button); self.drain()
+                self.assertFalse(bar.collapsed)
+                self.assertEqual(bar.geometry(), expanded)
+                self.assert_toolbar_geometry(bar, side)
         self.assertEqual(w._document_with_active_page(), before)
 
 

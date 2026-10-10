@@ -698,7 +698,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             # Limpe as sessões remanescentes sem desfazer o trabalho já feito.
             for item in self.scene.items():
                 if isinstance(item, TableItem):
-                    item._selecting_cells = False
+                    item.finish_cell_selection_gesture()
                 for flag in ('_is_mouse_dragging', '_is_resizing'):
                     if getattr(item, flag, False):
                         active = True

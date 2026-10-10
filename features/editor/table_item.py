@@ -3,13 +3,13 @@ from copy import deepcopy
 
 from PySide6.QtCore import Qt, QRectF
 from PySide6.QtGui import QColor, QPen, QPainterPath
-from PySide6.QtWidgets import QGraphicsItem, QGraphicsRectItem
+from PySide6.QtWidgets import QApplication, QGraphicsItem, QGraphicsRectItem
 
 from core.table_model import validate_table, cell_at, table_fields, effective_cell_style, resize_table
 from core.table_layout import TableLayout, build_cell_document
 from core.table_paint import paint_table_local
 from core.themes import theme_color
-from .canvas_items import (_snap_board_position, _invalidate_board_text_cutouts,
+from .canvas_items import (_snap_position_to_guides, _invalidate_board_text_cutouts,
     _queue_selection_frame_refresh, _init_resize_handles, _update_resize_handles,
     _set_resize_handles_visible, _invalidate_resize_handle_areas)
 
@@ -23,10 +23,14 @@ class TableItem(QGraphicsRectItem):
         self.layout = TableLayout(self.data)
         self.presentation_revision = 0
         self.selected_range = None
+        self._selected_cell_ids = None
         self.selection_anchor = None
         self.selection_cursor = None
         self.editing_cell = None
         self._selecting_cells = False
+        self._ctrl_cell_selection = False
+        self._ctrl_cell_drag = None
+        self._ctrl_cell_grabbed = False
         self._is_mouse_dragging = False
         self._pending_cell = None
         self._overlays_enabled = True
@@ -91,17 +95,22 @@ class TableItem(QGraphicsRectItem):
             if self.isSelected():
                 painter.drawRect(self.rect().adjusted(-8, -8, 8, 8))
             if self.selected_range is not None:
-                top,left,bottom,right = self.selected_range
-                selection = QRectF(self.layout.x[left], self.layout.y[top],
-                    self.layout.x[right+1]-self.layout.x[left], self.layout.y[bottom+1]-self.layout.y[top])
+                if self._selected_cell_ids is None:
+                    top,left,bottom,right = self.selected_range
+                    selections = [QRectF(self.layout.x[left], self.layout.y[top],
+                        self.layout.x[right+1]-self.layout.x[left], self.layout.y[bottom+1]-self.layout.y[top])]
+                else:
+                    selections = [entry.rect for entry in self.layout.cells
+                                  if entry.cell['id'] in self._selected_cell_ids]
                 highlight = QColor(theme_color('canvas_selection'))
                 highlight.setAlpha(38)
-                painter.fillRect(selection, highlight)
                 pen.setStyle(Qt.PenStyle.SolidLine)
                 pen.setWidthF(2)
                 pen.setColor(QColor(theme_color('canvas_selection')))
                 painter.setPen(pen)
-                painter.drawRect(selection)
+                for selection in selections:
+                    painter.fillRect(selection, highlight)
+                    painter.drawRect(selection)
             pen.setColor(QColor('#c64646'))
             pen.setWidthF(1)
             pen.setStyle(Qt.PenStyle.DashLine)
@@ -113,12 +122,23 @@ class TableItem(QGraphicsRectItem):
             painter.restore()
 
     def select_cell(self, row, column, *, extend=False, notify=True):
+        self._selected_cell_ids = None
         cell = cell_at(self.data, row, column)
         anchor = (cell['row'], cell['column'])
         self.selection_cursor = anchor
         if not extend or self.selection_anchor is None:
             self.selection_anchor = anchor
-        start = cell_at(self.data, *self.selection_anchor)
+        self.selected_range = self._cell_range(self.selection_anchor, anchor)
+        self.setSelected(True)
+        self.setFocus(Qt.FocusReason.MouseFocusReason)
+        self.update()
+        controller = getattr(self.window, 'table_controller', None)
+        if controller and notify:
+            controller.refresh()
+
+    def _cell_range(self, start_anchor, end_anchor):
+        start = cell_at(self.data, *start_anchor)
+        cell = cell_at(self.data, *end_anchor)
         top,left = min(start['row'],cell['row']),min(start['column'],cell['column'])
         bottom = max(start['row']+start['row_span']-1,cell['row']+cell['row_span']-1)
         right = max(start['column']+start['column_span']-1,cell['column']+cell['column_span']-1)
@@ -131,28 +151,109 @@ class TableItem(QGraphicsRectItem):
                     top,left,bottom,right = min(top,r),min(left,c),max(bottom,r+rs-1),max(right,c+cs-1)
             if previous == (top,left,bottom,right):
                 break
-        self.selected_range = top,left,bottom,right
+        return top,left,bottom,right
+
+    def selected_cells(self):
+        if self._selected_cell_ids is not None:
+            return [cell for cell in self.data['cells'] if cell['id'] in self._selected_cell_ids]
+        top, left, bottom, right = self.selected_range or (0, 0, self.data['rows']-1, self.data['columns']-1)
+        return [cell for cell in self.data['cells']
+                if top <= cell['row'] <= bottom and left <= cell['column'] <= right]
+
+    def selected_track_indexes(self, axis):
+        coordinate, span = ('row', 'row_span') if axis == 'row' else ('column', 'column_span')
+        return sorted({index for cell in self.selected_cells()
+                       for index in range(cell[coordinate], cell[coordinate]+cell[span])})
+
+    def selection_is_rectangular(self):
+        cells = self.selected_cells()
+        top, left, bottom, right = self.selected_range or (0, 0, self.data['rows']-1, self.data['columns']-1)
+        return sum(c['row_span']*c['column_span'] for c in cells) == (bottom-top+1)*(right-left+1)
+
+    def set_cell_selection(self, identities, *, anchor=None, cursor=None, notify=True):
+        """IDs são transitórios; células mescladas são selecionadas por inteiro."""
+        cells = [cell for cell in self.data['cells'] if cell['id'] in identities]
+        if not cells:
+            self.clear_cell_selection()
+            return
+        self._selected_cell_ids = {cell['id'] for cell in cells}
+        self.selected_range = (min(c['row'] for c in cells), min(c['column'] for c in cells),
+            max(c['row']+c['row_span']-1 for c in cells), max(c['column']+c['column_span']-1 for c in cells))
+        anchors = {(c['row'], c['column']) for c in cells}
+        fallback = (cells[0]['row'], cells[0]['column'])
+        self.selection_anchor = anchor if anchor in anchors else fallback
+        self.selection_cursor = cursor if cursor in anchors else self.selection_anchor
         self.setSelected(True)
         self.setFocus(Qt.FocusReason.MouseFocusReason)
         self.update()
-        controller = getattr(self.window, 'table_controller', None)
-        if controller and notify:
-            controller.refresh()
+        if notify:
+            self.window.table_controller.refresh()
+
+    def toggle_cell_selection(self, row, column):
+        cell = cell_at(self.data, row, column)
+        identities = {c['id'] for c in self.selected_cells()} if self.selected_range is not None else set()
+        if cell['id'] in identities:
+            identities.remove(cell['id'])
+        else:
+            identities.add(cell['id'])
+        self.set_cell_selection(identities, anchor=self.selection_anchor,
+                                cursor=(cell['row'], cell['column']))
 
     def clear_cell_selection(self):
         self.selected_range = self.selection_anchor = self.selection_cursor = None
-        self._selecting_cells = False
+        self._selected_cell_ids = None
+        self.finish_cell_selection_gesture()
         self.update()
         controller = getattr(self.window, 'table_controller', None)
         if controller:
             controller.refresh()
 
+    def finish_cell_selection_gesture(self):
+        self._selecting_cells = False
+        self._ctrl_cell_selection = False
+        self._ctrl_cell_drag = None
+        if self._ctrl_cell_grabbed:
+            self._ctrl_cell_grabbed = False
+            if self.scene() and self.scene().mouseGrabberItem() is self:
+                self.ungrabMouse()
+
+    def begin_ctrl_cell_selection(self, hit, screen_position):
+        # Guardar a seleção anterior ao clique: o arraste adiciona um retângulo,
+        # mesmo quando começa sobre uma célula já escolhida.
+        base = {c['id'] for c in self.selected_cells()} if self.selected_range is not None else set()
+        anchor = self.selection_anchor
+        self.toggle_cell_selection(*hit)
+        self._ctrl_cell_drag = (base, anchor, hit, screen_position)
+        self._is_mouse_dragging = False
+        self._pending_cell = None
+        self._selecting_cells = self._ctrl_cell_selection = True
+
+    def _extend_ctrl_cell_selection(self, hit, screen_position):
+        base, anchor, start, pressed = self._ctrl_cell_drag
+        if pressed is not None:
+            if hit == start and (screen_position-pressed).manhattanLength() < QApplication.startDragDistance():
+                return
+            self._ctrl_cell_drag = (base, anchor, start, None)
+        top,left,bottom,right = self._cell_range(start, hit)
+        identities = base | {c['id'] for c in self.data['cells']
+                            if top <= c['row'] <= bottom and left <= c['column'] <= right}
+        self.set_cell_selection(identities, anchor=anchor, cursor=hit)
+
     def mousePressEvent(self, event):
         hit = self.layout.hit(event.pos())
         scene = self.scene()
         selected = scene.selectedItems() if scene else []
+        control = bool(event.modifiers() & Qt.KeyboardModifier.ControlModifier)
+        self.finish_cell_selection_gesture()
+        if (selected == [self] and self.selected_range is not None and hit is not None
+                and control and event.button() == Qt.MouseButton.LeftButton):
+            self.window.table_edit.finish()
+            self.window.canvas_edit.finish()
+            self.begin_ctrl_cell_selection(hit, event.screenPos())
+            event.accept()
+            return
         cell_context = (selected == [self] and self.isSelected()
-                        and not event.modifiers() & Qt.KeyboardModifier.ControlModifier)
+                        and not control)
         self._pending_cell = None
         if (cell_context and hit is not None and event.button() == Qt.MouseButton.LeftButton
                 and (self.selected_range is not None
@@ -179,13 +280,17 @@ class TableItem(QGraphicsRectItem):
     def mouseMoveEvent(self, event):
         if self._selecting_cells:
             if not event.buttons() & Qt.MouseButton.LeftButton:
-                self._selecting_cells = False
+                self.finish_cell_selection_gesture()
                 event.accept()
                 return
             point = event.pos()
             point.setX(min(max(0, point.x()), self.layout.width-0.001))
             point.setY(min(max(0, point.y()), self.layout.height-0.001))
-            self.select_cell(*self.layout.hit(point), extend=True)
+            hit = self.layout.hit(point)
+            if self._ctrl_cell_selection:
+                self._extend_ctrl_cell_selection(hit, event.screenPos())
+            else:
+                self.select_cell(*hit, extend=True)
             event.accept()
             return
         super().mouseMoveEvent(event)
@@ -194,7 +299,7 @@ class TableItem(QGraphicsRectItem):
 
     def mouseReleaseEvent(self, event):
         if self._selecting_cells:
-            self._selecting_cells = False
+            self.finish_cell_selection_gesture()
             event.accept()
             return
         self._is_mouse_dragging = False
@@ -210,6 +315,9 @@ class TableItem(QGraphicsRectItem):
             self.scene()._group_raw_delta = self.scene()._board_drag_anchor = None
 
     def mouseDoubleClickEvent(self, event):
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            event.accept()
+            return
         hit = self.layout.hit(event.pos())
         if hit is not None:
             self._pending_cell = None
@@ -225,8 +333,7 @@ class TableItem(QGraphicsRectItem):
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange:
             _invalidate_resize_handle_areas(self)
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
-            if getattr(self.scene(), '_board_grid', 0) and self._is_mouse_dragging:
-                value = _snap_board_position(self, value)
+            value = _snap_position_to_guides(self, value, self.rect().width(), self.rect().height())
         if change == QGraphicsItem.GraphicsItemChange.ItemSelectedHasChanged:
             if not value:
                 self._pending_cell = None

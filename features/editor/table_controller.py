@@ -12,9 +12,9 @@ from shiboken6 import isValid
 from core.i18n import tr
 from core.html_utils import TextOnlyDocument
 from core.model_document import add_model_table, replace_model_page, ModelValidationError
-from core.table_model import (new_table, format_cells, format_edges, merge_cells,
+from core.table_model import (new_table, format_cell_ids, format_cell_edge_ids, cell_edge_keys, merge_cells,
     split_cell, insert_rows, insert_columns, remove_rows, remove_columns, resize_table,
-    set_track_sizes, table_size, effective_cell_style, TableValidationError, cell_at, visible_edge_keys)
+    set_track_sizes, table_size, effective_cell_style, TableValidationError, cell_at)
 from core.table_clipboard import (copy_range, encode_range, decode_range, paste_range,
                                  table_from_tsv, TABLE_RANGE_MIME, MAX_CLIPBOARD_BYTES)
 from core.table_layout import build_cell_document, logical_text_device
@@ -36,6 +36,8 @@ class TableController:
         self._presentation_key = None
         from .table_floating import TableFloatingBar
         self.floating_bar = TableFloatingBar(self)
+        from .table_selectors import TableSelectors
+        self.selectors = TableSelectors(self)
 
     @property
     def panel(self):
@@ -51,9 +53,8 @@ class TableController:
         return item.selected_range or (0, 0, item.data['rows']-1, item.data['columns']-1)
 
     def entries(self, item):
-        top,left,bottom,right = self.bounds(item)
-        return [entry for entry in item.layout.cells
-                if top <= entry.cell['row'] <= bottom and left <= entry.cell['column'] <= right]
+        identities = {cell['id'] for cell in item.selected_cells()}
+        return [entry for entry in item.layout.cells if entry.cell['id'] in identities]
 
     def error(self, error):
         self.panel.message.setText(tr(str(error)))
@@ -66,7 +67,7 @@ class TableController:
                           for table in page.get('tables', [])]
         replace_model_page(self.window._model_document, page, self.window._active_page_id)
 
-    def transact(self, operation, *, selection=None, keep_edit=False):
+    def transact(self, operation, *, selection=None, selection_cells=None, keep_edit=False):
         item = self.selected()
         if item is None or not item.flags() & QGraphicsItem.GraphicsItemFlag.ItemIsMovable:
             return False
@@ -76,6 +77,9 @@ class TableController:
         cursor_positions = (cursor.anchor(), cursor.position()) if cursor is not None else None
         try:
             before = item.to_data()
+            selected_ids = set(item._selected_cell_ids) if item._selected_cell_ids is not None else None
+            selected_anchor = cell_at(before, *item.selection_anchor)['id'] if item.selection_anchor else None
+            selected_cursor = cell_at(before, *item.selection_cursor)['id'] if item.selection_cursor else None
             candidate = operation(deepcopy(before), self.bounds(item))
             self.preflight(item, candidate)
             if candidate == before:
@@ -85,14 +89,18 @@ class TableController:
             return False
         session.finish()
         item.publish_table_data(candidate)
-        if selection is not None:
-            top,left,bottom,right = selection
+        if selection_cells is not None:
+            selected_ids = selection_cells(candidate)
+        if selected_ids is not None and selection is None:
+            anchors = {c['id']: (c['row'], c['column']) for c in candidate['cells']}
+            item.set_cell_selection(selected_ids, anchor=anchors.get(selected_anchor),
+                                    cursor=anchors.get(selected_cursor))
         else:
-            top,left,bottom,right = self.bounds(item)
-        top,bottom = min(top,item.data['rows']-1),min(bottom,item.data['rows']-1)
-        left,right = min(left,item.data['columns']-1),min(right,item.data['columns']-1)
-        item.select_cell(top,left,notify=False)
-        item.select_cell(bottom,right,extend=True)
+            top,left,bottom,right = selection if selection is not None else self.bounds(item)
+            top,bottom = min(top,item.data['rows']-1),min(bottom,item.data['rows']-1)
+            left,right = min(left,item.data['columns']-1),min(right,item.data['columns']-1)
+            item.select_cell(top,left,notify=False)
+            item.select_cell(bottom,right,extend=True)
         self.panel.message.clear()
         self.window.sync_placeholders_list()
         self.window.save_snapshot()
@@ -147,8 +155,7 @@ class TableController:
             center = self.window.view.mapToScene(self.window.view.viewport().rect().center())
             width,height = table_size(data)
             data.update(x=center.x()-width/2,y=center.y()-height/2,
-                        z_value=max([i.zValue() for i in self.window.scene.items()
-                                     if getattr(i,'layer_id',None) is not None]+[100])+1)
+                        z_value=self.window._next_object_z())
             if self.window._active_page_id == 'organogram':
                 data['board_behind'] = False
             document = self.window._capture_document_history_state()['document']
@@ -170,23 +177,47 @@ class TableController:
         return True
 
     def structure(self, operation, count=1):
+        item = self.selected()
+        if item is None:
+            return False
+        if operation == 'merge' and not item.selection_is_rectangular():
+            self.error(TableValidationError('Para mesclar, selecione um retângulo completo de células.'))
+            return False
+        identities = {cell['id'] for cell in item.selected_cells()}
+        split_positions = {(r, c) for cell in item.selected_cells()
+                           for r in range(cell['row'], cell['row']+cell['row_span'])
+                           for c in range(cell['column'], cell['column']+cell['column_span'])}
         def change(table, bounds):
             top,left,bottom,right = bounds
             if operation == 'row_before':return insert_rows(table,top,count)
             if operation == 'row_after':return insert_rows(table,bottom+1,count)
             if operation == 'column_before':return insert_columns(table,left,count)
             if operation == 'column_after':return insert_columns(table,right+1,count)
-            if operation == 'remove_rows':return remove_rows(table,top,bottom-top+1)
-            if operation == 'remove_columns':return remove_columns(table,left,right-left+1)
+            if operation in ('remove_rows', 'remove_columns'):
+                axis = 'row' if operation == 'remove_rows' else 'column'
+                indexes = item.selected_track_indexes(axis)
+                runs = []
+                for index in indexes:
+                    if runs and index == runs[-1][0]+runs[-1][1]:
+                        runs[-1][1] += 1
+                    else:
+                        runs.append([index, 1])
+                remove = remove_rows if axis == 'row' else remove_columns
+                for start, length in reversed(runs):
+                    table = remove(table, start, length)
+                return table
             if operation == 'merge':return merge_cells(table,*bounds)
             if operation == 'split':
                 for cell in list(table['cells']):
-                    if (top <= cell['row'] <= bottom and left <= cell['column'] <= right
+                    if (cell['id'] in identities
                             and (cell['row_span'] > 1 or cell['column_span'] > 1)):
                         table = split_cell(table,cell['row'],cell['column'])
                 return table
             raise TableValidationError('Operação de estrutura inválida.')
-        return self.transact(change)
+        selection_cells = (lambda table: {cell['id'] for cell in table['cells']
+                           if (cell['row'], cell['column']) in split_positions}) if (
+                               operation == 'split' and item._selected_cell_ids is not None) else None
+        return self.transact(change, selection_cells=selection_cells)
 
     def resize(self, axis, value):
         def change(table, bounds):
@@ -196,17 +227,27 @@ class TableController:
         return self.transact(change)
 
     def track(self, axis, value):
+        item = self.selected()
+        if item is None:
+            return False
         def change(table, bounds):
-            top,left,bottom,right = bounds
-            indexes = list(range(top,bottom+1) if axis=='row' else range(left,right+1))
+            indexes = item.selected_track_indexes(axis)
             return set_track_sizes(table,axis,indexes,mm_to_px(value))
         return self.transact(change)
 
     def cell_style(self, style):
-        return self.transact(lambda table,bounds: format_cells(table,*bounds,style),keep_edit=True)
+        item = self.selected()
+        if item is None:
+            return False
+        identities = {cell['id'] for cell in item.selected_cells()}
+        return self.transact(lambda table,bounds: format_cell_ids(table,identities,style),keep_edit=True)
 
     def edge_style(self, style):
-        return self.transact(lambda table,bounds: format_edges(table,*bounds,style,target='all'),keep_edit=True)
+        item = self.selected()
+        if item is None:
+            return False
+        identities = {cell['id'] for cell in item.selected_cells()}
+        return self.transact(lambda table,bounds: format_cell_edge_ids(table,identities,style),keep_edit=True)
 
     @staticmethod
     def char_format(kind, value):
@@ -246,14 +287,14 @@ class TableController:
             self.sync_active_format()
             self.window.view.setFocus();session.text.setFocus()
             return True
+        identities = {cell['id'] for cell in item.selected_cells()}
         def change(table, bounds):
             style = ({'font_family':value} if kind=='family' else {'font_size':value} if kind=='size'
                      else {'font_color':QColor(value).name()} if kind=='color' else {})
-            if style:table = format_cells(table,*bounds,style)
-            top,left,bottom,right = bounds
+            if style:table = format_cell_ids(table,identities,style)
             entries_by_id = {entry.cell['id']: entry for entry in item.layout.cells}
             for cell in table['cells']:
-                if not (top <= cell['row'] <= bottom and left <= cell['column'] <= right):continue
+                if cell['id'] not in identities:continue
                 layout = entries_by_id[cell['id']]
                 document = build_cell_document(cell,effective_cell_style(table,cell),item.layout.device,
                                                layout.inner.width(),resolve_values=False)
@@ -270,6 +311,9 @@ class TableController:
         item = self.selected()
         if item is None or item.selected_range is None or self.window.table_edit.item is not None:
             return False
+        if not item.selection_is_rectangular():
+            self.error(TableValidationError('Para copiar ou colar, selecione um retângulo completo de células.'))
+            return True
         try:
             source = copy_range(item.to_data(),*self.bounds(item))
             raw = encode_range(source)
@@ -298,6 +342,9 @@ class TableController:
         if session.item is item:
             cursor = session.text.textCursor();cursor.insertText(QApplication.clipboard().text())
             session.text.setTextCursor(cursor)
+            return True
+        if not item.selection_is_rectangular():
+            self.error(TableValidationError('Para copiar ou colar, selecione um retângulo completo de células.'))
             return True
         mime = QApplication.clipboard().mimeData()
         if mime is None:return True
@@ -335,19 +382,15 @@ class TableController:
             panel.setEnabled(True)
             session = self.window.table_edit
             key = (id(item),item.presentation_revision,self.bounds(item),
+                   frozenset(item._selected_cell_ids) if item._selected_cell_ids is not None else None,
                    id(session.document) if session.item is item else None)
             if key == self._presentation_key:
                 return
             self._presentation_key = key
             entries = self.entries(item)
             bounds = self.bounds(item)
-            top,left,bottom,right = bounds
-            edges = []
-            for orientation,r,c in item.layout.visible_edges:
-                inside = (top <= r <= bottom+1 and left <= c <= right if orientation=='h'
-                          else top <= r <= bottom and left <= c <= right+1)
-                if inside:
-                    edges.append(item.layout.edge_style((orientation,r,c)))
+            keys = cell_edge_keys(item.selected_cells())
+            edges = [item.layout.edge_style(key) for key in item.layout.visible_edges if key in keys]
             self.panel.load(item,bounds,[entry.style for entry in entries],edges)
             if self.window.table_edit.item is item:
                 self.sync_active_format(force=True)
@@ -369,6 +412,7 @@ class TableController:
         finally:
             self._refreshing = False
             self.floating_bar.refresh()
+            self.selectors.reposition()
 
     def sync_active_format(self, *_args, force=False):
         session = self.window.table_edit
