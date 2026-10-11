@@ -37,7 +37,7 @@ def inject_pdf_links(
     pdf_path, links_by_page, canvas_width, canvas_height, *, memory_only=False, page_labels=None,
     page_size_mm=None,
 ):
-    """Adiciona hyperlinks a um PDF pronto.
+    """Adiciona hyperlinks, rótulos e marcadores de navegação a um PDF pronto.
 
     ``links_by_page`` mapeia o índice (base zero) de cada página para uma lista
     de dicionários com ``rect`` (QRectF) e ``url``. O modo comum usa troca
@@ -67,6 +67,7 @@ def inject_pdf_links(
                     page.cropbox = RectangleObject((0, 0, width, height))
             for page_index, label in enumerate(page_labels or []):
                 writer.set_page_label(page_index, page_index, prefix=label)
+                writer.add_outline_item(str(label), page_index)
 
             for raw_page_index, links in links_by_page.items():
                 page_index = int(raw_page_index)

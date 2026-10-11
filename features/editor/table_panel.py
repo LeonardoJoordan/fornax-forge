@@ -8,6 +8,7 @@ from core.i18n import tr
 from core.themes import themed_style, theme_manager
 from core.resources import state_icon_path
 from .canvas_items import px_to_mm
+from .live_opacity import connect_live_opacity
 
 
 def mixed_spin(control, value):
@@ -67,7 +68,9 @@ class TablePanel(QWidget):
         self.fill_button.clicked.connect(lambda: self.choose_color('fill'))
         self.fill.editingFinished.connect(lambda: self.apply_color('fill'))
         self.fill_opacity = self.spin('tableFillOpacity', 0, 100, 0)
-        self.fill_opacity.valueChanged.connect(lambda value: self.dispatch('cell_style', {'fill_opacity': value/100}))
+        connect_live_opacity(self.window, self.fill_opacity,
+                             lambda value: self.dispatch('cell_style', {'fill_opacity': value/100}))
+        self.fill_opacity.editingFinished.connect(self.window.save_snapshot)
         fill_row = row(layout, self.fill_button, self.fill, compact(
             state_icon_path('opacity'), self.fill_opacity, '%', 85, tr('Opacidade do preenchimento')))
         fill_row.setStretch(1, 1)
@@ -85,8 +88,9 @@ class TablePanel(QWidget):
         self.edge_width.valueChanged.connect(lambda value: self.dispatch('edge_style', {'width': value*300/25.4}))
         # Modelos anteriores podem ter bordas ocultas por visible=False.
         # Alterar a opacidade permite reexibi-las sem modificar o modelo ao carregar.
-        self.edge_opacity.valueChanged.connect(lambda value: self.dispatch(
+        connect_live_opacity(self.window, self.edge_opacity, lambda value: self.dispatch(
             'edge_style', {'opacity': value/100, 'visible': True}))
+        self.edge_opacity.editingFinished.connect(self.window.save_snapshot)
         layout.addWidget(field(tr('Espessura'), compact('', self.edge_width, 'mm')))
         edge_row = row(layout, self.edge_button, self.edge, compact(
             state_icon_path('opacity'), self.edge_opacity, '%', 85, tr('Opacidade das bordas')))

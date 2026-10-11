@@ -285,7 +285,8 @@ class TableController:
             session.text.setTextCursor(cursor)
             session.checkpoint()
             self.sync_active_format()
-            self.window.view.setFocus();session.text.setFocus()
+            if not getattr(self.window, '_live_property_preview_depth', 0):
+                self.window.view.setFocus();session.text.setFocus()
             return True
         identities = {cell['id'] for cell in item.selected_cells()}
         def change(table, bounds):

@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QStyleOptionGraphicsItem, QStyle,
 )
 from core.i18n import tr
+from .live_opacity import connect_live_opacity
 from core.organogram import (
     UNITS_PER_MM, add_organogram, new_group, group_rect, slot_rect, board_bounds,
     validate_organogram, block_name_key, validate_block_name,
@@ -549,7 +550,8 @@ class OrganogramPanel(QWidget):
         self.border_color.clicked.connect(self.choose_border_color)
         self.border_color_hex.editingFinished.connect(lambda: self.apply_color_text(border=True))
         self.border_width.editingFinished.connect(lambda: window.change_board_border(width_mm=self.border_width.value()))
-        self.border_opacity.editingFinished.connect(lambda: window.change_board_border(opacity=self.border_opacity.value() / 100))
+        connect_live_opacity(window, self.border_opacity, lambda value: window.change_board_border(opacity=value / 100))
+        self.border_opacity.editingFinished.connect(window.save_snapshot)
         self.border_outline.join_straight.clicked.connect(lambda: window.change_board_border(join="miter"))
         self.border_outline.join_round.clicked.connect(lambda: window.change_board_border(join="round"))
         border_form.addWidget(self.border_outline)
@@ -594,7 +596,8 @@ class OrganogramPanel(QWidget):
         self.transparency.setRange(0, 100)
         self.transparency.setSuffix(" %")
         self.transparency.setKeyboardTracking(False)
-        self.transparency.valueChanged.connect(lambda value: window.change_board_connector_style(opacity=1 - value / 100))
+        connect_live_opacity(window, self.transparency, lambda value: window.change_board_connector_style(opacity=1 - value / 100))
+        self.transparency.editingFinished.connect(window.save_snapshot)
         connector_dimensions = row(style_form, field(tr("Espessura"), self.width),
                                    field(tr("Transparência"), self.transparency))
         connector_dimensions.setStretch(0, 1)

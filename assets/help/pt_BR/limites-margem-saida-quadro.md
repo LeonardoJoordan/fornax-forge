@@ -11,7 +11,7 @@ Compor sem escolher previamente uma folha fixa e depois conhecer o tamanho neces
 1. Distribua os blocos e os elementos livres.
 2. Abra Documento → Saída do quadro e confira Tamanho sugerido.
 3. Ajuste Margem de saída se desejar espaço ao redor da composição.
-4. Confira a prévia e as configurações de geração antes de exportar.
+4. Confira a prévia e as opções de **Arquivo → Configurar saída** antes de exportar.
 
 ## Exemplo de uso
 

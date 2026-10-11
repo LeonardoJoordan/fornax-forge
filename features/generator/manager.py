@@ -9,6 +9,8 @@ from pathlib import Path
 # Imports corrigidos para a nova arquitetura
 from core.naming_engine import build_output_filename, sanitize_filename, unique_filename
 from .production_plan import build_imposition_plan
+from .pdf_naming import grouped_pdf_name, face_labels, sheet_page_labels
+from .image_output import JPEG_QUALITY
 from .workers import (
     PageRenderWorker, DirectRenderWorker, HybridAssemblerWorker,
     SecureGroupedPdfWorker,
@@ -19,18 +21,20 @@ from core.paths import get_temp_dir
 RENDER_MEMORY_BUDGET = 768 * 1024 * 1024
 
 
-def _bounded_worker_count(requested, renderers, *, sheet=None, capacity=1, duplex=False):
+def _bounded_worker_count(requested, renderers, *, sheet=None, capacity=1, duplex=False, jpeg=False):
     """Limita buffers simultâneos sem reduzir a velocidade de modelos comuns."""
     canvas = renderers[0].tpl.get("canvas_size", {})
     canvas_pixels = int(canvas.get("w", 0)) * int(canvas.get("h", 0))
     page_count = len(renderers)
     shared_bases = canvas_pixels * 4 * page_count
     if sheet is None:
-        per_worker = canvas_pixels * 4
+        per_worker = canvas_pixels * 4 * (2 if jpeg else 1)
     else:
         sheet_pixels = sheet.sheet_w * sheet.sheet_h
         face_count = 2 if duplex else 1
         per_worker = 4 * (canvas_pixels * max(1, capacity) + sheet_pixels * face_count)
+        if jpeg:
+            per_worker += sheet_pixels * 4
     available = max(per_worker, RENDER_MEMORY_BUDGET - shared_bases)
     return max(1, min(requested, available // max(1, per_worker)))
 
@@ -69,6 +73,7 @@ class RenderManager(QObject):
         self.cards_done = 0
         self.generated_files = []
         self.all_cards_links = {} # Mapeia o índice do cartão para os seus links
+        self._pdf_page_labels = {}
         self._is_running = False
 
     def start(self):
@@ -86,6 +91,7 @@ class RenderManager(QObject):
         self.generated_files = []
         self.workers = []
         self.all_cards_links = {}
+        self._pdf_page_labels = {}
 
         if not self.total_cards or len(self.rows_rich) != self.total_cards:
             self._on_worker_error(tr("Não há registros válidos para gerar."))
@@ -95,7 +101,8 @@ class RenderManager(QObject):
         
         cpu_count = os.cpu_count() or 4
         num_threads = max(1, cpu_count - 2)
-        num_threads = _bounded_worker_count(num_threads, self.page_renderers)
+        num_threads = _bounded_worker_count(num_threads, self.page_renderers,
+                                          jpeg=self.export_format in JPEG_QUALITY)
         
         # --- LÓGICA HÍBRIDA (Fim do castramento de threads) ---
         self.is_hybrid = (
@@ -128,6 +135,7 @@ class RenderManager(QObject):
         for i in range(len(self.rows_plain)):
             row = self.rows_plain[i]
             fname = build_output_filename(self.pattern, row, used_names)
+            labels = face_labels(fname, len(self.page_renderers))
             source_row = self.source_rows[i] if i < len(self.source_rows) else i
             copy_counts[source_row] = copy_counts.get(source_row, 0) + 1
             copy_index = copy_counts[source_row]
@@ -136,6 +144,9 @@ class RenderManager(QObject):
             # os arquivos sejam montados na sequência exata da planilha.
             if self.is_hybrid and not self.is_imposition:
                 fname = f"{i:05d}_{fname}"
+                for page_index, label in enumerate(labels):
+                    suffix = f"_pag{page_index + 1}" if len(labels) > 1 else ""
+                    self._pdf_page_labels[f"{fname}{suffix}.png"] = label
                 
             all_tasks_data.append(
                 (i, source_row, copy_index, self.rows_plain[i], self.rows_rich[i], fname)
@@ -238,7 +249,7 @@ class RenderManager(QObject):
             return
         num_threads = _bounded_worker_count(
             num_threads, self.page_renderers, sheet=plan.assembler,
-            capacity=capacity, duplex=plan.duplex,
+            capacity=capacity, duplex=plan.duplex, jpeg=self.export_format in JPEG_QUALITY,
         )
             
         total_pages = len(plan.sheets)
@@ -270,6 +281,11 @@ class RenderManager(QObject):
                 "front": sheet.front,
                 "back": sheet.back,
             }
+            if self.is_hybrid:
+                labels = sheet_page_labels(sheet.front, len(self.page_renderers))
+                for face_index, label in enumerate(labels):
+                    suffix = ("_frente", "_verso")[face_index] if plan.duplex else ""
+                    self._pdf_page_labels[f"{output_base}{suffix}.png"] = label
             pages_jobs.append(job)
 
         chunk_size = math.ceil(total_pages / num_threads)
@@ -324,15 +340,7 @@ class RenderManager(QObject):
         canvas_h = self.renderer.tpl.get("canvas_size", {}).get("h", 1000)
         if self.is_imposition:
             from .imposition import SheetAssembler
-            assembler = SheetAssembler(
-                self.imposition_settings.get("target_w_mm", 100),
-                self.imposition_settings.get("target_h_mm", 150),
-                self.imposition_settings.get("sheet_w_mm", 210),
-                self.imposition_settings.get("sheet_h_mm", 297),
-                self.imposition_settings.get("crop_marks", True),
-                self.imposition_settings.get("bleed_margin", False),
-                auto_rotate=True,
-            )
+            assembler = SheetAssembler.from_settings(self.imposition_settings)
             canvas_w, canvas_h = assembler.sheet_w, assembler.sheet_h
         self.assembler_worker = HybridAssemblerWorker(
             self.generated_files, self.work_dir, self.output_dir, 
@@ -340,7 +348,8 @@ class RenderManager(QObject):
             self.target_w_mm, self.target_h_mm,
             all_links=self.all_cards_links,
             canvas_w=canvas_w,
-            canvas_h=canvas_h
+            canvas_h=canvas_h,
+            page_labels=self._pdf_page_labels,
         )
         self.assembler_worker.finished_assembly.connect(self._on_hybrid_assembly_finished)
         self.assembler_worker.error_occurred.connect(self._on_hybrid_assembly_error)
@@ -374,7 +383,7 @@ class RenderManager(QObject):
         self._update_progress()
 
     def _on_hybrid_assembly_finished(self):
-        out_name = f"{self.output_dir.name}_Imposicao.pdf" if self.is_imposition else f"{self.output_dir.name}_Completo.pdf"
+        out_name = grouped_pdf_name(self.output_dir)
         self.generated_files = [out_name]
         self.progress_updated.emit(100)
         self._is_running = False

@@ -324,11 +324,7 @@ def install_frontend(window):
         QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
     )
     output_grid.addWidget(window.cbo_export_format, 1, 1)
-    export_tooltips = {
-        'png': tr('Uma imagem PNG para cada item.'),
-        'pdf_item': tr('Um arquivo PDF separado para cada item.'),
-        'pdf_grouped': tr('Todos os itens reunidos em um único arquivo PDF.'),
-    }
+    export_tooltips = window._export_mode_tooltips
     for index in range(window.cbo_export_format.count()):
         mode = window.cbo_export_format.itemData(index)
         window.cbo_export_format.setItemData(index, export_tooltips[mode], Qt.ItemDataRole.ToolTipRole)
@@ -358,12 +354,13 @@ def install_frontend(window):
     footer_layout.setSpacing(0)
     footer_layout.addWidget(output_controls, 1)
 
-    # O log fica oculto durante o trabalho normal e é acessado pelo menu Exibir.
+    # O menu Exibir controla o log e conserva a escolha entre sessões.
     window.log_panel.setMaximumHeight(180)
     window.log_panel.setObjectName('logPanel')
     window.log_panel.hide()
     def toggle_log(opened):
         window.log_panel.setVisible(opened)
+        window.settings.setValue('workspaceLogVisible', bool(opened))
 
     # A seleção, a prévia e a saída formam uma única área de trabalho.
     preview_workspace = QWidget()
@@ -458,7 +455,7 @@ def install_frontend(window):
     arquivo.addAction(tr('Importar modelos…'), window._on_import_models)
     arquivo.addAction(tr('Exportar modelos…'), window._on_export_models)
     arquivo.addSeparator()
-    arquivo.addAction(tr('Configurações de geração…'), window._open_config_dialog)
+    arquivo.addAction(tr('Configurar saída…'), window._open_config_dialog)
     arquivo.addSeparator()
     arquivo.addAction(
         tr('Abrir biblioteca de modelos'),
@@ -472,6 +469,7 @@ def install_frontend(window):
     show_log = exibir.addAction(tr('Mostrar log de processamento'))
     show_log.setCheckable(True)
     show_log.toggled.connect(toggle_log)
+    show_log.setChecked(window.settings.value('workspaceLogVisible', False, type=bool))
     exibir.addSeparator()
     sort_menu = exibir.addMenu(tr('Ordenar modelos por'))
     sort_group = QActionGroup(sort_menu)

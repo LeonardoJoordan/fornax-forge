@@ -1,4 +1,4 @@
-"""Ferramentas contextuais de texto, formas, agrupamento e conexão de blocos."""
+"""Ferramentas contextuais de texto, imagens, formas e blocos."""
 from PySide6.QtCore import Qt, QSignalBlocker, QRect, QRectF, QObject, QEvent
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QColorDialog, QDoubleSpinBox, QWidget, QGraphicsItem, QApplication, QLabel
@@ -16,7 +16,7 @@ from .text_floating import TextFloatingTools
 
 
 class MaskImagePicker(QObject):
-    """Intercepção temporária antes de selecionar, arrastar ou editar uma camada."""
+    """Seleciona a imagem ou forma da máscara antes de acionar a edição normal."""
     def __init__(self, bar):
         super().__init__(bar)
         self.bar = bar
@@ -32,13 +32,15 @@ class MaskImagePicker(QObject):
         bar = self.bar
         shape = bar.selected()
         if (shape is None or bar.target_key(shape) != target
-                or shape.dynamic_image_field or shape.masked_images()):
+                or not self.available_source(shape)):
             return
         self.cancel(refresh=False)
         self.shape, self.target = shape, target
         self.scene = bar.window.scene
         self.cursor = bar.view.viewport().cursor()
-        self.hint.setText(tr('Clique em uma imagem no canvas ou em Camadas. Esc cancela.'))
+        self.hint.setText(tr('Clique em uma forma no canvas ou em Camadas. Esc cancela.')
+                          if bar.window._is_mask_image(shape) else
+                          tr('Clique em uma imagem no canvas ou em Camadas. Esc cancela.'))
         self.hint.setMaximumWidth(max(1, bar.view.viewport().width()-16))
         self.hint.adjustSize()
         self.hint.move(max(0, (bar.view.viewport().width()-self.hint.width())//2), 8)
@@ -48,12 +50,19 @@ class MaskImagePicker(QObject):
         bar.refresh()
         bar.restore_focus()
 
+    def available_source(self, item):
+        w = self.bar.window
+        if w._is_mask_image(item):
+            return not isinstance(item.parentItem(), RectangleItem)
+        return (isinstance(item, RectangleItem) and not item.dynamic_image_field
+                and not item.masked_images())
+
     def valid_target(self):
         bar = self.bar
         return (self.shape is not None and isValid(self.shape)
                 and self.scene is bar.window.scene and self.shape.scene() is self.scene
                 and bar.target_key(self.shape) == self.target
-                and not self.shape.dynamic_image_field and not self.shape.masked_images())
+                and self.available_source(self.shape))
 
     def cancel(self, refresh=True):
         if self.shape is None:
@@ -112,7 +121,9 @@ class MaskImagePicker(QObject):
         else:
             self.cancel()
             return False
-        self.choose(image if w._is_mask_image(image) else None)
+        valid = (image in w._mask_shapes() if w._is_mask_image(self.shape)
+                 else w._is_mask_image(image))
+        self.choose(image if valid else None)
         return True
 
 
@@ -138,7 +149,12 @@ class ObjectFloatingBar(FloatingBar):
         self.opacity_spin.setAccessibleName(tr('Opacidade'))
         layout.addWidget(self.opacity_spin)
         self.set_popup_focus('opacity', self.opacity_spin)
+        self._opacity_session = None
+        self.opacity_spin.valueChanged.connect(self.preview_opacity)
         self.opacity_spin.editingFinished.connect(self.apply_opacity)
+        self.opacity_spin.installEventFilter(self)
+        self.alignment_menus['opacity'].installEventFilter(self)
+        self.alignment_menus['opacity'].aboutToHide.connect(self.commit_opacity)
         mask = self.button('mask', '', themed_svg_icon(state_icon_path('mask')),
                            tr('Usar como máscara'))
         mask.setCheckable(True)
@@ -190,6 +206,8 @@ class ObjectFloatingBar(FloatingBar):
         if (len(items) == 1 and isinstance(items[0], RectangleItem)
                 and items[0].shape_type in ('rectangle', 'ellipse', 'circle')):
             return 'shape', items
+        if len(items) == 1 and w._is_mask_image(items[0]):
+            return 'image', items
         if len(items) == 1 and isinstance(items[0], DesignerBox):
             return 'text', items
         return None, ()
@@ -223,7 +241,7 @@ class ObjectFloatingBar(FloatingBar):
 
     def tool_keys(self):
         return {'shape': ('fill', 'outline', 'opacity', 'mask'),
-                'text': self.text_tools.keys,
+                'text': self.text_tools.keys, 'image': ('opacity', 'mask'),
                 'group': ('group',), 'board': ('connect',),
                 'mask_edit': ('mask_cancel', 'mask_finish')}.get(self.kind, ())
 
@@ -239,8 +257,8 @@ class ObjectFloatingBar(FloatingBar):
         session = w._mask_edit_session
         if not session:
             return
-        shape = session['shape']
-        key = w._item_selection_key(shape)
+        inspector = session.get('inspector_item') or session['shape']
+        key = w._item_selection_key(inspector)
         page_id = w._active_page_id
         w.finish_mask_edit(commit)
         if w._active_page_id == page_id:
@@ -259,7 +277,7 @@ class ObjectFloatingBar(FloatingBar):
         if self.mask_picker.shape is not None and not self.mask_picker.valid_target():
             self.mask_picker.cancel(refresh=False)
         self.kind, items = self.selection()
-        if self.kind in ('text', 'shape'):
+        if self.kind in ('text', 'shape', 'image'):
             with QSignalBlocker(self.opacity_spin):
                 self.opacity_spin.setValue(items[0].opacity()*100)
             self.buttons['opacity'].setToolTip(tr('Opacidade do objeto') if self.kind == 'text' else tr('Opacidade'))
@@ -274,6 +292,11 @@ class ObjectFloatingBar(FloatingBar):
             mask.setEnabled(True)
             mask.setToolTip(tr('Remover máscara') if masked else tr('Usar como máscara'))
             themed_style(self.buttons['fill'], 'border: 1px solid '+item.fill_color+';')
+        elif self.kind == 'image':
+            masked = isinstance(items[0].parentItem(), RectangleItem)
+            self.buttons['mask'].setChecked(masked)
+            self.buttons['mask'].setEnabled(masked or bool(self.window._mask_shapes()))
+            self.buttons['mask'].setToolTip(tr('Editar ou remover máscara') if masked else tr('Aplicar máscara'))
         elif self.kind == 'text':
             self.text_tools.refresh()
         elif self.kind == 'group':
@@ -325,7 +348,26 @@ class ObjectFloatingBar(FloatingBar):
         if kind == 'text' and menu in self.text_tools.menus.values():
             self.text_tools.popup(button, menu)
             return
-        if kind == 'text' and menu is self.alignment_menus['opacity']:
+        if kind in ('shape', 'text', 'image') and menu is self.alignment_menus['opacity']:
+            self._opacity_session = (items[0], self.window.scene, self.window._active_page_id,
+                                     items[0].opacity(), self.target_key(items[0]))
+            super().popup(button, menu)
+            return
+        if kind == 'image' and menu is self.mask_menu:
+            image = items[0]
+            target = self.target_key(image)
+            masked = isinstance(image.parentItem(), RectangleItem)
+            button.setChecked(masked)
+            menu.clear()
+            if masked:
+                edit = menu.addAction(tr('Editar máscara'))
+                edit.triggered.connect(lambda _=False: self.edit_image_mask(target))
+                remove = menu.addAction(tr('Remover máscara'))
+                remove.triggered.connect(lambda _=False: self.remove_image_mask(target))
+            else:
+                action = menu.addAction(tr('Selecionar forma no canvas ou em Camadas'))
+                action.setEnabled(bool(self.window._mask_shapes()))
+                action.triggered.connect(lambda _=False: self.mask_picker.start(target))
             super().popup(button, menu)
             return
         if kind != 'shape':
@@ -360,23 +402,80 @@ class ObjectFloatingBar(FloatingBar):
         self.refresh()
         self.restore_focus()
 
+    def edit_image_mask(self, target):
+        kind, items = self.selection()
+        if kind == 'image' and self.target_key(items[0]) == target:
+            self.window.begin_mask_edit(items[0])
+        self.refresh()
+
+    def remove_image_mask(self, target):
+        kind, items = self.selection()
+        if kind == 'image' and self.target_key(items[0]) == target:
+            self.window.remove_mask(selected=items[0])
+        self.refresh()
+        self.restore_focus()
+
     def apply_mask(self, image, target):
         kind, items = self.selection()
         if (kind == 'shape' and self.target_key(items[0]) == target and isValid(image)
                 and image.scene() is self.window.scene and image in self.window._free_mask_images()):
             self.window.create_mask(image, items[0])
+        elif (kind == 'image' and self.target_key(items[0]) == target and isValid(image)
+                and image.scene() is self.window.scene and image in self.window._mask_shapes()):
+            self.window.create_mask(items[0], image)
         self.refresh()
 
-    def apply_opacity(self):
+    def preview_opacity(self, value):
+        session = self._opacity_session
         kind, items = self.selection()
-        if kind not in ('shape', 'text') or self.target_key(items[0]) != self._menu_target:
+        if (not session or not self.alignment_menus['opacity'].isVisible()
+                or kind not in ('shape', 'text', 'image')
+                or self.target_key(items[0]) != session[4]):
             return
-        value = self.opacity_spin.value()
-        if abs(items[0].opacity()*100-value) > .0001:
-            control = self.window.caixa_texto_panel.spin_opacity
-            control.setValue(value); control.editingFinished.emit()
+        items[0].setOpacity(value / 100)
+        # A lateral reflete a prévia, mas não deve publicar outro checkpoint.
+        with QSignalBlocker(self.window.caixa_texto_panel.spin_opacity):
+            self.window.caixa_texto_panel.spin_opacity.setValue(value)
+
+    def commit_opacity(self):
+        # Fechar o popup também confirma um número digitado ainda não interpretado.
+        session = self._opacity_session
+        kind, items = self.selection()
+        if (session and items and kind in ('shape', 'text', 'image')
+                and self.target_key(items[0]) == session[4]):
+            self.opacity_spin.interpretText()
+        session, self._opacity_session = self._opacity_session, None
+        if not session:
+            return
+        item, scene, page, original, _ = session
+        if (isValid(self.window) and isValid(item) and item.scene() is scene
+                and self.window.scene is scene and self.window._active_page_id == page
+                and abs(item.opacity() - original) > .0001):
+            self.window.save_snapshot()
+
+    def apply_opacity(self):
+        if not self._opacity_session:
+            return
+        self.preview_opacity(self.opacity_spin.value())
+        self.commit_opacity()
         self.alignment_menus['opacity'].close()
         self.refresh(); self.restore_focus()
+
+    def eventFilter(self, source, event):
+        if (source in (getattr(self, 'opacity_spin', None), self.alignment_menus.get('opacity'))
+                and event.type() == QEvent.Type.KeyPress and event.key() == Qt.Key.Key_Escape):
+            session, self._opacity_session = self._opacity_session, None
+            if session:
+                item, scene, page, original, _ = session
+                if isValid(item) and item.scene() is scene and self.window.scene is scene:
+                    item.setOpacity(original)
+                    if self.window._active_page_id == page:
+                        with QSignalBlocker(self.window.caixa_texto_panel.spin_opacity):
+                            self.window.caixa_texto_panel.spin_opacity.setValue(original * 100)
+            self.alignment_menus['opacity'].close()
+            self.refresh(); self.restore_focus()
+            return True
+        return super().eventFilter(source, event)
 
     def restore_focus(self):
         super().restore_focus()

@@ -117,8 +117,9 @@ class CanvasEdit(QObject):
             box.recalculate_text_position()
         if self.box:
             box.text_item.setTextCursor(cursor)
-            self.window.view.setFocus()
-            box.text_item.setFocus()
+            if not getattr(self.window, '_live_property_preview_depth', 0):
+                self.window.view.setFocus()
+                box.text_item.setFocus()
         else:
             self.window.save_snapshot()
         self.sync_panel()

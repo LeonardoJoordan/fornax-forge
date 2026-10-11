@@ -1429,7 +1429,7 @@ class OrganogramTest(unittest.TestCase):
         worker.error_occurred.connect(errors.append)
         worker.run()
         self.assertEqual(errors, [])
-        self.assertEqual(len(PdfReader(self.root / "organograma.pdf").pages), 1)
+        self.assertEqual(len(PdfReader(self.root / f"{self.root.name}.pdf").pages), 1)
         self.assertFalse((self.root / ".organograma.partial.pdf").exists())
         broken = OrganogramWorker(board_document(), [{}], [{}], self.root, "png")
         broken.error_occurred.connect(errors.append)

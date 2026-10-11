@@ -11,9 +11,11 @@ from pypdf import PdfWriter
 from core.i18n import tr
 from core.model_document import adapt_model_page, normalize_model_document
 from core.naming_engine import build_output_filename, confined_output_path
-from core.tiling import build_tile_plan, UNITS_PER_MM
+from core.tiling import build_tile_plan, UNITS_PER_MM, reserved_margin_mm
 from .organogram import OrganogramRenderer
 from .renderer import NativeRenderer
+from .pdf_naming import grouped_pdf_name
+from .image_output import raster_format, image_extension
 
 
 def proportional_options(options, bounds):
@@ -29,7 +31,7 @@ def tiling_options(settings, bounds=None):
     if not settings or not settings.get('tiling'):
         return None
     options = dict(paper=tuple(settings.get('paper', (210, 297))),
-                margin_mm=settings.get('margin_value', 5) if settings.get('margin_enabled') else 0,
+                margin_mm=reserved_margin_mm(settings),
                 overlap_mm=settings.get('overlap_mm', 0), crop_marks=settings.get('crop_marks', False),
                 target_size_mm=settings.get('target_size_mm'), offset_mm=settings.get('offset_mm', (0, 0)),
                 auto_orientation=settings.get('auto_orientation', True))
@@ -89,6 +91,7 @@ class TiledDocumentWorker(QThread):
 
     def run(self):
         published = []
+        bitmap_format = raster_format(self.mode)
         try:
             jobs, used = [], set()
             pages = self.document['pages']
@@ -119,9 +122,11 @@ class TiledDocumentWorker(QThread):
                         path = confined_output_path(directory, f'{base}.pdf')
                         renderer.export_pdf(path, plan=plan, stop=self.isInterruptionRequested)
                         start = len(merged.pages)
-                        merged.append(str(path))
+                        merged.append(str(path), import_outline=False)
                         for index, tile in enumerate(plan.tiles):
-                            merged.set_page_label(start + index, start + index, prefix=f'{base} — {tile.name}')
+                            label = f'{base} — {tile.name}'
+                            merged.set_page_label(start + index, start + index, prefix=label)
+                            merged.add_outline_item(label, start + index)
                         path.unlink()
                         done += len(plan.tiles)
                         self.progress_updated.emit(round(95 * done / total))
@@ -129,17 +134,20 @@ class TiledDocumentWorker(QThread):
                         for tile in plan.tiles:
                             if self.isInterruptionRequested():
                                 raise InterruptedError(tr('Geração cancelada.'))
-                            extension = 'png' if self.mode == 'png' else 'pdf'
+                            extension = image_extension(bitmap_format) if bitmap_format else 'pdf'
                             path = confined_output_path(directory, f'{base}_{tile.name}.{extension}')
                             if self.mode == 'png':
                                 renderer.export_tile_png(path, plan, tile, dpi=self.dpi, stop=self.isInterruptionRequested)
+                            elif bitmap_format:
+                                renderer.export_tile_image(path, plan, tile, dpi=self.dpi, stop=self.isInterruptionRequested,
+                                                           export_format=bitmap_format)
                             else:
                                 renderer.export_pdf(path, plan=plan, tiles=(tile,), stop=self.isInterruptionRequested)
                             staged.append(path)
                             done += 1
                             self.progress_updated.emit(round(95 * done / total))
                 if merged is not None:
-                    path = confined_output_path(directory, 'ladrilhos.pdf')
+                    path = confined_output_path(directory, grouped_pdf_name(self.output_dir))
                     output = BytesIO()
                     merged.write(output)
                     merged.close()

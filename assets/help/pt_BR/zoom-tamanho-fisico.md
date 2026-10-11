@@ -37,7 +37,7 @@ a composição pode estar correta.
   sem alterar as medidas salvas.
 - O organograma distingue dimensões do cartão e do quadro completo. Nenhuma
   delas é definida pelo zoom.
-- Configurações de geração podem aplicar outra escala, disposição por folha
+- As opções de **Configurar saída** podem aplicar outra escala, disposição por folha
   ou ladrilhos. Confira essa etapa ao planejar o tamanho final.
 - A impressão depende também da escala escolhida no programa usado para
   imprimir o arquivo exportado.

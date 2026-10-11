@@ -60,7 +60,7 @@ def model_from_starter(template):
     document, provider = _read_document(template.path)
     document["name"] = ""
     # Preferências, origem e credenciais pertencem ao modelo que será criado.
-    for key in ("origin_info", "protection_preferences", "imposition_settings",
+    for key in ("origin_info", "protection_preferences", "imposition_settings", "tiling_settings",
                 "last_export_mode", "last_export_format", "last_single_pdf"):
         document.pop(key, None)
     return document, provider

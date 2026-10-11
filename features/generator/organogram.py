@@ -14,10 +14,12 @@ from core.board_connectors import connector_style, connector_pen, connector_path
 from core.board_borders import paint_group_borders, card_clip_path
 from core.i18n import tr
 from core.naming_engine import confined_output_path
-from core.tiling import build_tile_plan, MARK_GAP_MM, MARK_LENGTH_MM
+from core.tiling import build_tile_plan, tile_crop_mark_segments
 from .renderer import NativeRenderer
 from .workers import physical_page, pdf_painter
 from .pdf_links import inject_pdf_links
+from .pdf_naming import grouped_pdf_name
+from .image_output import raster_format, image_extension, save_image
 
 
 class OrganogramRenderer:
@@ -145,16 +147,19 @@ class OrganogramRenderer:
         return image
 
     def export_png(self, path, dpi=150, stop=None):
+        self.export_image(path, dpi=dpi, stop=stop)
+
+    def export_image(self, path, dpi=150, stop=None, *, export_format="PNG"):
         scale = dpi / 300
         width = max(1, math.ceil(self.bounds.width() * scale))
         height = max(1, math.ceil(self.bounds.height() * scale))
         try:
-            validate_raster_dimensions(width, height, label="quadro PNG")
+            validate_raster_dimensions(width, height, label="quadro raster")
         except ValueError as error:
-            raise ValueError(tr("O quadro excede o tamanho seguro para PNG nessa resolução. Escolha PDF ou divida em ladrilhos.")) from error
+            raise ValueError(tr("O quadro excede o tamanho seguro para imagem nessa resolução. Escolha PDF ou divida em ladrilhos.")) from error
         image = QImage(width, height, QImage.Format.Format_ARGB32)
         if image.isNull():
-            raise MemoryError(tr("Não foi possível reservar memória para o PNG."))
+            raise MemoryError(tr("Não foi possível reservar memória para a imagem."))
         image.setDotsPerMeterX(3780)
         image.setDotsPerMeterY(3780)
         image.fill(Qt.GlobalColor.white)
@@ -167,8 +172,8 @@ class OrganogramRenderer:
             painter.end()
         image.setDotsPerMeterX(round(dpi * 1000 / 25.4))
         image.setDotsPerMeterY(round(dpi * 1000 / 25.4))
-        if not image.save(str(path), "PNG"):
-            raise OSError(tr("Não foi possível gravar o PNG."))
+        if not save_image(image, path, export_format):
+            raise OSError(tr("Não foi possível gravar a imagem."))
 
     def mosaic_regions(self, paper=(210, 297), *, margin_mm=10, overlap_mm=5):
         plan = build_tile_plan(self.bounds, paper, margin_mm=margin_mm, overlap_mm=overlap_mm)
@@ -201,15 +206,9 @@ class OrganogramRenderer:
             painter.save()
             try:
                 painter.setPen(QPen(QColor('#000000'), 0.2 * UNITS_PER_MM))
-                gap, length = MARK_GAP_MM * UNITS_PER_MM, MARK_LENGTH_MM * UNITS_PER_MM
-                right = margin + tile.region.width()
-                bottom = margin + tile.region.height()
-                for x in (margin, margin + tile.trim.width()):
-                    painter.drawLine(QPointF(x, margin - gap), QPointF(x, margin - gap - length))
-                    painter.drawLine(QPointF(x, bottom + gap), QPointF(x, bottom + gap + length))
-                for y in (margin, margin + tile.trim.height()):
-                    painter.drawLine(QPointF(margin - gap, y), QPointF(margin - gap - length, y))
-                    painter.drawLine(QPointF(right + gap, y), QPointF(right + gap + length, y))
+                origin = QPointF(margin - tile.region.left(), margin - tile.region.top())
+                for x1, y1, x2, y2 in tile_crop_mark_segments(plan, tile):
+                    painter.drawLine(QPointF(x1, y1) + origin, QPointF(x2, y2) + origin)
                 # Identificação acompanha as marcas, sempre na margem, fora da arte.
                 font = QFont()
                 font.setPixelSize(round(2.5 * UNITS_PER_MM))
@@ -240,11 +239,14 @@ class OrganogramRenderer:
         return image
 
     def export_tile_png(self, path, plan, tile, *, dpi=150, stop=None):
+        self.export_tile_image(path, plan, tile, dpi=dpi, stop=stop)
+
+    def export_tile_image(self, path, plan, tile, *, dpi=150, stop=None, export_format="PNG"):
         image = self.tile_image(plan, tile, scale=dpi / 300, stop=stop)
         image.setDotsPerMeterX(round(dpi * 1000 / 25.4))
         image.setDotsPerMeterY(round(dpi * 1000 / 25.4))
-        if not image.save(str(path), 'PNG'):
-            raise OSError(tr("Não foi possível gravar o PNG."))
+        if not save_image(image, path, export_format):
+            raise OSError(tr("Não foi possível gravar a imagem."))
 
     def export_pdf(self, path, *, paper=None, plan=None, tiles=None, stop=None, progress=None):
         w_mm, h_mm = self.bounds.width() / UNITS_PER_MM, self.bounds.height() / UNITS_PER_MM
@@ -317,7 +319,8 @@ class OrganogramWorker(QThread):
         self.wait()
 
     def run(self):
-        extension = "png" if self.mode == "png" else "pdf"
+        bitmap_format = raster_format(self.mode)
+        extension = image_extension(bitmap_format) if bitmap_format else "pdf"
         published = []
         try:
             renderer = OrganogramRenderer(*self.args, asset_provider=self.asset_provider,
@@ -341,9 +344,9 @@ class OrganogramWorker(QThread):
                 options = {'paper': (210, 297) if self.mode == 'a4' else (297, 420),
                            'margin_mm': 10, 'overlap_mm': 5, 'crop_marks': True}
             plan = build_tile_plan(renderer.bounds, **options) if options is not None else None
-            separate = plan is not None and (self.separate_files or self.mode == 'png')
+            separate = plan is not None and (self.separate_files or bitmap_format is not None)
             filenames = ([f'organograma_{tile.name}.{extension}' for tile in plan.tiles] if separate
-                         else [f'organograma.{extension}'])
+                         else [grouped_pdf_name(self.output_dir) if extension == 'pdf' else f'organograma.{extension}'])
             finals = [confined_output_path(self.output_dir, name) for name in filenames]
             if any(path.exists() for path in finals):
                 raise FileExistsError(tr("Já existe um arquivo com o mesmo nome na pasta de saída."))
@@ -355,11 +358,17 @@ class OrganogramWorker(QThread):
                             raise InterruptedError(tr("Geração cancelada."))
                         if self.mode == 'png':
                             renderer.export_tile_png(path, plan, tile, dpi=self.dpi, stop=self.isInterruptionRequested)
+                        elif bitmap_format:
+                            renderer.export_tile_image(path, plan, tile, dpi=self.dpi, stop=self.isInterruptionRequested,
+                                                       export_format=bitmap_format)
                         else:
                             renderer.export_pdf(path, plan=plan, tiles=(tile,), stop=self.isInterruptionRequested)
                         self.progress_updated.emit(round(95 * (index + 1) / len(plan.tiles)))
                 elif self.mode == 'png':
                     renderer.export_png(temporary[0], self.dpi, self.isInterruptionRequested)
+                elif bitmap_format:
+                    renderer.export_image(temporary[0], self.dpi, self.isInterruptionRequested,
+                                          export_format=bitmap_format)
                 else:
                     renderer.export_pdf(temporary[0], plan=plan, stop=self.isInterruptionRequested,
                                         progress=lambda done, total: self.progress_updated.emit(round(95 * done / total)))

@@ -9,12 +9,13 @@ from core.theme_icons import themed_svg_icon
 from core.i18n import tr, current_locale
 from PySide6.QtCore import (
     Qt, QSize, QObject, QEvent, QPoint, QTimer, QPropertyAnimation, QEasingCurve,
-    QAbstractAnimation,
+    QAbstractAnimation, QSignalBlocker,
 )
 from PySide6.QtGui import QColor, QIcon, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtGui import QPainter
 from .canvas_items import RectangleItem, mm_to_px, px_to_mm
+from .live_opacity import connect_live_opacity
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea,
     QSplitter, QFrame, QLineEdit, QAbstractSpinBox, QColorDialog,
@@ -912,6 +913,7 @@ def install_frontend(w):
             set_shape_color(color.name())
     shape_swatch.clicked.connect(choose_shape_color)
     shape_color.editingFinished.connect(lambda: set_shape_color(shape_color.text()))
+    connect_live_opacity(w, fill_alpha, lambda value: set_shape_color(shape_color.text()))
     fill_alpha.editingFinished.connect(lambda: set_shape_color(shape_color.text()))
     outline_enabled = QPushButton(tr('Habilitar contorno'))
     outline_enabled.setObjectName('shapeOutlineEnabled')
@@ -1022,6 +1024,7 @@ def install_frontend(w):
     outline_position.activated.connect(apply_outline)
     join_straight.clicked.connect(apply_outline)
     join_round.clicked.connect(apply_outline)
+    connect_live_opacity(w, outline_alpha, lambda value: apply_outline())
     outline_alpha.editingFinished.connect(apply_outline)
     p.btn_restore.setText(tr('Restaurar original'))
     p.btn_restore.setMinimumSize(0, 0)
@@ -1443,12 +1446,14 @@ def install_frontend(w):
         else:
             t.color_hex.setText(t.color_hex.property('lastColor') or '#000000')
     t.color_hex.editingFinished.connect(apply_hex)
+    connect_live_opacity(w, text_alpha, lambda value: apply_hex())
     text_alpha.editingFinished.connect(apply_hex)
     def color_changed(value):
         color = QColor(value)
         t.color_hex.setText(color.name())
         t.color_hex.setProperty('lastColor', color.name())
-        text_alpha.setValue(round(color.alphaF()*100))
+        with QSignalBlocker(text_alpha):
+            text_alpha.setValue(round(color.alphaF()*100))
     t.fontColorChanged.connect(color_changed)
     alignment_heading = property_heading(tl, tr('ALINHAMENTO'), separated=True)
     for control in (t.spin_lh, t.spin_indent, t.spin_size):
@@ -1942,8 +1947,9 @@ def install_frontend(w):
             update_outline_label(item.outline_enabled)
             outline_details.setVisible(item.outline_enabled)
             outline_color.setText(item.outline_color)
-            fill_alpha.setValue(item.fill_opacity * 100)
-            outline_alpha.setValue(item.outline_opacity * 100)
+            with QSignalBlocker(fill_alpha), QSignalBlocker(outline_alpha):
+                fill_alpha.setValue(item.fill_opacity * 100)
+                outline_alpha.setValue(item.outline_opacity * 100)
             join_straight.setChecked(item.outline_join == 'miter')
             join_round.setChecked(item.outline_join != 'miter')
             themed_style(outline_swatch, f'background: {item.outline_color};')

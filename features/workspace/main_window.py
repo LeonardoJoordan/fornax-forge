@@ -24,6 +24,7 @@ from features.spreadsheet.table_panel import TablePanel
 from features.generator.renderer import NativeRenderer, renderers_for_document
 from features.editor.editor_window import EditorWindow
 from features.generator.manager import RenderManager
+from features.generator.image_output import export_choices, raster_format, restored_export_mode
 from features.generator.production_plan import build_imposition_plan
 from features.workspace.settings_dialogs import ExportConfigDialog, ThemeDialog
 from features.generator.preset_warnings import warning_display_name, warning_tooltip
@@ -129,14 +130,10 @@ class MainWindow(QMainWindow):
         self.btn_sel_out = QPushButton()
         self.btn_sel_out.clicked.connect(self._select_output_folder)
         self.cbo_export_format = QComboBox()
-        self.cbo_export_format.addItem("PNG", "png")
-        self.cbo_export_format.addItem(tr("PDF por item"), "pdf_item")
-        self.cbo_export_format.addItem(tr("PDF agrupado"), "pdf_grouped")
-        self._export_mode_tooltips = {
-            "png": tr("Uma imagem PNG para cada item."),
-            "pdf_item": tr("Um arquivo PDF separado para cada item."),
-            "pdf_grouped": tr("Todos os itens reunidos em um único arquivo PDF."),
-        }
+        self._export_mode_tooltips = {}
+        for label, mode, tooltip in export_choices():
+            self.cbo_export_format.addItem(label, mode)
+            self._export_mode_tooltips[mode] = tooltip
         self.cbo_presets_main = QComboBox()
         self.cbo_presets_main.currentIndexChanged.connect(self._on_main_preset_changed)
         self._presets_main_base_tooltip = tr("Selecionar uma predefinição de impressão")
@@ -279,6 +276,7 @@ class MainWindow(QMainWindow):
             cache.clear()
         self.settings.setValue("geometry", self.saveGeometry())
         self.settings.setValue("splitterState", self.splitter.saveState())
+        self.settings.sync()
         self._stop_sheet_preview_worker(wait=True)
         for worker in tuple(self._sheet_preview_workers):
             worker.stop()
@@ -1874,14 +1872,7 @@ class MainWindow(QMainWindow):
                     self.current_filename_suffix = data.get("output_suffix", "")
 
                     # Recupera o modo novo e também entende as preferências legadas.
-                    last_fmt = data.get("last_export_format", "PNG")
-                    last_single = data.get("last_single_pdf", False)
-                    last_mode = data.get("last_export_mode")
-                    if last_mode not in {"png", "pdf_item", "pdf_grouped"}:
-                        last_mode = (
-                            "png" if last_fmt == "PNG" else
-                            ("pdf_grouped" if last_single else "pdf_item")
-                        )
+                    last_mode = restored_export_mode(data)
 
                     self.cbo_export_format.blockSignals(True)
                     idx = self.cbo_export_format.findData(last_mode)
@@ -1960,13 +1951,7 @@ class MainWindow(QMainWindow):
                 self.log_panel.append(tr("Fontes ausentes no modelo; o sistema usará substitutas: {fontes}").format(
                     fontes=format_font_list(missing)))
         self.current_filename_suffix = data.get("output_suffix", "")
-        last_fmt = data.get("last_export_format", "PNG")
-        last_single = data.get("last_single_pdf", False)
-        last_mode = data.get("last_export_mode")
-        if last_mode not in {"png", "pdf_item", "pdf_grouped"}:
-            last_mode = "png" if last_fmt == "PNG" else (
-                "pdf_grouped" if last_single else "pdf_item"
-            )
+        last_mode = restored_export_mode(data)
         self.cbo_export_format.blockSignals(True)
         index = self.cbo_export_format.findData(last_mode)
         if index >= 0:
@@ -2873,7 +2858,7 @@ class MainWindow(QMainWindow):
 
     def _current_export_mode(self):
         mode = self.cbo_export_format.currentData()
-        export_format = "PNG" if mode == "png" else "PDF"
+        export_format = raster_format(mode) or "PDF"
         return mode, export_format, mode == "pdf_grouped"
 
     def _refresh_export_mode_tooltip(self):
@@ -3017,7 +3002,18 @@ class MainWindow(QMainWindow):
     def _resolve_imposition_settings(self):
         """Resolve a configuração efetiva sem deixar presets contaminarem o modelo base."""
         base_w, base_h = self._get_model_base_print_size_mm()
-        if self._model_tiling_settings(self.cached_model_document or {}).get('tiling'):
+        configuration = self._model_tiling_settings(self.cached_model_document or {})
+        if configuration.get('layout_mode') == 'auto':
+            from features.generator.output_layout import resolve_output_layout, output_bounds
+            document = self.cached_model_document or self.cached_model_data or {}
+            try:
+                layout = resolve_output_layout(configuration, output_bounds(document), repeat=document.get('organogram') is None)
+            except (ValueError, TypeError):
+                # A prévia continua disponível ao abrir uma configuração inválida;
+                # a geração valida novamente e informa o problema antes de criar arquivos.
+                return {'enabled': False, 'target_w_mm': base_w, 'target_h_mm': base_h}
+            return layout.imposition or {'enabled': False, 'target_w_mm': base_w, 'target_h_mm': base_h}
+        if configuration.get('tiling'):
             return {'enabled': False, 'target_w_mm': base_w, 'target_h_mm': base_h}
         imp = (self.cached_model_data or {}).get("imposition_settings", {}) or {}
         presets = imp.get("presets", {}) or {}
@@ -3214,11 +3210,11 @@ class MainWindow(QMainWindow):
             and next(iter_page_link_items(self.cached_model_document), None)
         )
 
-        if export_format == "PNG" and has_any_link and not (self.cached_model_document or {}).get("organogram"):
+        if raster_format(export_format) and has_any_link and not (self.cached_model_document or {}).get("organogram"):
             resp = QMessageBox.question(
                 self, 
-                tr("Aviso: links desativados em PNG"),
-                tr("Este modelo possui links ativos, mas o formato de saída atual é PNG.\n\nOs links funcionam somente em PDF. Deseja continuar e gerar as imagens sem links?"),
+                tr("Aviso: links desativados em imagens"),
+                tr("Este modelo possui links ativos, mas o formato de saída atual é uma imagem.\n\nOs links funcionam somente em PDF. Deseja continuar e gerar as imagens sem links?"),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No
             )
@@ -3273,7 +3269,15 @@ class MainWindow(QMainWindow):
                                       asset_provider, authorized_snapshot)
             return
 
-        if self._model_tiling_settings(document).get('tiling'):
+        from features.generator.output_layout import effective_settings
+        try:
+            output_configuration = effective_settings(document, self._model_tiling_settings(document))
+        except (ValueError, TypeError) as error:
+            if authorized_snapshot:
+                authorized_snapshot.close()
+            QMessageBox.warning(self, tr('Revise a configuração de saída'), str(error))
+            return
+        if output_configuration.get('tiling'):
             self._generate_tiled_pages(document, rows_plain, rows_rich, custom_path,
                                        asset_provider, authorized_snapshot)
             return
@@ -3408,7 +3412,8 @@ class MainWindow(QMainWindow):
                 raise ValueError(tr("Corrija a distribuição dos registros antes de gerar:\n{pendencias}").format(pendencias=assignment_issue_text(renderer.assignment_issues)))
             if not renderer.slots:
                 raise ValueError(tr("Não há cartões com informações válidas nos blocos do quadro."))
-            configuration = self._model_tiling_settings(document)
+            from features.generator.output_layout import effective_settings
+            configuration = effective_settings(document, self._model_tiling_settings(document))
             options = tiling_options(configuration, renderer.bounds)
             if options is not None:
                 from core.tiling import build_tile_plan
@@ -3416,7 +3421,7 @@ class MainWindow(QMainWindow):
             output_dir, _number = create_forge_output_dir(Path(output_path), self.settings)
             mode = self.cbo_export_format.currentData()
             worker = OrganogramWorker(document, rows_plain, rows_rich, output_dir,
-                'png' if mode == 'png' else 'pdf', dpi=configuration.get('dpi', 150),
+                mode if raster_format(mode) else 'pdf', dpi=300,
                 tiling_options=options, separate_files=mode == 'pdf_item', asset_provider=asset_provider,
                 dynamic_image_dir=directory, authorized_snapshot=authorized_snapshot, parent=self)
             self._start_tiled_generation(worker, output_dir)
@@ -3430,13 +3435,15 @@ class MainWindow(QMainWindow):
         from features.generator.tiled_document import TiledDocumentWorker, PageTilingRenderer, tiling_options
         from core.tiling import build_tile_plan
         try:
-            options = tiling_options(self._model_tiling_settings(document))
+            from features.generator.output_layout import effective_settings
+            configuration = effective_settings(document, self._model_tiling_settings(document))
+            options = tiling_options(configuration)
             renderer = PageTilingRenderer(document, asset_provider=asset_provider)
-            build_tile_plan(renderer.bounds, **tiling_options(self._model_tiling_settings(document), renderer.bounds))
+            build_tile_plan(renderer.bounds, **tiling_options(configuration, renderer.bounds))
             output_dir, _number = create_forge_output_dir(Path(output_path), self.settings)
             worker = TiledDocumentWorker(document, rows_plain, rows_rich, output_dir,
                 self.cbo_export_format.currentData(), options=options,
-                dpi=self._model_tiling_settings(document).get('dpi', 150),
+                dpi=300,
                 pattern=self.current_filename_suffix or '{modelo}', asset_provider=asset_provider,
                 dynamic_image_dir=document.get('__dynamic_image_dir'),
                 authorized_snapshot=authorized_snapshot, parent=self)
@@ -3516,7 +3523,7 @@ class MainWindow(QMainWindow):
                     self._update_template_json({"imposition_settings": imp_settings})
 
         tiled = self._model_tiling_settings(self.cached_model_document or {})
-        if tiled:
+        if tiled and tiled.get('layout_mode') != 'auto':
             self.cbo_presets_main.addItem(tr('Ladrilhos'), '__tiling__')
             if tiled.get('tiling'):
                 self.cbo_presets_main.setCurrentIndex(self.cbo_presets_main.findData('__tiling__'))
@@ -3539,6 +3546,8 @@ class MainWindow(QMainWindow):
             self._on_table_selection()
             return
         tiled['tiling'] = False
+        if tiled.get('layout_mode') == 'auto':
+            tiled = {}
         
         imp = self.cached_model_data.setdefault("imposition_settings", {})
 
@@ -3557,6 +3566,8 @@ class MainWindow(QMainWindow):
         presets = imp.get("presets", {}) or {}
         if name in presets:
             imp["active_preset_name"] = name
+            if presets[name].get('output_layout'):
+                tiled = copy.deepcopy(presets[name]['output_layout'])
             self._update_template_json({"imposition_settings": imp, "tiling_settings": tiled})
             self.log_panel.append(tr("⚡ Layout aplicado: <b>{nome}</b>").format(nome=name))
         self._refresh_main_preset_tooltip()
@@ -3578,7 +3589,7 @@ class MainWindow(QMainWindow):
 
         name = self._main_preset_name_at(self.cbo_presets_main.currentIndex())
         if name == '__tiling__':
-            self.cbo_presets_main.setToolTip(tr('Impressão em ladrilhos. Ajuste papel, tamanho e posição nas configurações de geração.'))
+            self.cbo_presets_main.setToolTip(tr('Saída em ladrilhos. Ajuste papel, tamanho e posição em Arquivo → Configurar saída.'))
             return
         imp_settings = self.cached_model_data.get("imposition_settings", {}) or {}
         preset = (imp_settings.get("presets", {}) or {}).get(name, {})

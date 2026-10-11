@@ -83,6 +83,7 @@ class SheetPreviewWorker(QThread):
                 image = plan.assembler.render_sheet(
                     cards,
                     preserve_slots=plan.duplex,
+                    back_face=plan.duplex and face_index == 1,
                     rotate_cards_180=(
                         plan.duplex
                         and face_index == 1

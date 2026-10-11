@@ -1,8 +1,10 @@
 import math
+from copy import copy
 
 from PySide6.QtGui import QImage, QPainter, QColor, QPen, QPageLayout, QTransform
 from PySide6.QtCore import Qt, QPointF, QRectF
 from core.model_document import ModelValidationError, validate_raster_dimensions
+from core.tiling import crop_mark_segments
 
 DPI = 300
 EPS_MM = 1e-6
@@ -16,7 +18,15 @@ def _fit_count_mm(available_mm, item_mm):
     return max(0, math.floor((available_mm + EPS_MM) / item_mm))
 
 class SheetAssembler:
-    def __init__(self, target_w_mm: float, target_h_mm: float, sheet_w_mm: float = 210.0, sheet_h_mm: float = 297.0, crop_marks: bool = True, bleed_margin: bool = False, auto_rotate: bool = True):
+    @classmethod
+    def from_settings(cls, settings):
+        return cls(settings.get('target_w_mm', 100), settings.get('target_h_mm', 150),
+                   settings.get('sheet_w_mm', 210), settings.get('sheet_h_mm', 297),
+                   settings.get('crop_marks', True), settings.get('bleed_margin', False),
+                   auto_rotate=settings.get('auto_rotate', True),
+                   margin_mm=settings.get('margin_mm'), offset_mm=settings.get('offset_mm'))
+
+    def __init__(self, target_w_mm: float, target_h_mm: float, sheet_w_mm: float = 210.0, sheet_h_mm: float = 297.0, crop_marks: bool = True, bleed_margin: bool = False, auto_rotate: bool = True, *, margin_mm=None, offset_mm=None):
         for label, value in (
             ("largura do item", target_w_mm), ("altura do item", target_h_mm),
             ("largura da folha", sheet_w_mm), ("altura da folha", sheet_h_mm),
@@ -27,6 +37,7 @@ class SheetAssembler:
         self.target_h_mm = target_h_mm
         self.crop_marks = crop_marks
         self.bleed_margin = bleed_margin
+        self.positioned = offset_mm is not None
         
         # Configuração das linhas de corte e seus tamanhos
         if self.crop_marks:
@@ -45,6 +56,17 @@ class SheetAssembler:
         if self.crop_marks:
             self.edge_reserve_mm += (self.mark_gap_mm + self.mark_len_mm) # Adiciona 5mm para as marcas
 
+        # A configuração unificada fornece uma margem explícita. Modelos antigos
+        # conservam a reserva cumulativa original quando este campo está ausente.
+        if margin_mm is not None:
+            if isinstance(margin_mm, bool) or not isinstance(margin_mm, (int, float)) or not math.isfinite(margin_mm) or margin_mm < 0:
+                raise ModelValidationError("A margem deve ser um número positivo ou zero.")
+            self.edge_reserve_mm = margin_mm
+        if offset_mm is not None and (len(offset_mm) != 2 or any(
+                isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0 for value in offset_mm)):
+            raise ModelValidationError("A posição deve conter duas medidas positivas ou zero.")
+        offset_x, offset_y = offset_mm or (0, 0)
+
         self.card_w_px = mm_to_px_300(target_w_mm)
         self.card_h_px = mm_to_px_300(target_h_mm)
         self.mark_len = mm_to_px_300(self.mark_len_mm)
@@ -53,12 +75,12 @@ class SheetAssembler:
         usable_w_mm = sheet_w_mm - (self.edge_reserve_mm * 2)
         usable_h_mm = sheet_h_mm - (self.edge_reserve_mm * 2)
 
-        cols_p = _fit_count_mm(usable_w_mm, target_w_mm)
-        rows_p = _fit_count_mm(usable_h_mm, target_h_mm)
+        cols_p = _fit_count_mm(usable_w_mm - offset_x, target_w_mm)
+        rows_p = _fit_count_mm(usable_h_mm - offset_y, target_h_mm)
         cap_p = cols_p * rows_p
         
-        cols_l = _fit_count_mm(usable_h_mm, target_w_mm)
-        rows_l = _fit_count_mm(usable_w_mm, target_h_mm)
+        cols_l = _fit_count_mm(usable_h_mm - offset_x, target_w_mm)
+        rows_l = _fit_count_mm(usable_w_mm - offset_y, target_h_mm)
         cap_l = cols_l * rows_l
         
         if auto_rotate and cap_l > cap_p:
@@ -67,14 +89,15 @@ class SheetAssembler:
             self.cols = cols_l
             self.rows = rows_l
             self.capacity = cap_l
-            self.orientation = QPageLayout.Orientation.Landscape
         else:
             self.sheet_w_mm = sheet_w_mm
             self.sheet_h_mm = sheet_h_mm
             self.cols = cols_p
             self.rows = rows_p
             self.capacity = cap_p
-            self.orientation = QPageLayout.Orientation.Portrait
+
+        self.orientation = (QPageLayout.Orientation.Landscape if self.sheet_w_mm > self.sheet_h_mm
+                            else QPageLayout.Orientation.Portrait)
 
         validate_raster_dimensions(
             mm_to_px_300(self.sheet_w_mm), mm_to_px_300(self.sheet_h_mm),
@@ -89,6 +112,9 @@ class SheetAssembler:
         
         self.margin_left_mm = (self.sheet_w_mm - total_grid_w_mm) / 2.0
         self.margin_top_mm = (self.sheet_h_mm - total_grid_h_mm) / 2.0
+        if offset_mm is not None:
+            self.margin_left_mm = self.edge_reserve_mm + offset_x
+            self.margin_top_mm = self.edge_reserve_mm + offset_y
         self.margin_left = mm_to_px_300(self.margin_left_mm)
         self.margin_top = mm_to_px_300(self.margin_top_mm)
 
@@ -100,7 +126,20 @@ class SheetAssembler:
 
     def render_sheet(self, cards: list[QImage | None], *, preserve_slots=False,
                      card_links=None, canvas_size=None, out_links=None,
-                     rotate_cards_180=False) -> QImage:
+                     rotate_cards_180=False, back_face=False) -> QImage:
+        if back_face and self.positioned:
+            # Com posição livre, espelhar somente a ordem das células não basta:
+            # o verso precisa espelhar também a margem da malha na folha física.
+            back = copy(self)
+            if self.orientation == QPageLayout.Orientation.Landscape:
+                back.margin_top_mm = self.sheet_h_mm - self.rows * self.target_h_mm - self.margin_top_mm
+            else:
+                back.margin_left_mm = self.sheet_w_mm - self.cols * self.target_w_mm - self.margin_left_mm
+            back.margin_left = mm_to_px_300(back.margin_left_mm)
+            back.margin_top = mm_to_px_300(back.margin_top_mm)
+            return back.render_sheet(cards, preserve_slots=preserve_slots, card_links=card_links,
+                                     canvas_size=canvas_size, out_links=out_links,
+                                     rotate_cards_180=rotate_cards_180)
         sheet = QImage(self.sheet_w, self.sheet_h, QImage.Format_ARGB32)
         sheet.setDotsPerMeterX(round(DPI / 0.0254))
         sheet.setDotsPerMeterY(round(DPI / 0.0254))
@@ -176,33 +215,25 @@ class SheetAssembler:
         painter.end()
         return sheet
 
-    def _draw_crop_marks(self, painter: QPainter, cols: int, rows: int):
+    def _draw_crop_marks(self, painter: QPainter, cols: int, rows: int, *, preview=False):
         pen = QPen(Qt.GlobalColor.black)
-        pen.setWidth(2) 
+        # No mapa reduzido, um pixel de tela mantém as marcas legíveis. A saída
+        # final continua com a espessura original de dois pixels em 300 DPI.
+        pen.setWidth(1 if preview else 2)
+        pen.setCosmetic(preview)
         painter.setPen(pen)
 
-        grid_start_x = self.margin_left
-        # Usa as colunas e linhas dinâmicas para travar o fim do bloco
-        grid_end_x = self._grid_x(cols)
-        grid_start_y = self.margin_top
-        grid_end_y = self._grid_y(rows)
-
-        for c in range(cols + 1):
-            x = self._grid_x(c)
-            p1_top = QPointF(x, grid_start_y - self.mark_gap)
-            p2_top = QPointF(x, grid_start_y - self.mark_gap - self.mark_len)
-            painter.drawLine(p1_top, p2_top)
-            
-            p1_btm = QPointF(x, grid_end_y + self.mark_gap)
-            p2_btm = QPointF(x, grid_end_y + self.mark_gap + self.mark_len)
-            painter.drawLine(p1_btm, p2_btm)
-
-        for r in range(rows + 1):
-            y = self._grid_y(r)
-            p1_lft = QPointF(grid_start_x - self.mark_gap, y)
-            p2_lft = QPointF(grid_start_x - self.mark_gap - self.mark_len, y)
-            painter.drawLine(p1_lft, p2_lft)
-            
-            p1_rgt = QPointF(grid_end_x + self.mark_gap, y)
-            p2_rgt = QPointF(grid_end_x + self.mark_gap + self.mark_len, y)
-            painter.drawLine(p1_rgt, p2_rgt)
+        if cols <= 0 or rows <= 0:
+            return
+        grid = QRectF(self.margin_left, self.margin_top,
+                      self._grid_x(cols) - self.margin_left, self._grid_y(rows) - self.margin_top)
+        paper = QRectF(0, 0, self.sheet_w - 1, self.sheet_h - 1)
+        # Mantém os limites individuais arredondados, iguais aos cartões.
+        segments = crop_mark_segments(grid, paper, gap=self.mark_gap, length=self.mark_len,
+                                      columns=cols, rows=rows)
+        for index, (x1, y1, x2, y2) in enumerate(segments):
+            if index < (cols + 1) * 2:
+                x1 = x2 = min(paper.right(), self._grid_x(index // 2))
+            else:
+                y1 = y2 = min(paper.bottom(), self._grid_y((index - (cols + 1) * 2) // 2))
+            painter.drawLine(QPointF(x1, y1), QPointF(x2, y2))

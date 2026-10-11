@@ -4571,7 +4571,9 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
 
     def save_snapshot(self):
         """Dispara um salvamento na memória (chamado ao soltar o mouse ou terminar uma edição)."""
-        if getattr(self, '_restoring_history', False) or self._mask_edit_session or self._loading_board:
+        if (getattr(self, '_restoring_history', False)
+                or getattr(self, '_live_property_preview_depth', 0)
+                or self._mask_edit_session or self._loading_board):
             return
         if self._active_page_id == "organogram":
             self._update_board_extent(refresh_panel=False)

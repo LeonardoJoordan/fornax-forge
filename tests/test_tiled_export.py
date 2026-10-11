@@ -125,21 +125,24 @@ class TiledExportTest(unittest.TestCase):
             painter.end()
         self.assertEqual(actual, expected)
 
-    def test_configuration_contains_mutually_exclusive_print_modes_and_keeps_presets(self):
+    def test_configuration_unifies_print_modes_without_mutating_input_presets(self):
         current = {'active_preset_name': 'Turma', 'presets': {
             'Turma': {'enabled': True, 'sheet_w': 210, 'sheet_h': 297, 'w': 20, 'h': 28}}}
         original = deepcopy(current)
         dialog = ConfigDialog(None, 'teste', [], current_imposition=current,
                               tile_renderer=self.renderer(), current_tiling={'tiling': True})
         self.addCleanup(dialog.deleteLater)
-        self.assertFalse(dialog.chk_imposition.isChecked())
+        self.assertFalse(hasattr(dialog, 'chk_imposition'))
+        self.assertTrue(dialog.tiling_panel.automatic)
         self.assertTrue(dialog.tiling_panel.tiling.isChecked())
-        dialog.chk_imposition.setChecked(True)
-        self.assertFalse(dialog.tiling_panel.tiling.isChecked())
-        dialog.tiling_panel.tiling.setChecked(True)
-        self.assertFalse(dialog.chk_imposition.isChecked())
-        dialog._on_accept()
+        self.assertEqual(len(dialog.tiling_panel.plan.tiles), 1)
+        dialog.tiling_panel.target_width.setValue(800)
+        self.assertGreater(len(dialog.tiling_panel.plan.tiles), 1)
+        with patch('features.generator.export_dialog.dialog_get_text', return_value=('Quadro', True)):
+            dialog._on_accept()
         self.assertTrue(dialog.get_imposition_settings()['presets']['Turma']['enabled'])
+        self.assertEqual(dialog.get_imposition_settings()['presets']['Turma'], original['presets']['Turma'])
+        self.assertEqual(dialog.get_tiling_settings()['layout_mode'], 'auto')
         self.assertEqual(current, original)
 
     def test_dragging_preview_repositions_design_and_releases_the_mouse_state(self):
@@ -264,6 +267,7 @@ class TiledExportTest(unittest.TestCase):
         with patch.object(ConfigDialog, 'exec', side_effect=AssertionError('A configuração já foi salva')):
             window._generate_tiled_pages(snapshot.document(), [{'Nome': 'Ana'}], [{'Nome': 'Ana'}],
                                          self.root, snapshot.asset, snapshot)
+        self.assertEqual(window.manager.dpi, 300)
         for _ in range(300):
             if not window.manager.isRunning():
                 break
@@ -271,7 +275,7 @@ class TiledExportTest(unittest.TestCase):
         self.app.processEvents()
         self.assertFalse(window.manager.isRunning())
         self.assertFalse(window._generation_failed)
-        reader = PdfReader(window._last_forge_output_dir / 'ladrilhos.pdf')
+        reader = PdfReader(window._last_forge_output_dir / f'{window._last_forge_output_dir.name}.pdf')
         self.assertEqual(len(reader.pages), 4)
         self.assertEqual(reader.page_labels, [f'Ana — {label}' for label in ('A1', 'B1', 'A2', 'B2')])
         self.assertTrue(window.btn_generate_cards.isEnabled())
@@ -314,7 +318,8 @@ class TiledExportTest(unittest.TestCase):
 
     def test_invalid_dimensions_do_not_change_user_margin_to_make_marks_fit(self):
         bounds = self.renderer().bounds
-        for options in ({'margin_mm': 0, 'crop_marks': True}, {'margin_mm': 150},
+        self.assertEqual(build_tile_plan(bounds, margin_mm=0, crop_marks=True).margin_mm, 0)
+        for options in ({'margin_mm': 150},
                         {'overlap_mm': 210}, {'margin_mm': -1}, {'paper': (float('nan'), 210)}):
             with self.subTest(options=options), self.assertRaises(ValueError):
                 build_tile_plan(bounds, **options)
@@ -346,7 +351,7 @@ class TiledExportTest(unittest.TestCase):
         self.assertEqual(self.worker(renderer, single), [])
         self.assertEqual(self.worker(renderer, separate, separate=True), [])
         plan = build_tile_plan(renderer.bounds, **self.options())
-        combined = PdfReader(single / 'organograma.pdf')
+        combined = PdfReader(single / f'{single.name}.pdf')
         self.assertEqual(combined.page_labels, [tile.name for tile in plan.tiles])
         self.assertEqual(len(combined.pages), len(plan.tiles))
         self.assertEqual(set(path.name for path in separate.iterdir()),
@@ -406,8 +411,8 @@ class TiledExportTest(unittest.TestCase):
         dialog.crop_marks.setChecked(True)
         self.assertEqual(dialog.margin.value(), 5)
         self.assertFalse(dialog.margin_enabled.isChecked())
-        self.assertFalse(dialog.valid)
-        self.assertIn('5 mm', dialog.error.text())
+        self.assertTrue(dialog.valid)
+        self.assertFalse(dialog.error.text())
         dialog.margin_enabled.setChecked(True)
         self.assertIsNotNone(dialog.plan)
         self.assertTrue(dialog.valid)
@@ -448,7 +453,8 @@ class TiledExportTest(unittest.TestCase):
         self.assertEqual(dialog.width.value(), 420)
         self.assertFalse(dialog.margin_enabled.isChecked())
         self.assertTrue(dialog.crop_marks.isChecked())
-        self.assertIsNone(dialog.plan)
+        self.assertIsNotNone(dialog.plan)
+        self.assertEqual(dialog.plan.margin_mm, 0)
         dialog.crop_marks.setChecked(False)
         self.assertEqual(dialog.plan.paper, (420, 297))
         self.assertEqual(dialog.renderer.document, original)
@@ -468,6 +474,7 @@ class TiledExportTest(unittest.TestCase):
         with patch.object(ConfigDialog, 'exec', side_effect=AssertionError('A geração não deve abrir configuração')):
             window._generate_organogram(snapshot.document(), plain, rich, self.root,
                                        snapshot.asset, snapshot)
+        self.assertEqual(window.manager.dpi, 300)
         for _ in range(300):
             if not window.manager.isRunning():
                 break
@@ -546,7 +553,7 @@ class TiledExportTest(unittest.TestCase):
         combined_dir, separate_dir = self.root / 'combined', self.root / 'parts'
         self.assertEqual(self.worker(renderer, combined_dir, options=options), [])
         self.assertEqual(self.worker(renderer, separate_dir, options=options, separate=True), [])
-        combined = combined_dir / 'organograma.pdf'
+        combined = combined_dir / f'{combined_dir.name}.pdf'
         reader = PdfReader(combined)
         has_link = False
         for index, label in enumerate(reader.page_labels):

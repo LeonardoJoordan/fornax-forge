@@ -7,6 +7,8 @@ from .imposition import SheetAssembler
 from .production_plan import build_imposition_plan
 from .pdf_links import inject_pdf_links
 from .png_output import save_png
+from .image_output import image_extension, save_image
+from .pdf_naming import grouped_pdf_name, face_labels, sheet_page_labels
 from core.i18n import tr
 from core.model_document import resolve_model_file
 from core.naming_engine import confined_output_path
@@ -45,7 +47,7 @@ class DirectRenderWorker(QThread):
         self.renderers = [renderer.fork() for renderer in renderers]
         self.renderer = self.renderers[0]
         self.output_dir = output_dir
-        self.export_format = export_format
+        self.export_format = export_format.upper()
         self.single_pdf = single_pdf
         self.target_w_mm = target_w_mm
         self.target_h_mm = target_h_mm
@@ -114,14 +116,15 @@ class DirectRenderWorker(QThread):
                     output_names = []
                     staged = []
                     multiple_pages = len(self.renderers) > 1
+                    extension = image_extension(self.export_format)
                     for page_index, renderer in enumerate(self.renderers):
                         if not self._is_running:
                             break
                         suffix = f"_pag{page_index + 1}" if multiple_pages else ""
-                        out_path = confined_output_path(self.output_dir, f"{filename}{suffix}.png")
+                        out_path = confined_output_path(self.output_dir, f"{filename}{suffix}.{extension}")
                         temporary = (
                             out_path if self.secure_output else
-                            confined_output_path(self.output_dir, f".{filename}{suffix}.{original_idx}.partial.png")
+                            confined_output_path(self.output_dir, f".{filename}{suffix}.{original_idx}.partial.{extension}")
                         )
                         if not self.secure_output:
                             temporary_paths.append(temporary)
@@ -131,7 +134,7 @@ class DirectRenderWorker(QThread):
                         renderer.render_row(
                             row_plain, row_rich, temporary, out_links=local_links,
                             target_w_mm=self.target_w_mm, target_h_mm=self.target_h_mm,
-                            intermediate_png=self.intermediate_png,
+                            intermediate_png=self.intermediate_png, export_format=self.export_format,
                         )
                         emit_table_warnings(self,renderer,source_row)
                         links_by_page[page_index] = local_links
@@ -178,23 +181,13 @@ class PageRenderWorker(QThread):
         self.renderers = [renderer.fork() for renderer in renderers]
         self.renderer = self.renderers[0]
         self.output_dir = output_dir
-        self.export_format = export_format
+        self.export_format = export_format.upper()
         self.single_pdf = single_pdf
         self.duplex = bool(imposition_settings.get("duplex", False))
         self.secure_output = bool(secure_output)
         self.intermediate_png = bool(intermediate_png) and not self.secure_output
         
-        w_mm = imposition_settings.get("target_w_mm", 100)
-        h_mm = imposition_settings.get("target_h_mm", 150)
-        sheet_w = imposition_settings.get("sheet_w_mm", 210.0)
-        sheet_h = imposition_settings.get("sheet_h_mm", 297.0)
-        crop_marks = imposition_settings.get("crop_marks", True)
-        bleed_margin = imposition_settings.get("bleed_margin", False)
-        
-        self.assembler = SheetAssembler(
-            w_mm, h_mm, sheet_w, sheet_h, crop_marks, bleed_margin,
-            auto_rotate=True,
-        )
+        self.assembler = SheetAssembler.from_settings(imposition_settings)
         
         self._is_running = True
 
@@ -235,6 +228,7 @@ class PageRenderWorker(QThread):
                     face_images.append(self.assembler.render_sheet(
                         card_images,
                         preserve_slots=self.duplex,
+                        back_face=self.duplex and face_index == 1,
                         card_links=card_links,
                         canvas_size=(canvas.get("w", 1000), canvas.get("h", 1000)),
                         out_links=sheet_links,
@@ -286,18 +280,21 @@ class PageRenderWorker(QThread):
                 else:
                     staged = []
                     suffixes = ("_frente", "_verso") if self.duplex else ("",)
+                    extension = image_extension(self.export_format)
                     for face_index, image in enumerate(face_images):
                         suffix = suffixes[face_index]
-                        out_path = confined_output_path(self.output_dir, f"{output_base}{suffix}.png")
+                        out_path = confined_output_path(self.output_dir, f"{output_base}{suffix}.{extension}")
                         temporary = (
                             out_path if self.secure_output else
-                            confined_output_path(self.output_dir, f".{output_base}{suffix}.{page_num}.partial.png")
+                            confined_output_path(self.output_dir, f".{output_base}{suffix}.{page_num}.partial.{extension}")
                         )
                         if not self.secure_output:
                             temporary_paths.append(temporary)
                         else:
                             active_secure_paths.append(out_path)
-                        if not save_png(image, temporary, intermediate=self.intermediate_png):
+                        saved = (save_png(image, temporary, intermediate=self.intermediate_png)
+                                 if self.export_format == "PNG" else save_image(image, temporary, self.export_format))
+                        if not saved:
                             raise OSError(tr("Não foi possível gravar {arquivo}.").format(arquivo=out_path))
                         staged.append((temporary, out_path))
                     if not self._is_running:
@@ -353,16 +350,14 @@ class SecureGroupedPdfWorker(QThread):
         self._is_running = False
 
     def run(self):
-        output_path = self.output_dir / (
-            f"{self.output_dir.name}_Imposicao.pdf" if self.is_imposition
-            else f"{self.output_dir.name}_Completo.pdf"
-        )
+        output_path = confined_output_path(self.output_dir, grouped_pdf_name(self.output_dir))
         painter = writer = layout = None
         try:
             writer = QPdfWriter(str(output_path))
             layout = writer.pageLayout()
             layout.setMargins(QMarginsF(0, 0, 0, 0))
             links_by_page = {}
+            page_labels = []
             page_number = 0
             first_page = True
 
@@ -376,6 +371,7 @@ class SecureGroupedPdfWorker(QThread):
                 writer.setPageLayout(layout)
                 painter = pdf_painter(writer)
                 for sheet in plan.sheets:
+                    labels = sheet_page_labels(sheet.front, len(self.renderers))
                     faces = [(0, sheet.front)]
                     if sheet.back is not None:
                         faces.append((1, sheet.back))
@@ -403,6 +399,7 @@ class SecureGroupedPdfWorker(QThread):
                         canvas = renderer.tpl.get("canvas_size", {})
                         image = plan.assembler.render_sheet(
                             card_images, preserve_slots=plan.duplex,
+                            back_face=plan.duplex and face_index == 1,
                             card_links=card_links,
                             canvas_size=(canvas.get("w", 1000), canvas.get("h", 1000)),
                             out_links=sheet_links,
@@ -413,6 +410,7 @@ class SecureGroupedPdfWorker(QThread):
                         )
                         painter.drawImage(layout.paintRectPixels(writer.resolution()), image)
                         links_by_page[page_number] = sheet_links
+                        page_labels.append(labels[face_index])
                         page_number += 1
                     completed = sum(task is not None for task in sheet.front)
                     self.progress.emit(completed, tr("🖨️ FOLHA {folha:02d} OK ({itens} itens)").format(
@@ -426,7 +424,7 @@ class SecureGroupedPdfWorker(QThread):
                 for original_idx, _source_row, _copy_index, row_plain, row_rich, filename in self.tasks:
                     if not self._is_running:
                         raise InterruptedError
-                    for renderer in self.renderers:
+                    for page_index, renderer in enumerate(self.renderers):
                         if not first_page:
                             writer.newPage()
                         first_page = False
@@ -437,6 +435,7 @@ class SecureGroupedPdfWorker(QThread):
                         emit_table_warnings(self,renderer,_source_row)
                         painter.drawImage(layout.paintRectPixels(writer.resolution()), image)
                         links_by_page[page_number] = local_links
+                        page_labels.append(face_labels(filename, len(self.renderers))[page_index])
                         page_number += 1
                     self.progress.emit(1, tr("Salvo no PDF agrupado: {arquivo}").format(arquivo=filename))
                 canvas = self.renderers[0].tpl.get("canvas_size", {})
@@ -447,7 +446,7 @@ class SecureGroupedPdfWorker(QThread):
             writer = layout = None
             if links_by_page:
                 inject_pdf_links(
-                    output_path, links_by_page, *link_canvas, memory_only=True,
+                    output_path, links_by_page, *link_canvas, memory_only=True, page_labels=page_labels,
                 )
             self.finished_assembly.emit(output_path.name)
         except InterruptedError:
@@ -467,7 +466,7 @@ class HybridAssemblerWorker(QThread):
     finished_assembly = Signal()
     error_occurred = Signal(str)
 
-    def __init__(self, generated_files, work_dir, output_dir, is_imposition, imposition_settings, target_w_mm, target_h_mm, all_links=None, canvas_w=1000, canvas_h=1000):
+    def __init__(self, generated_files, work_dir, output_dir, is_imposition, imposition_settings, target_w_mm, target_h_mm, all_links=None, canvas_w=1000, canvas_h=1000, *, page_labels=None):
         super().__init__()
         self.generated_files = generated_files
         self.work_dir = work_dir
@@ -477,6 +476,7 @@ class HybridAssemblerWorker(QThread):
         self.target_w_mm = target_w_mm
         self.target_h_mm = target_h_mm
         self.all_links = all_links or {}
+        self.page_labels = dict(page_labels or {})
         self.canvas_w = canvas_w
         self.canvas_h = canvas_h
         self._is_running = True
@@ -487,9 +487,7 @@ class HybridAssemblerWorker(QThread):
     def run(self):
         temporary_pdf = None
         try:
-            out_path_single = self.output_dir / f"{self.output_dir.name}_Completo.pdf"
-            if self.is_imposition:
-                out_path_single = self.output_dir / f"{self.output_dir.name}_Imposicao.pdf"
+            out_path_single = confined_output_path(self.output_dir, grouped_pdf_name(self.output_dir))
             temporary_pdf = self.output_dir / f".{out_path_single.name}.partial.pdf"
 
             writer = QPdfWriter(str(temporary_pdf))
@@ -499,18 +497,8 @@ class HybridAssemblerWorker(QThread):
             layout.setMargins(QMarginsF(0, 0, 0, 0))
 
             if self.is_imposition:
-                sheet_w = self.imposition_settings.get("sheet_w_mm", 210.0)
-                sheet_h = self.imposition_settings.get("sheet_h_mm", 297.0)
-                tw = self.imposition_settings.get("target_w_mm", 100.0)
-                th = self.imposition_settings.get("target_h_mm", 150.0)
-                marks = self.imposition_settings.get("crop_marks", True)
-                bleed = self.imposition_settings.get("bleed_margin", False)
-
                 # Recalcula a orientação vencedora para o PDF final
-                temp_asm = SheetAssembler(
-                    tw, th, sheet_w, sheet_h, marks, bleed,
-                    auto_rotate=True,
-                )
+                temp_asm = SheetAssembler.from_settings(self.imposition_settings)
                 layout.setPageSize(physical_page(temp_asm.sheet_w_mm, temp_asm.sheet_h_mm))
             else:
                 layout.setPageSize(physical_page(self.target_w_mm, self.target_h_mm))
@@ -519,7 +507,8 @@ class HybridAssemblerWorker(QThread):
             painter = pdf_painter(writer)
 
             # Os arquivos já virão ordenados perfeitamente pelo índice
-            sorted_files = sorted(self.generated_files)
+            page_order = {name: index for index, name in enumerate(self.page_labels)}
+            sorted_files = sorted(self.generated_files, key=page_order.__getitem__) if page_order else sorted(self.generated_files)
 
             cancelled = False
             for i, filename in enumerate(sorted_files):
@@ -548,13 +537,14 @@ class HybridAssemblerWorker(QThread):
                 return
 
             # --- PÓS-PROCESSAMENTO: Injeção de Hiperlinks no PDF Único ---
-            if self.all_links:
+            if self.all_links or self.page_labels:
                 try:
                     inject_pdf_links(
                         temporary_pdf,
                         self.all_links,
                         self.canvas_w,
                         self.canvas_h,
+                        page_labels=[self.page_labels[name] for name in sorted_files] if self.page_labels else None,
                     )
                 except Exception as e:
                     raise OSError(f"Erro ao injetar links no PDF Híbrido: {e}") from e

@@ -34,7 +34,7 @@ não substituem essa conferência.
 - Formatos personalizados podem mostrar apenas as medidas, sem um nome de folha.
 - As dimensões do modelo não definem, por si só, a folha usada na geração.
   A disposição de vários itens por página ou em ladrilhos depende das
-  configurações de geração.
+  opções de **Configurar saída**.
 - Nos exemplos com organograma, a legenda considera os limites do quadro
   completo, não apenas o cartão da Página 1.
 - Na opção de organograma em branco, aparece **Dimensões ajustáveis**:

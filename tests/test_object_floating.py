@@ -110,8 +110,11 @@ class ObjectFloatingTest(unittest.TestCase):
         self.select(w, text)
         self.assertTrue(bar.isVisible())
         self.assertEqual(self.tools(bar), set(bar.text_tools.keys))
+        image = next(item for item in w.scene.items() if w._is_mask_image(item))
+        self.select(w, image)
+        self.assertTrue(bar.isVisible())
+        self.assertEqual(self.tools(bar), {'opacity', 'mask'})
         excluded = [item for item in w.scene.items() if isinstance(item, SignatureItem)
-                    or isinstance(item, ImageItem) and not isinstance(item, RectangleItem)
                     or getattr(item, 'is_document_background', False)]
         excluded.append(self.shape(w, 3))
         excluded.append(next(item for item in w.scene.items() if isinstance(item, canvas.TableItem)))

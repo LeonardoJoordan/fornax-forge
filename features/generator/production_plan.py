@@ -44,15 +44,7 @@ def _standard_a4_back_slots(front_slots, cols, rows, orientation):
 def build_imposition_plan(items: Sequence[Any], settings: dict) -> ImpositionPlan:
     """Divide uma sequência na mesma malha física usada para montar as folhas."""
     duplex = bool(settings.get("duplex", False))
-    assembler = SheetAssembler(
-        settings.get("target_w_mm", 100),
-        settings.get("target_h_mm", 150),
-        settings.get("sheet_w_mm", 210.0),
-        settings.get("sheet_h_mm", 297.0),
-        settings.get("crop_marks", True),
-        settings.get("bleed_margin", False),
-        auto_rotate=True,
-    )
+    assembler = SheetAssembler.from_settings(settings)
     if assembler.capacity <= 0:
         return ImpositionPlan(assembler, (), (), duplex)
 
