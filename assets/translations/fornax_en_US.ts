@@ -2,6 +2,8 @@
 <TS version="2.1" language="en_US" sourcelanguage="pt_BR">
   <context>
     <name />
+    <message><source>Geração de material personalizado em lote</source><translation>Batch generation of personalized materials</translation></message>
+    <message><source>Editor de modelos</source><translation>Template editor</translation></message>
     <message><source>Versão {version}</source><translation>Version {version}</translation></message>
     <message><source>Selecionar linha {number}</source><translation>Select row {number}</translation></message>
     <message><source>Selecionar coluna {number}</source><translation>Select column {number}</translation></message>

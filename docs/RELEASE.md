@@ -28,6 +28,25 @@ sem sua dependência QtPdf; o FORNAX não usa esse handler e continua gerando PD
 com pypdf. O inventário final registra a saída após essa remoção.
 A redução do conjunto Qt não equivale a uma auditoria completa de suas licenças.
 
+## Ícone e apresentação do aplicativo
+
+Os arquivos em `assets/icons/fornax-forge*` são a revisão fornecida pelo autor
+em 11/10/2026. Usar o ICO no executável/instalador Windows, o ICNS no bundle
+macOS e os PNGs na interface e no AppImage. O SVG também é instalado no tema
+hicolor escalável pelo Flatpak e pela integração Linux por usuário. SVG e ICNS
+fazem parte da seleção explícita dos recursos de release.
+
+Os títulos principais usam `contexto — FORNAX Forge`, mantendo o nome de
+apresentação Qt igual nos dois pontos de entrada. Os identificadores de dados
+e de instalação permanecem independentes desses títulos.
+
+No macOS, o script preserva `CFBundleIdentifier` e `CFBundleExecutable`, ajusta
+os nomes visíveis e a associação `.fornax`, renova a assinatura **ad hoc** após
+alterar o `Info.plist` e verifica o bundle antes de inventariar e criar o DMG.
+Essa assinatura local não é assinatura Developer ID nem notarização da Apple.
+Validar o ícone no Finder/Dock e a instalação no macOS alvo; testes simulados
+em Linux não substituem essa validação.
+
 ## Versão e atualização
 
 A versão do produto é `1.1.0`, definida em `core/version.py`. Manter o

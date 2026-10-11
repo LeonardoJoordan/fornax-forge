@@ -39,6 +39,7 @@ from core.resources import action_icon_path, app_icon_path, state_icon_path, nav
 from core.theme_icons import themed_svg_icon
 from core.themes import themed_style, theme_color
 from core.i18n import tr
+from core.branding import application_window_title
 from core.dialog_buttons import (get_text as dialog_get_text, style_message_box,
                                  style_dialog_button_box, NEUTRAL_STYLE)
 from core.fornax_container import (
@@ -212,6 +213,12 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
     closed = Signal()
     modelSaved = Signal(str, list, str)
 
+    def _update_window_title(self):
+        name = (self._current_model_name or "").strip()
+        context = (tr("Editor de modelos — {modelo}").format(modelo=name)
+                   if name else tr("Editor de modelos"))
+        self.setWindowTitle(application_window_title(context))
+
     def _apply_tooltip(self, widget, text):
         """Aplica tooltip e garante que labels estáticos capturem o evento no motor customizado."""
         if isinstance(widget, QLabel):
@@ -265,7 +272,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self._active_page_dependencies = None
         self._page_scene_budget = 64 * 1024 * 1024
         self._page_font_epoch = 0
-        self.setWindowTitle(tr("Editor de modelos — FORNAX Forge"))
+        self._update_window_title()
         self.setWindowIcon(QIcon(str(app_icon_path())))
         self.resize(1200, 800)
 
@@ -1086,7 +1093,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self._fornax_asset_provider = detached_provider
         self._load_document_into_scene(copy.deepcopy(document))
         self._current_model_name = None
-        self.setWindowTitle(tr("Editor de modelos — FORNAX Forge"))
+        self._update_window_title()
         self._last_saved_state = saved_scene
         self._last_saved_document_state = saved_document
 
@@ -1101,7 +1108,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self._model_document = document
         self._active_page_id = "front"
         self._page_selection = {"front": set(), "back": set()}
-        self.setWindowTitle(tr("Editor de modelos — {modelo}").format(modelo=self._current_model_name))
+        self._update_window_title()
         self.apply_scene_state(data, is_undo_redo=False)
         self._active_scene_baseline = self.get_current_scene_state()
         self._zoom_to_fit()
@@ -1131,7 +1138,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             )
             if not ok or not novo_nome.strip(): return
             self._current_model_name = novo_nome.strip()
-            self.setWindowTitle(tr("Editor de modelos — {modelo}").format(modelo=self._current_model_name))
+            self._update_window_title()
             
         data["name"] = self._current_model_name
         model_name = self._current_model_name

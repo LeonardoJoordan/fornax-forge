@@ -16,6 +16,7 @@ from core.app_instance import ApplicationInstance
 from core.custom_tooltip import CustomTooltipManager
 from core.paths import APP_ID
 from core.version import APP_VERSION
+from core.branding import APP_DISPLAY_NAME
 from core.settings import SETTINGS_APPLICATION, SETTINGS_ORGANIZATION
 from core.resources import app_icon_path
 from core.ui_font import install_ui_font
@@ -81,7 +82,7 @@ def main():
     app.setOrganizationName(SETTINGS_ORGANIZATION)
     app.setApplicationName(SETTINGS_APPLICATION)
     app.setApplicationVersion(APP_VERSION)
-    app.setApplicationDisplayName('FORNAX Forge')
+    app.setApplicationDisplayName(APP_DISPLAY_NAME)
     app.setDesktopFileName(APP_ID)
     app.setWindowIcon(QIcon(str(app_icon_path())))
     app.setStyle('Fusion')

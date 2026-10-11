@@ -7,6 +7,36 @@ import tempfile
 from scripts.release_tools import stage, inventory, collect_notices, remove_unused_pdf_plugin
 from pathlib import Path
 from core.version import APP_VERSION
+from core.branding import APP_DISPLAY_NAME
+
+
+def configure_macos_bundle(app_path):
+    """Padroniza a apresentação e a associação sem mudar a identidade do bundle."""
+    plist_path = app_path / "Contents" / "Info.plist"
+    with plist_path.open("rb") as stream:
+        plist = plistlib.load(stream)
+    # --macos-app-name também mudaria o CFBundleIdentifier padrão do Nuitka.
+    # Ajustar apenas os nomes visíveis preserva instalações anteriores.
+    plist["CFBundleDisplayName"] = APP_DISPLAY_NAME
+    plist["CFBundleName"] = APP_DISPLAY_NAME
+    plist["CFBundleDocumentTypes"] = [{
+        "CFBundleTypeName": "Modelo FORNAX Forge",
+        "CFBundleTypeRole": "Editor",
+        "LSHandlerRank": "Owner",
+        "LSItemContentTypes": ["com.leobelisario.fornax-template"],
+    }]
+    plist["UTExportedTypeDeclarations"] = [{
+        "UTTypeIdentifier": "com.leobelisario.fornax-template",
+        "UTTypeDescription": "Modelo FORNAX Forge",
+        "UTTypeConformsTo": ["public.data", "public.archive"],
+        "UTTypeTagSpecification": {
+            "public.filename-extension": ["fornax"],
+            "public.mime-type": "application/x-fornax-template",
+        },
+    }]
+    with plist_path.open("wb") as stream:
+        plistlib.dump(plist, stream)
+
 
 def build_app():
     print("🚀 Iniciando a compilação do FORNAX Forge com Nuitka...")
@@ -80,10 +110,11 @@ def build_app():
         cmd.append("--static-libpython=no") 
         cmd.append(f"--output-filename={exe_name}") # Garante o nome correto da pasta .app
         
-        icon_path = base_dir / "assets" / "icons" / "fornax-forge_1024.png"
-        if icon_path.exists():
-            cmd.append(f"--macos-app-icon={icon_path}")
-            print("🎨 Ícone do macOS (PNG 1024 px) detectado e adicionado.")
+        icon_path = stage_dir / "assets" / "icons" / "fornax-forge.icns"
+        if not icon_path.is_file():
+            raise FileNotFoundError(f"Ícone do macOS ausente: {icon_path}")
+        cmd.append(f"--macos-app-icon={icon_path}")
+        print("🎨 Ícone nativo do macOS (.icns) detectado e adicionado.")
     
     cmd.append(str(main_file))
     
@@ -108,26 +139,16 @@ def build_app():
                     shutil.rmtree(app_path)
                 os.rename("build/main.app", app_path)
 
-            plist_path = app_path / "Contents" / "Info.plist"
-            with plist_path.open("rb") as stream:
-                plist = plistlib.load(stream)
-            plist["CFBundleDocumentTypes"] = [{
-                "CFBundleTypeName": "Modelo FORNAX Forge",
-                "CFBundleTypeRole": "Editor",
-                "LSHandlerRank": "Owner",
-                "LSItemContentTypes": ["com.leobelisario.fornax-template"],
-            }]
-            plist["UTExportedTypeDeclarations"] = [{
-                "UTTypeIdentifier": "com.leobelisario.fornax-template",
-                "UTTypeDescription": "Modelo FORNAX Forge",
-                "UTTypeConformsTo": ["public.data", "public.archive"],
-                "UTTypeTagSpecification": {
-                    "public.filename-extension": ["fornax"],
-                    "public.mime-type": "application/x-fornax-template",
-                },
-            }]
-            with plist_path.open("wb") as stream:
-                plistlib.dump(plist, stream)
+            configure_macos_bundle(app_path)
+            # O Info.plist faz parte da assinatura: renovar a assinatura local
+            # ad hoc do Nuitka depois dos ajustes, antes de inventariar/empacotar.
+            subprocess.run([
+                "/usr/bin/codesign", "--force", "--sign", "-",
+                "--preserve-metadata=identifier,entitlements,flags", str(app_path),
+            ], check=True)
+            subprocess.run([
+                "/usr/bin/codesign", "--verify", "--deep", "--strict", str(app_path),
+            ], check=True)
             # O inventário deve refletir o bundle final, incluindo a associação.
             inventory(app_path, build_dir / 'release-inventory', build_dir / 'compilation-report.xml')
             

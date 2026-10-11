@@ -57,6 +57,7 @@ from core.file_transactions import file_sha256
 from core.dynamic_images import dynamic_image_fields, resolve_dynamic_image
 from core.themes import themed_style, theme_color
 from core.i18n import tr
+from core.branding import application_window_title
 from core.dialog_buttons import get_text as dialog_get_text, style_message_box
 from core.model_document import (
     V3_FILENAME,
@@ -99,7 +100,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(tr("FORNAX Forge — Geração de material personalizado em lote"))
+        self.setWindowTitle(application_window_title(tr("Geração de material personalizado em lote")))
         self.setMinimumSize(1024, 680)
         self.resize(1440, 860)
 

@@ -159,8 +159,9 @@ Declaração de Leonardo Joordan Belisário Lima da Silva, registrada em 22/09/2
   O ano é entendido como 2026 pelo contexto do desenvolvimento; não foi
   explicitado nessa declaração. O fuso horário não foi informado.
 - O PSD não foi salvo. O Photoshop foi utilizado para os ajustes descritos e
-  a exportação dos PNGs em diversos tamanhos. Não se afirma existir um
-  arquivo editável, prompt ou imagem original separado dos arquivos atuais.
+  a exportação dos PNGs em diversos tamanhos. Não se afirmou existir um
+  arquivo editável, prompt ou imagem original separado dos arquivos registrados
+  em 22/09/2026.
 - A declaração e os arquivos finais disponíveis são as evidências deste
   inventário. Não equivalem a uma verificação independente da geração.
 
@@ -192,6 +193,32 @@ comprovam por si só autoria ou data de geração.
 | `assets/icons/fornax-forge_48.png` | `d919387fe802fe9d906b1dbb8399949238c23dac10e9dbf57faa3786f00938bf` |
 | `assets/icons/fornax-forge_512.png` | `5d7f3a3e96f2af07c7ac19fcaefc6bbf2e05d47ed2d23fb9e7a97d03adbaf992` |
 | `assets/icons/fornax-forge_64.png` | `c3e3fc385f21d9677991225aa4e209ea9396d9796f6ae94fee7b18880eb40324` |
+
+## Revisão atual da marca — 11/10/2026
+
+O autor informou a atualização visual do ícone e forneceu o SVG e o ICNS,
+além de substituir o ICO e os PNGs nos mesmos caminhos. Os arquivos fornecidos
+foram mantidos sem alteração. A declaração de origem de 22/09/2026 e seus
+hashes acima são o histórico da versão anterior; este registro não presume
+que as etapas de edição dessa declaração também descrevam a revisão nova.
+
+Uso na distribuição: PNGs para a interface/AppImage e alternativas Linux,
+ICO para Windows, ICNS para macOS e SVG para o ícone escalável Linux. Os
+blocos PNG de 128, 256 e 512 px do ICNS foram conferidos contra as exportações
+PNG correspondentes. O ICNS fornecido contém tamanhos até 512 px.
+
+| Arquivo | SHA-256 da revisão atual |
+|---|---|
+| `assets/icons/fornax-forge.icns` | `c333c7f1fa0195f32019bb1a36705b0b0f9a6f3e0338e5fd55cb215d6b7a57dd` |
+| `assets/icons/fornax-forge.ico` | `647166b866deb282512784187a232dc59280361ca4b7ba7dfacf9dca8fff7fd2` |
+| `assets/icons/fornax-forge.svg` | `95a87d11ca5f15cc8af6f50debfe0429c29a2ce32dd32ef4a42fbcfc9374c342` |
+| `assets/icons/fornax-forge_1024.png` | `5214c6c0ec934cd38ae3ddda9c4e5cdb163db781e969a59223a27e2a7b38dc4c` |
+| `assets/icons/fornax-forge_128.png` | `4129ed948a68067132f2a4a6ed3fb570207cf74a1f12f55e7a3d4536b9a8ee56` |
+| `assets/icons/fornax-forge_256.png` | `c2758d6aa4f48c4dc6b002168ce45a5f573626d4de8e3db1aa5bee00a1b17d56` |
+| `assets/icons/fornax-forge_32.png` | `3b838bf90ccd4fb91226f4468351bb026a58fcae802335e833256f975c6e0a63` |
+| `assets/icons/fornax-forge_48.png` | `30948ccbbc3b09d71b7ee4c149dd20818086b9f50493a94c30ed0d0ea1f0f598` |
+| `assets/icons/fornax-forge_512.png` | `0acf03f035a283c943a8ff63e961fad92b1c63e9f272c79385bd7b3196401e1d` |
+| `assets/icons/fornax-forge_64.png` | `d521a2aaa39c70310246b2d0844f9b013576729eaebb34daa70837869091f72f` |
 
 ## Como encerrar uma pendência
 

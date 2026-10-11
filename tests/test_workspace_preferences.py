@@ -58,6 +58,14 @@ class WorkspacePreferencesTest(unittest.TestCase):
         about.assert_called_once()
         self.assertIn(APP_VERSION, about.call_args.args[2])
 
+    def test_main_title_has_only_one_application_name_at_the_end(self):
+        previous = self.app.applicationDisplayName()
+        self.addCleanup(self.app.setApplicationDisplayName, previous)
+        self.app.setApplicationDisplayName('FORNAX Forge')
+        window = self.window()
+        self.assertEqual(window.windowTitle().count('FORNAX Forge'), 1)
+        self.assertTrue(window.windowTitle().endswith(self.app.applicationDisplayName()))
+
     def test_show_log_is_restored_after_closing_and_reopening(self):
         window = self.window()
         window._workspace_log_toggle.trigger()

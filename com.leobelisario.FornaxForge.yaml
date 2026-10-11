@@ -31,6 +31,7 @@ modules:
       - mkdir -p /app/share/mime/packages
       - mkdir -p /app/share/doc/fornax-forge
       - mkdir -p /app/share/icons/hicolor/32x32/apps /app/share/icons/hicolor/48x48/apps /app/share/icons/hicolor/64x64/apps /app/share/icons/hicolor/128x128/apps /app/share/icons/hicolor/256x256/apps /app/share/icons/hicolor/512x512/apps
+      - mkdir -p /app/share/icons/hicolor/scalable/apps
       
       # A mesma seleção explícita usada na preparação do standalone.
       - python3 scripts/release_tools.py stage --output /app/share/fornax-forge
@@ -42,6 +43,7 @@ modules:
       - cp assets/icons/fornax-forge_128.png /app/share/icons/hicolor/128x128/apps/com.leobelisario.FornaxForge.png
       - cp assets/icons/fornax-forge_256.png /app/share/icons/hicolor/256x256/apps/com.leobelisario.FornaxForge.png
       - cp assets/icons/fornax-forge_512.png /app/share/icons/hicolor/512x512/apps/com.leobelisario.FornaxForge.png
+      - cp assets/icons/fornax-forge.svg /app/share/icons/hicolor/scalable/apps/com.leobelisario.FornaxForge.svg
       
       # Cria o executável
       - |

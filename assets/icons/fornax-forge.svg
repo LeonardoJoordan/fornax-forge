@@ -1,0 +1,257 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 24 24">
+  <title>FORNAX — atmosfera noturna</title>
+  <desc>Luz de fogo refletida nas pedras e nas bordas de uma bigorna escura. Fundo azul noturno com luz ambiente suave, inspirado na atmosfera do ícone original.</desc>
+  <defs>
+    <clipPath id="fornax-azul-limite-fornalha">
+      <path d="M6.67 17.2 L8.37 13.6 Q9.62 11.46 10.61 10.99 Q12 10.5 13.39 10.99 Q14.38 11.46 15.63 13.6 L17.33 17.2 Z" fill="#FFFFFF" />
+    </clipPath>
+    <clipPath id="fornax-azul-limite-bigorna">
+      <path d="M7.39 17.2 H16.61 Q16.88 17.2 16.88 17.47 V17.75 Q16.88 18.06 16.47 18.27 L14.52 19.08 L13.98 20.11 H10.02 L9.48 19.08 L7.53 18.27 Q7.12 18.06 7.12 17.75 V17.47 Q7.12 17.2 7.39 17.2 Z" fill="#FFFFFF" />
+    </clipPath>
+    <linearGradient id="fornax-azul-fundo-degrade" gradientUnits="userSpaceOnUse" x1="3.59751" y1="0" x2="20.40249" y2="24">
+      <stop offset="0%" stop-color="#0C1834" />
+      <stop offset="100%" stop-color="#1C3456" />
+    </linearGradient>
+    <linearGradient id="fornax-azul-reflexo-tampo" gradientUnits="userSpaceOnUse" x1="7.12" y1="17.2" x2="16.88" y2="17.2">
+      <stop offset="0%" stop-color="#CB5729" />
+      <stop offset="26%" stop-color="#FF962E" />
+      <stop offset="50%" stop-color="#FFF1A9" />
+      <stop offset="74%" stop-color="#FF962E" />
+      <stop offset="100%" stop-color="#CB5729" />
+    </linearGradient>
+    <linearGradient id="fornax-azul-reflexo-lateral" gradientUnits="userSpaceOnUse" x1="12" y1="17.71" x2="12" y2="19.1">
+      <stop offset="0%" stop-color="#EF9962" />
+      <stop offset="40%" stop-color="#8A5144" />
+      <stop offset="100%" stop-color="#30303B" />
+    </linearGradient>
+    <radialGradient id="fornax-azul-calor-interior" gradientUnits="userSpaceOnUse" cx="12" cy="17.4" r="7.1">
+      <stop offset="0%" stop-color="#FF9B19" />
+      <stop offset="48%" stop-color="#E7440C" />
+      <stop offset="100%" stop-color="#641B17" />
+    </radialGradient>
+    <linearGradient id="fornax-azul-calor-base" gradientUnits="userSpaceOnUse" x1="12" y1="18.4" x2="12" y2="21.4">
+      <stop offset="0%" stop-color="#A7401B" />
+      <stop offset="48%" stop-color="#F8841C" />
+      <stop offset="100%" stop-color="#713420" />
+    </linearGradient>
+    <linearGradient id="fornax-azul-chama-aquecida" gradientUnits="userSpaceOnUse" x1="12" y1="11.2" x2="12" y2="17.2">
+      <stop offset="0%" stop-color="#F7550F" />
+      <stop offset="100%" stop-color="#FFB925" />
+    </linearGradient>
+    <radialGradient id="fornax-azul-luz-ambiente" gradientUnits="userSpaceOnUse" cx="12" cy="10" r="13.2">
+      <stop offset="0%" stop-color="#356B9A" stop-opacity=".76" />
+      <stop offset="64%" stop-color="#285482" stop-opacity=".35" />
+      <stop offset="100%" stop-color="#204A72" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="fornax-azul-calor-ambiente" gradientUnits="userSpaceOnUse" cx="12" cy="18.5" r="9">
+      <stop offset="0%" stop-color="#F47925" stop-opacity=".24" />
+      <stop offset="55%" stop-color="#C45B2A" stop-opacity=".1" />
+      <stop offset="100%" stop-color="#A44026" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect id="fornax-azul-fundo" width="24" height="24" rx="4.5" fill="url(#fornax-azul-fundo-degrade)" />
+  <g id="fornax-azul-atmosfera">
+    <rect width="24" height="24" rx="4.5" fill="url(#fornax-azul-luz-ambiente)" />
+    <rect width="24" height="24" rx="4.5" fill="url(#fornax-azul-calor-ambiente)" />
+  </g>
+  <g id="fornax-azul-fornax">
+    <g id="fornax-azul-base-aquecida">
+      <path d="M6.67 17.2 L17.33 17.2 L17.79 21.4 L6.21 21.4 Z" fill="#613A2E" />
+      <g id="fornax-azul-suporte-quente-esquerdo">
+        <path d="M6.3 18.5 L9.4 18.35 L9.75 20.4 L6.21 21.4 Z" fill="url(#fornax-azul-calor-base)" />
+        <path d="M6.3 18.5 L7.85 18.85 L9.4 18.35 Z" fill="#FFBB48" />
+        <path d="M6.21 21.4 L6.85 18.62 L7.85 18.85 Z" fill="#C9632D" />
+        <path d="M6.21 21.4 L7.85 18.85 L8.18 21.4 Z" fill="#6B3427" />
+        <path d="M7.85 18.85 L9.75 20.4 L8.18 21.4 Z" fill="#633827" />
+        <path d="M8.75 18.88 L10.02 20.11 L8.8 21.18 L8.25 20.62 Z" fill="#F97C18" id="fornax-azul-luz-atras-bigorna-esquerdo" />
+        <path d="M8.75 18.88 L10.02 20.11 L9.23 19.73 Z" fill="#FFC34F" />
+      </g>
+      <g id="fornax-azul-suporte-quente-direito" transform="translate(24 0) scale(-1 1)">
+        <path d="M6.3 18.5 L9.4 18.35 L9.75 20.4 L6.21 21.4 Z" fill="url(#fornax-azul-calor-base)" />
+        <path d="M6.3 18.5 L7.85 18.85 L9.4 18.35 Z" fill="#FFBB48" />
+        <path d="M6.21 21.4 L6.85 18.62 L7.85 18.85 Z" fill="#C9632D" />
+        <path d="M6.21 21.4 L7.85 18.85 L8.18 21.4 Z" fill="#6B3427" />
+        <path d="M7.85 18.85 L9.75 20.4 L8.18 21.4 Z" fill="#633827" />
+        <path d="M8.75 18.88 L10.02 20.11 L8.8 21.18 L8.25 20.62 Z" fill="#F97C18" id="fornax-azul-luz-atras-bigorna-direito" />
+        <path d="M8.75 18.88 L10.02 20.11 L9.23 19.73 Z" fill="#FFC34F" />
+      </g>
+    </g>
+    <g id="fornax-azul-chamine">
+      <path d="M10.88 3.24 L13.12 3.24 L13.6073 7.69 L10.3927 7.69 Z" fill="#665052" />
+      <g id="fornax-azul-lateral-chamine-esquerdo">
+        <path d="M9.96 3.63 L10.88 3.24 L10.3927 7.69 L9.76 7.75 L9.96 6.51 L9.4692 6.7892 Z" fill="#282A36" />
+        <path d="M9.96 3.63 L10.67 5.17 L9.54 6.33 Z" fill="#9F4B2E" />
+      </g>
+      <g id="fornax-azul-lateral-chamine-direito" transform="translate(24 0) scale(-1 1)">
+        <path d="M9.96 3.63 L10.88 3.24 L10.3927 7.69 L9.76 7.75 L9.96 6.51 L9.4692 6.7892 Z" fill="#282A36" />
+        <path d="M9.96 3.63 L10.67 5.17 L9.54 6.33 Z" fill="#9F4B2E" />
+      </g>
+      <path d="M10.88 3.24 L13.12 3.24 L12.67 3.8 L11.36 3.8 Z" fill="#D62B07" />
+      <path d="M11.36 3.8 L12.67 3.8 L12.8 6.68 L13.6073 7.69 L10.3927 7.69 L11.23 6.68 Z" fill="#FC7E14" />
+      <path d="M11.36 3.8 L12.67 3.8 L12.75 5.76 Z" fill="#FE401B" />
+      <path d="M11.27 5.63 L12.8 7.05 L12.82 7.69 L11.2 7.69 Z" fill="#FFB321" />
+      <path d="M10.3927 7.69 L11.23 6.68 L11.27 5.63 Z" fill="#B96432" />
+      <path d="M13.6073 7.69 L12.8 6.68 L12.75 5.76 Z" fill="#B96432" />
+      <path d="M10.41 1.93 H13.59 L14.67 2.32 Q14.76 2.37 14.76 2.48 V2.91 Q14.76 3.03 14.67 3.1 L14.04 3.63 L13.12 3.24 H10.88 L9.96 3.63 L9.33 3.1 Q9.24 3.03 9.24 2.91 V2.48 Q9.24 2.37 9.33 2.32 Z" fill="#282A36" />
+      <path d="M10.41 1.93 L13.59 1.93 L13.12 3.24 L10.88 3.24 Z" fill="#665052" />
+      <path d="M10.41 1.93 L12 2.49 L13.59 1.93 Z" fill="#FC7E14" />
+      <path d="M10.41 1.93 L12 1.93 L12 2.49 Z" fill="#FE401B" />
+      <path d="M12 2.49 L13.59 1.93 L13.12 3.24 Z" fill="#97828A" />
+      <g id="fornax-azul-reflexo-coroa-esquerdo">
+        <path d="M9.24 2.48 L9.33 3.1 L9.96 3.63 L9.42 2.43 Z" fill="#F69B52" />
+      </g>
+      <g id="fornax-azul-reflexo-coroa-direito" transform="translate(24 0) scale(-1 1)">
+        <path d="M9.24 2.48 L9.33 3.1 L9.96 3.63 L9.42 2.43 Z" fill="#F69B52" />
+      </g>
+      <path d="M10.41 1.93 H13.59 L14.67 2.32 Q14.76 2.37 14.76 2.48 V2.91 Q14.76 3.03 14.67 3.1 L14.04 3.63 L13.12 3.24 H10.88 L9.96 3.63 L9.33 3.1 Q9.24 3.03 9.24 2.91 V2.48 Q9.24 2.37 9.33 2.32 Z" fill="none" stroke="#0B1026" stroke-width="0.135" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M10.41 1.93 L10.88 3.24 M13.59 1.93 L13.12 3.24" fill="none" stroke="#0B1026" stroke-width="0.135" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M9.96 3.63 L9.4692 6.7892" fill="none" stroke="#0B1026" stroke-width="0.135" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M14.04 3.63 L14.5308 6.7892" fill="none" stroke="#0B1026" stroke-width="0.135" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M10.88 3.24 L10.3927 7.69 L10.2 9.45 H13.8 L13.6073 7.69 L13.12 3.24" fill="none" stroke="#0B1026" stroke-width="0.135" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g id="fornax-azul-ombros">
+      <path d="M10.3927 7.69 L13.6073 7.69 L13.8 9.45 L10.2 9.45 Z" fill="#765550" />
+      <path d="M10.3927 7.69 L13.6073 7.69 L12 8.56 Z" fill="#DA935F" />
+      <path d="M10.2 9.45 L12 8.56 L13.8 9.45 Z" fill="#EDA466" />
+      <g id="fornax-azul-ombro-esquerdo">
+        <path d="M6.66 9.51 L7.68 9.18 L8.22 7.5 L9.4692 6.7892 L9.96 6.51 L9.76 7.75 L8.36 9.51 Z" fill="#2B2B37" />
+        <path d="M9.76 7.75 L10.3927 7.69 L10.2 9.45 L8.36 9.51 Z" fill="#222B35" />
+        <path d="M8.22 7.5 L9.96 6.51 L8.5 7.72 Z" fill="#FFD08B" />
+        <path d="M8.22 7.5 L8.5 7.72 L7.94 9.4 L7.68 9.18 Z" fill="#765550" />
+        <path d="M8.5 7.72 L9.76 7.75 L9 8.65 Z" fill="#765550" />
+        <path d="M9.76 7.75 L10.3927 7.69 L10.2 9.45 Z" fill="#5B4040" />
+        <path d="M6.66 9.51 L5.76 11.5 L7.59 10.72 L10.2 9.45 Z" fill="#2B2B37" />
+        <path d="M6.66 9.51 L7.2 9.55 L5.76 11.5 Z" fill="#DA935F" />
+        <path d="M7.2 9.55 L7.59 10.72 L10.2 9.45 Z" fill="#765550" />
+        <path d="M6.66 9.51 L7.68 9.18 L8.22 7.5 L9.4692 6.7892 L9.96 6.51 L9.76 7.75 L8.36 9.51 Z" fill="none" stroke="#0B1026" stroke-width="0.13" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M9.76 7.75 L10.2 9.45 L8.36 9.51" fill="none" stroke="#0B1026" stroke-width="0.075" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M6.66 9.51 L5.76 11.5 L7.59 10.72 L10.2 9.45" fill="none" stroke="#0B1026" stroke-width="0.12" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <g id="fornax-azul-ombro-direito" transform="translate(24 0) scale(-1 1)">
+        <path d="M6.66 9.51 L7.68 9.18 L8.22 7.5 L9.4692 6.7892 L9.96 6.51 L9.76 7.75 L8.36 9.51 Z" fill="#2B2B37" />
+        <path d="M9.76 7.75 L10.3927 7.69 L10.2 9.45 L8.36 9.51 Z" fill="#222B35" />
+        <path d="M8.22 7.5 L9.96 6.51 L8.5 7.72 Z" fill="#FFD08B" />
+        <path d="M8.22 7.5 L8.5 7.72 L7.94 9.4 L7.68 9.18 Z" fill="#765550" />
+        <path d="M8.5 7.72 L9.76 7.75 L9 8.65 Z" fill="#765550" />
+        <path d="M9.76 7.75 L10.3927 7.69 L10.2 9.45 Z" fill="#5B4040" />
+        <path d="M6.66 9.51 L5.76 11.5 L7.59 10.72 L10.2 9.45 Z" fill="#2B2B37" />
+        <path d="M6.66 9.51 L7.2 9.55 L5.76 11.5 Z" fill="#DA935F" />
+        <path d="M7.2 9.55 L7.59 10.72 L10.2 9.45 Z" fill="#765550" />
+        <path d="M6.66 9.51 L7.68 9.18 L8.22 7.5 L9.4692 6.7892 L9.96 6.51 L9.76 7.75 L8.36 9.51 Z" fill="none" stroke="#0B1026" stroke-width="0.13" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M9.76 7.75 L10.2 9.45 L8.36 9.51" fill="none" stroke="#0B1026" stroke-width="0.075" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M6.66 9.51 L5.76 11.5 L7.59 10.72 L10.2 9.45" fill="none" stroke="#0B1026" stroke-width="0.12" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <path d="M9.76 7.75 L10.3927 7.69 H13.6073 L14.24 7.75" fill="none" stroke="#0B1026" stroke-width="0.13" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M10.2 9.45 L12 8.56 L13.8 9.45" fill="none" stroke="#0B1026" stroke-width="0.07" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g id="fornax-azul-arco-incandescente">
+      <path d="M6.21 17.2 L7.33 12.84 L10.2 9.45 H13.8 L16.67 12.84 L17.79 17.2 Z" fill="#FC7E14" />
+      <g id="fornax-azul-refratario-esquerdo">
+        <path id="fornax-azul-refratario-vermelho-esquerdo" d="M10.2 9.45 L7.33 12.84 L6.21 17.2 H6.67 L8.37 13.6 L10.61 10.99 Z" fill="#F45516" />
+        <path id="fornax-azul-refratario-sombra-esquerdo" d="M10.2 9.45 L10.61 10.99 L7.33 12.84 Z" fill="#B93B19" />
+        <path id="fornax-azul-refratario-luz-esquerdo" d="M7.33 12.84 L8.37 13.6 L6.67 17.2 L6.21 17.2 Z" fill="#FF9D1E" />
+      </g>
+      <g id="fornax-azul-refratario-direito" transform="translate(24 0) scale(-1 1)">
+        <path id="fornax-azul-refratario-vermelho-direito" d="M10.2 9.45 L7.33 12.84 L6.21 17.2 H6.67 L8.37 13.6 L10.61 10.99 Z" fill="#F45516" />
+        <path id="fornax-azul-refratario-sombra-direito" d="M10.2 9.45 L10.61 10.99 L7.33 12.84 Z" fill="#B93B19" />
+        <path id="fornax-azul-refratario-luz-direito" d="M7.33 12.84 L8.37 13.6 L6.67 17.2 L6.21 17.2 Z" fill="#FF9D1E" />
+      </g>
+      <path d="M10.2 9.45 L13.8 9.45 L12 10.2 Z" fill="#3A3137" />
+      <path d="M10.2 9.45 L12 10.2 L10.61 10.99 Z" fill="#A42C14" />
+      <path d="M13.8 9.45 L12 10.2 L13.39 10.99 Z" fill="#B23314" />
+      <path d="M10.61 10.99 L12 10.2 L13.39 10.99 Z" fill="#FF9B0C" />
+    </g>
+    <g id="fornax-azul-fogo" clip-path="url(#fornax-azul-limite-fornalha)">
+      <path id="fornax-azul-camara-quente" d="M6.67 17.2 L8.37 13.6 Q9.62 11.46 10.61 10.99 Q12 10.5 13.39 10.99 Q14.38 11.46 15.63 13.6 L17.33 17.2 Z" fill="url(#fornax-azul-calor-interior)" />
+      <path id="fornax-azul-chama-laranja" d="M8.18 17.2 L8.68 14.28 L9.8 15.55 L9.42 12.82 L10.88 14.18 Q11.7 12.89 11.52 11.22 Q13.08 12.54 12.82 14.32 L14.22 12.73 Q13.74 14.5 14.67 15.53 L15.37 14.66 L15.08 17.2 Z" fill="url(#fornax-azul-chama-aquecida)" />
+      <path id="fornax-azul-chama-dourada" d="M9.25 17.2 L9.66 14.45 L10.72 15.3 L10.97 13.78 L11.88 12.38 L11.72 14.2 L12.68 15.57 L13.96 14.49 L13.63 16.11 L14.24 17.2 Z" fill="#FFC52F" />
+      <path id="fornax-azul-face-luminosa-chama" d="M11.88 12.38 L11.72 14.2 L12.68 15.57 L13.96 14.49 L13.63 16.11 L14.24 17.2 H12.52 L11.27 15.47 Z" fill="#FFD85B" />
+      <path id="fornax-azul-nucleo-chama" d="M10.37 17.2 L10.53 15.95 L11.22 16.47 L11.71 14.87 Q11.9 16.01 13.38 17.2 Z" fill="#FFF3AF" />
+    </g>
+    <g id="fornax-azul-estrutura-metalica">
+      <g id="fornax-azul-estrutura-esquerdo">
+        <path d="M7.59 10.72 L10.2 9.45 L7.33 12.84 L6.21 17.2 L6.42 14.14 Z" fill="#2B2B37" />
+        <path d="M4.81 12.2 L5.62 12.33 L7.59 10.72 Z" fill="#FFC47B" />
+        <path d="M5.62 12.33 L7.59 10.72 L6.42 14.14 Z" fill="#71585A" />
+        <path d="M4.81 12.2 L4.92 13.5 L5.37 14.25 L5.62 12.33 Z" fill="#71585A" />
+        <path d="M5.37 14.25 L5.62 12.33 L6.42 14.14 Z" fill="#2B2B37" />
+        <path d="M5.37 14.25 L6.42 14.14 L6.21 17.2 L4.83 17.2 Z" fill="#2B2B37" />
+        <path d="M5.37 14.25 L5.85 15.8 L4.83 17.2 Z" fill="#A15231" />
+        <path d="M4.83 17.2 L5.85 15.8 L6.21 17.2 Z" fill="#583735" />
+        <path d="M6.12 14.18 L6.42 14.14 L6.21 17.2 L5.91 17.2 Z" fill="#F88A22" />
+        <path d="M6.21 17.2 L6.67 17.2 L6.21 21.4 Z" fill="#71585A" />
+        <path d="M4.83 17.2 L6.21 17.2 L5.22 18.12 L3.66 18.06 Z" fill="#FFB368" />
+        <path d="M3.66 18.06 L5.22 18.12 L2.96 21.4 Z" fill="#71585A" />
+        <path d="M5.22 18.12 L6.21 21.4 L2.96 21.4 Z" fill="#2B2B37" />
+        <path d="M5.22 18.12 L6.21 17.2 L6.21 21.4 Z" fill="#A26750" />
+        <path d="M5.76 11.5 L4.81 12.2 L4.92 13.5 L5.37 14.25 L4.83 17.2 L3.66 18.06 L2.96 21.4" fill="none" stroke="#0B1026" stroke-width="0.12" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M4.81 12.2 L5.62 12.33 L7.59 10.72 L6.42 14.14 L5.37 14.25 M5.62 12.33 L6.42 14.14" fill="none" stroke="#0B1026" stroke-width="0.085" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M6.42 14.14 L6.21 17.2 V21.4" fill="none" stroke="#0B1026" stroke-width="0.085" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M4.83 17.2 L6.21 17.2 L6.67 17.2 M6.21 17.2 L5.22 18.12 L3.66 18.06" fill="none" stroke="#0B1026" stroke-width="0.085" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M2.96 21.4 L5.22 18.12 L6.21 21.4 L6.67 17.2" fill="none" stroke="#0B1026" stroke-width="0.085" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M6.12 14.18 L5.91 17.2" fill="none" stroke="#0B1026" stroke-width="0.07" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M2.96 21.4 H8.8" fill="none" stroke="#0B1026" stroke-width="0.13" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <g id="fornax-azul-estrutura-direito" transform="translate(24 0) scale(-1 1)">
+        <path d="M7.59 10.72 L10.2 9.45 L7.33 12.84 L6.21 17.2 L6.42 14.14 Z" fill="#2B2B37" />
+        <path d="M4.81 12.2 L5.62 12.33 L7.59 10.72 Z" fill="#FFC47B" />
+        <path d="M5.62 12.33 L7.59 10.72 L6.42 14.14 Z" fill="#71585A" />
+        <path d="M4.81 12.2 L4.92 13.5 L5.37 14.25 L5.62 12.33 Z" fill="#71585A" />
+        <path d="M5.37 14.25 L5.62 12.33 L6.42 14.14 Z" fill="#2B2B37" />
+        <path d="M5.37 14.25 L6.42 14.14 L6.21 17.2 L4.83 17.2 Z" fill="#2B2B37" />
+        <path d="M5.37 14.25 L5.85 15.8 L4.83 17.2 Z" fill="#A15231" />
+        <path d="M4.83 17.2 L5.85 15.8 L6.21 17.2 Z" fill="#583735" />
+        <path d="M6.12 14.18 L6.42 14.14 L6.21 17.2 L5.91 17.2 Z" fill="#F88A22" />
+        <path d="M6.21 17.2 L6.67 17.2 L6.21 21.4 Z" fill="#71585A" />
+        <path d="M4.83 17.2 L6.21 17.2 L5.22 18.12 L3.66 18.06 Z" fill="#FFB368" />
+        <path d="M3.66 18.06 L5.22 18.12 L2.96 21.4 Z" fill="#71585A" />
+        <path d="M5.22 18.12 L6.21 21.4 L2.96 21.4 Z" fill="#2B2B37" />
+        <path d="M5.22 18.12 L6.21 17.2 L6.21 21.4 Z" fill="#A26750" />
+        <path d="M5.76 11.5 L4.81 12.2 L4.92 13.5 L5.37 14.25 L4.83 17.2 L3.66 18.06 L2.96 21.4" fill="none" stroke="#0B1026" stroke-width="0.12" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M4.81 12.2 L5.62 12.33 L7.59 10.72 L6.42 14.14 L5.37 14.25 M5.62 12.33 L6.42 14.14" fill="none" stroke="#0B1026" stroke-width="0.085" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M6.42 14.14 L6.21 17.2 V21.4" fill="none" stroke="#0B1026" stroke-width="0.085" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M4.83 17.2 L6.21 17.2 L6.67 17.2 M6.21 17.2 L5.22 18.12 L3.66 18.06" fill="none" stroke="#0B1026" stroke-width="0.085" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M2.96 21.4 L5.22 18.12 L6.21 21.4 L6.67 17.2" fill="none" stroke="#0B1026" stroke-width="0.085" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M6.12 14.18 L5.91 17.2" fill="none" stroke="#0B1026" stroke-width="0.07" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M2.96 21.4 H8.8" fill="none" stroke="#0B1026" stroke-width="0.13" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+    </g>
+    <g id="fornax-azul-contorno-fornalha">
+      <path d="M6.67 17.2 L8.37 13.6 Q9.62 11.46 10.61 10.99 Q12 10.5 13.39 10.99 Q14.38 11.46 15.63 13.6 L17.33 17.2" fill="none" stroke="#0B1026" stroke-width="0.14" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M6.21 17.2 L7.33 12.84 L10.2 9.45 H13.8 L16.67 12.84 L17.79 17.2" fill="none" stroke="#0B1026" stroke-width="0.14" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M10.2 9.45 L10.61 10.99 M13.8 9.45 L13.39 10.99" fill="none" stroke="#0B1026" stroke-width="0.11" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g id="fornax-azul-bigorna">
+      <path d="M7.39 17.2 H16.61 Q16.88 17.2 16.88 17.47 V17.75 Q16.88 18.06 16.47 18.27 L14.52 19.08 L13.98 20.11 H10.02 L9.48 19.08 L7.53 18.27 Q7.12 18.06 7.12 17.75 V17.47 Q7.12 17.2 7.39 17.2 Z" fill="#45434D" />
+      <g id="fornax-azul-facetas-corpo" clip-path="url(#fornax-azul-limite-bigorna)">
+        <path d="M7.12 17.2 L16.88 17.2 L16.88 17.71 L7.12 17.71 Z" fill="#A45638" />
+        <path d="M7.12 17.2 L16.88 17.2 L14.52 17.71 L9.48 17.71 Z" fill="url(#fornax-azul-reflexo-tampo)" />
+        <path d="M7.12 17.71 L9.48 17.71 L9.48 19.08 Z" fill="url(#fornax-azul-reflexo-lateral)" />
+        <path d="M16.88 17.71 L14.52 17.71 L14.52 19.08 Z" fill="url(#fornax-azul-reflexo-lateral)" />
+        <path d="M9.48 17.71 L10.9 20.11 L10.02 20.11 L9.48 19.08 Z" fill="#202735" />
+        <path d="M14.52 17.71 L13.1 20.11 L13.98 20.11 L14.52 19.08 Z" fill="#202735" />
+        <path d="M9.48 17.71 H14.52 L12 18.65 Z" fill="#34343F" id="fornax-azul-faceta-central-bigorna" />
+        <g id="fornax-azul-reflexo-corpo-esquerdo">
+          <path d="M9.48 18.9 L9.7 19.13 L10.22 20.11 H10.02 L9.48 19.08 Z" fill="#EFA14C" />
+        </g>
+        <g id="fornax-azul-reflexo-corpo-direito" transform="translate(24 0) scale(-1 1)">
+          <path d="M9.48 18.9 L9.7 19.13 L10.22 20.11 H10.02 L9.48 19.08 Z" fill="#EFA14C" />
+        </g>
+      </g>
+      <path d="M10.02 20.11 L8.8 21.18 V21.88 Q8.8 22.08 9 22.08 H10.24 L11.23 21.4 H12.77 L13.76 22.08 H15 Q15.2 22.08 15.2 21.88 V21.18 L13.98 20.11 Z" fill="#202735" />
+      <path d="M10.02 20.11 L11.23 20.11 L10.24 21.18 L8.8 21.18 Z" fill="#64575B" />
+      <path d="M13.98 20.11 L12.77 20.11 L13.76 21.18 L15.2 21.18 Z" fill="#64575B" />
+      <path d="M8.8 21.18 L10.24 21.18 L10.24 22.08 L9 22.08 L8.8 21.88 Z" fill="#343746" />
+      <path d="M15.2 21.18 L13.76 21.18 L13.76 22.08 L15 22.08 L15.2 21.88 Z" fill="#343746" />
+      <g id="fornax-azul-reflexos-pe">
+        <path d="M10.02 20.11 H10.34 L9.04 21.18 H8.8 Z" fill="#F7B55F" />
+        <path d="M10.02 20.11 H10.34 L9.04 21.18 H8.8 Z" fill="#F7B55F" transform="translate(24 0) scale(-1 1)" />
+      </g>
+      <path d="M7.39 17.2 H16.61 Q16.88 17.2 16.88 17.47 V17.75 Q16.88 18.06 16.47 18.27 L14.52 19.08 L13.98 20.11 H10.02 L9.48 19.08 L7.53 18.27 Q7.12 18.06 7.12 17.75 V17.47 Q7.12 17.2 7.39 17.2 Z" fill="none" stroke="#171B2A" stroke-width="0.11" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M10.02 20.11 L8.8 21.18 V21.88 Q8.8 22.08 9 22.08 H10.24 L11.23 21.4 H12.77 L13.76 22.08 H15 Q15.2 22.08 15.2 21.88 V21.18 L13.98 20.11" fill="none" stroke="#171B2A" stroke-width="0.11" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M7.43 17.28 H16.57" fill="none" stroke="#FFE5A5" stroke-width=".065" stroke-linecap="round" opacity=".85" id="fornax-azul-brilho-tampo" />
+    </g>
+  </g>
+  <rect x=".06" y=".06" width="23.88" height="23.88" rx="4.44" fill="none" stroke="#6D8EAF" stroke-width=".12" opacity=".32" id="fornax-azul-borda-ambiente" />
+</svg>

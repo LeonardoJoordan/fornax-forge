@@ -65,6 +65,10 @@ def install(data_home, appimage=None, set_default=True):
             directory = data_home / 'icons/hicolor' / f'{size}x{size}' / context
             directory.mkdir(parents=True, exist_ok=True)
             shutil.copy2(icon, directory / f'{name}.png')
+    for context, name in [('apps', APP_ID), ('mimetypes', 'application-x-fornax-template')]:
+        directory = data_home / 'icons/hicolor/scalable' / context
+        directory.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / 'assets/icons/fornax-forge.svg', directory / f'{name}.svg')
     subprocess.run(['update-mime-database', str(data_home / 'mime')], check=True)
     subprocess.run(['update-desktop-database', str(applications)], check=True)
     cache = shutil.which('gtk-update-icon-cache')
