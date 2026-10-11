@@ -9,7 +9,7 @@ Definir como o texto ocupa a largura disponível sem mover a própria caixa.
 ## Como usar
 
 1. Selecione uma caixa de texto.
-2. No painel Texto, escolha o ícone de alinhamento desejado.
+2. No painel **Texto** ou no seletor da barra flutuante, escolha o ícone de alinhamento desejado. O botão da barra passa a mostrar a opção escolhida.
 3. Confira o efeito em linhas longas e curtas; ajuste a largura se necessário.
 
 ## Exemplo de uso

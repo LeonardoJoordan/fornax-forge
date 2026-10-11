@@ -13,7 +13,7 @@ e evita aplicar uma configuração a um objeto que não a suporta.
 
 1. Selecione o elemento que deseja editar no canvas ou em **Camadas**.
 2. Confira o resumo **Seleção** e os controles disponíveis na barra superior
-   e nas seções da direita.
+   nas seções da direita e na barra flutuante, quando disponível.
 3. Para uma configuração específica, como fonte ou imagem variável, selecione
    um objeto individual compatível.
 4. Para transformar vários objetos juntos, faça uma seleção múltipla e use
@@ -24,6 +24,10 @@ e evita aplicar uma configuração a um objeto que não a suporta.
 Ao selecionar uma caixa de texto, o painel Texto permite ajustar a fonte.
 Ao selecionar um retângulo, Propriedades oferece preenchimento e contorno.
 Ao selecionar um conector do organograma, aparecem seus controles de aparência.
+
+A barra flutuante mostra ferramentas específicas para texto, imagem comum,
+forma fechada, tabela, seleção agrupável ou bloco do organograma. Linhas,
+assinaturas, fundo e conectores mantêm seus controles nos painéis existentes.
 
 ## Dica de uso
 
@@ -48,3 +52,4 @@ diferente daquele que você pretendia editar.
 - [Painel Propriedades](help:UI-08).
 - [Seleção múltipla](help:OBJ-03).
 - [Editar máscara](help:MAS-09).
+- [Barras flutuantes e posições de ancoragem](help:UI-17).

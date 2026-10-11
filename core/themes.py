@@ -15,6 +15,7 @@ from core.paths import get_app_data_dir
 from core.resources import PROJECT_ROOT, navigation_icon_path
 
 TOKEN = re.compile(r"@([a-z][a-z0-9_]*)@")
+DEFAULT_THEME_ID = 'graphite'
 
 
 def load_theme(path, fallback=None):
@@ -48,8 +49,8 @@ class ThemeManager(QObject):
         for theme_id in ('carbon', 'dark', 'graphite', 'rose', 'light'):
             self.builtins[theme_id] = load_theme(
                 PROJECT_ROOT / 'assets/themes' / (theme_id + '.json'), self.dark['colors'])
-        self.current = self.dark
-        self.theme_id = 'dark'
+        self.current = self.builtins[DEFAULT_THEME_ID]
+        self.theme_id = DEFAULT_THEME_ID
         self.styles = weakref.WeakKeyDictionary()
         self.settings = None
         self._icon_directory = tempfile.TemporaryDirectory(prefix='fornax-theme-icons-')
@@ -146,7 +147,10 @@ class ThemeManager(QObject):
 
     def initialize(self, settings):
         self.settings = settings
-        default = 'dark' if settings.value('dark_mode', True, type=bool) else 'light'
+        default = DEFAULT_THEME_ID
+        if settings.contains('dark_mode'):
+            # Conservar a escolha das instalações anteriores ao seletor de temas.
+            default = 'dark' if settings.value('dark_mode', True, type=bool) else 'light'
         chosen = settings.value('theme/id', default)
         try:
             self.select(chosen)

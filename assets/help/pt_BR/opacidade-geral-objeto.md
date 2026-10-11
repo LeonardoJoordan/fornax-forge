@@ -12,8 +12,8 @@ ou reduzir a intensidade de vários elementos compatíveis.
 ## Como usar
 
 1. Selecione o objeto ou os objetos gráficos desejados.
-2. Localize o campo de **Opacidade** na barra superior.
-3. Informe um percentual entre 0 e 100 e confirme a edição.
+2. Localize o campo de **Opacidade** na barra superior. Imagens comuns e formas fechadas também têm esse atalho na barra flutuante.
+3. Informe um percentual entre 0 e 100. As setas do controle mostram o resultado em tempo real; conclua a edição para guardar a alteração no histórico.
 4. Confira a composição com os elementos que estão atrás.
 5. Para retirar a redução geral, volte a 100%.
 
@@ -38,6 +38,8 @@ específica. Reduzir a opacidade geral também reduz o contorno.
   percentual salvo no objeto.
 - Contornos de cartões, conjuntos e conectores do organograma têm controles
   específicos de aparência.
+- Na barra flutuante de **texto**, a opacidade é da cor das letras, não do objeto inteiro.
+- Na barra flutuante, **Esc** durante o ajuste de opacidade cancela o valor temporário. Confirmar ou fechar o seletor aceita o valor.
 
 ## Veja também
 

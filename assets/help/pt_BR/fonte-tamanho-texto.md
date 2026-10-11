@@ -9,7 +9,7 @@ Estabelecer hierarquia visual e ajustar a legibilidade de títulos, nomes e info
 ## Como usar
 
 1. Selecione a caixa para formatar todo o conteúdo, ou entre na edição e selecione um trecho.
-2. Em Texto, escolha a fonte e informe o tamanho.
+2. Em **Texto**, escolha a fonte e informe o tamanho. Para uma caixa individual, os mesmos ajustes estão na barra flutuante: o ícone de tipografia abre a família, e o número abre o tamanho em pontos.
 3. Confira as quebras de linha e o espaço ocupado após a mudança.
 
 ## Exemplo de uso
@@ -25,6 +25,7 @@ Escolha primeiro a fonte: famílias diferentes ocupam espaços diferentes mesmo 
 - O campo de tamanho aceita valores de 1 a 999.
 - Uma fonte indisponível no computador pode ser substituída pelo sistema.
 - Alterar o tamanho da fonte não aumenta a caixa automaticamente.
+- Novas caixas usam **Inter 18pt**, a família incluída no FORNAX. “18pt” faz parte do nome da família; o tamanho do texto é definido separadamente.
 
 ## Veja também
 

@@ -3,7 +3,7 @@
 ## Etapa atual
 
 Padrão de conteúdo aprovado pelo usuário. Execução contínua concluída:
-os **416 tópicos públicos** estão documentados. Última categoria: **Tabelas gráficas e células**.
+os **417 tópicos públicos** estão documentados. Última categoria: **Tabelas gráficas e células**.
 Cada recurso é conferido na implementação antes da redação. Controles
 complementares podem compartilhar um artigo, conforme previsto no inventário.
 O trabalho completou o conteúdo da ajuda, seu acompanhamento e as verificações
@@ -801,3 +801,33 @@ O catálogo agora possui 416 tópicos públicos em 222 artigos; a interface de
 ajuda continua traduzível e os artigos continuam em português, com fallback
 local para os demais idiomas. Validação e limites nativos de plataforma em
 [relatório da etapa 08](implementacao_tabelas/etapa-08/RELATORIO_FINAL.md).
+
+## Revisão de ajuda e idiomas — 11/10/2026
+
+Comparados os artigos com os controles atuais do editor e da saída. Revisadas
+as instruções de máscaras pela forma e pela imagem, o retorno do enquadramento,
+os atalhos tipográficos, a opacidade em tempo real, as oito ancoragens das
+barras e as seções laterais sem conteúdo. A relação entre cartão, quadro e
+folha esclarece que o organograma é uma composição completa; também descreve
+JPEG a 95%, restauração do tamanho e navegação nos PDFs agrupados.
+
+Adicionado **UI-17**, sobre barras flutuantes, com atalhos por contexto,
+reposicionamento, recolhimento e limitações. O catálogo possui **417 tópicos
+públicos em 223 artigos**. Os artigos continuam em português, com fallback
+para os demais idiomas; esta revisão não acrescenta versões traduzidas dos artigos.
+
+Cada catálogo inglês/espanhol recebeu **242 entradas no contexto global**,
+incluindo textos de organograma, saída, ajuda, modelos prontos, papéis e a dica
+de link. Parte dos textos já estava catalogada em outro contexto, que não era
+consultado por `core.i18n.tr`; as traduções existentes foram reaproveitadas.
+Os quatro tooltips fixos de fonte, tamanho, cor e link agora usam tradução.
+Os arquivos QM foram recompilados: **1.298 traduções concluídas por idioma**.
+
+**24 testes passaram**, cobrindo catálogo, busca, navegação, links internos,
+artigos, empacotamento, temas e controles reais nos idiomas disponíveis.
+A nova verificação de idiomas percorre chamadas traduzíveis em `core`,
+`features` e `main.py`, além dos títulos/descrições dos modelos prontos e
+valores dinâmicos conhecidos. Confere contexto, conclusão, campos de formatação
+e igualdade entre TS e QM. Evidência temporária:
+`/tmp/fornax-ajuda-idiomas-final.log`. Execução com Qt offscreen no Linux;
+esta rodada não valida a aparência nativa no Windows.

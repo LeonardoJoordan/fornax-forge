@@ -10,6 +10,7 @@ class LogPanel(QWidget):
 
         title = QLabel("Log")
         title.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        title.setContentsMargins(14, 8, 14, 0)
         title.setStyleSheet("font-size: 14px; font-weight: 600;")
         layout.addWidget(title)
 

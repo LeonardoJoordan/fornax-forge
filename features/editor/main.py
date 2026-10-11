@@ -9,6 +9,7 @@ from PySide6.QtCore import QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication
 from core.paths import APP_ID
+from core.version import APP_VERSION
 from core.resources import app_icon_path
 from core.ui_font import install_ui_font
 from core.wheel_focus import install_wheel_focus_guard
@@ -29,6 +30,7 @@ def main():
     app = QApplication(sys.argv)
     app.setOrganizationName(SETTINGS_ORGANIZATION)
     app.setApplicationName(SETTINGS_APPLICATION)
+    app.setApplicationVersion(APP_VERSION)
     app.setApplicationDisplayName('FORNAX Forge — Editor')
     app.setDesktopFileName(APP_ID)
     app.setWindowIcon(QIcon(str(app_icon_path())))

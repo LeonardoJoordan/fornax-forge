@@ -6,6 +6,7 @@ import plistlib
 import tempfile
 from scripts.release_tools import stage, inventory, collect_notices, remove_unused_pdf_plugin
 from pathlib import Path
+from core.version import APP_VERSION
 
 def build_app():
     print("🚀 Iniciando a compilação do FORNAX Forge com Nuitka...")
@@ -60,6 +61,11 @@ def build_app():
     sistema = platform.system()
     if sistema == "Windows":
         cmd.insert(cmd.index("--plugin-enable=pyside6") + 1, "--windows-console-mode=disable")
+        cmd.extend([
+            f"--product-version={APP_VERSION}",
+            f"--file-version={APP_VERSION}",
+            "--product-name=FORNAX Forge",
+        ])
         
         # Verifica se o arquivo .ico existe na raiz
         icon_path = base_dir / "assets" / "icons" / "fornax-forge.ico"
@@ -69,6 +75,7 @@ def build_app():
 
     elif sistema == "Darwin": # macOS
         cmd.append("--macos-create-app-bundle")
+        cmd.append(f"--macos-app-version={APP_VERSION}")
         cmd.append("--macos-app-mode=gui") 
         cmd.append("--static-libpython=no") 
         cmd.append(f"--output-filename={exe_name}") # Garante o nome correto da pasta .app

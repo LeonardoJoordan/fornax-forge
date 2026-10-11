@@ -9,9 +9,12 @@ Enquadrar fotos em retângulos, cantos arredondados ou elipses.
 ## Como usar
 
 1. Importe uma imagem e crie a forma que delimitará seu recorte.
-2. Selecione a forma e acione Usar como máscara, ou selecione a imagem e acione Aplicar máscara.
-3. Escolha no menu a imagem ou forma de destino e clique em Inserir imagem ou Aplicar.
+2. Selecione a forma e abra o botão de máscara da barra flutuante. Escolha **Selecionar imagem no canvas ou em Camadas** e clique na imagem que será recortada.
+3. Você também pode começar pela imagem: abra **Aplicar máscara → Selecionar forma no canvas ou em Camadas** e clique na forma de recorte.
 4. Ajuste o enquadramento e conclua.
+
+Na lateral, **Propriedades → MÁSCARA** continua oferecendo a escolha por lista:
+selecione o destino e confirme com **Inserir imagem** ou **Aplicar**, conforme o objeto selecionado.
 
 Na barra flutuante da forma, o atalho de máscara oferece duas opções:
 
@@ -25,6 +28,9 @@ Na barra flutuante da forma, o atalho de máscara oferece duas opções:
 
 Quando a forma já tem máscara, esse atalho passa a removê-la, soltando suas
 imagens sem apagá-las. Para uma imagem variável, ele desativa o campo variável.
+Quando a **imagem** já está mascarada, seu botão abre **Editar máscara** e
+**Remover máscara**. A remoção pela imagem libera somente essa imagem;
+a remoção pela forma libera todas as imagens vinculadas à forma.
 Durante o enquadramento, use **Concluir/Cancelar** na barra flutuante, os
 controles da lateral ou **Enter/Esc**.
 
@@ -34,7 +40,7 @@ Use uma elipse para recortar uma foto de perfil circular no cartão.
 
 ## Dica de uso
 
-Nomeie a imagem e a forma antes de vincular quando houver vários objetos; o menu fica mais claro.
+Nomeie a imagem e a forma antes de vincular quando houver vários objetos; fica mais fácil localizar o destino em Camadas ou na lista da lateral.
 
 ## Particularidades e limites
 

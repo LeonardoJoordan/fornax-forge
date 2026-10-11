@@ -19,6 +19,11 @@ como um título, o nome de uma pessoa ou um trecho importante da mensagem.
 5. Ajuste os alinhamentos horizontal e vertical, a entrelinha e o recuo
    conforme a disposição do texto. Confira o resultado e salve o modelo.
 
+Para uma caixa individual, a barra flutuante reúne fonte, tamanho, alinhamentos
+horizontal e vertical, cor e opacidade do texto. A lateral continua disponível
+para esses ajustes e para estilos, entrelinha e recuo. Nas tabelas, use os
+controles de células e o painel Texto conforme a seleção interna.
+
 ## Exemplo de uso
 
 Em um certificado, selecione a caixa de `{nome}` e aplique negrito e

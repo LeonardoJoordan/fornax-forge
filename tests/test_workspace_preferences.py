@@ -11,6 +11,7 @@ from PySide6.QtCore import QEvent, QSettings
 from PySide6.QtWidgets import QApplication
 
 from features.workspace.main_window import MainWindow
+from core.version import APP_VERSION
 
 
 class WorkspacePreferencesTest(unittest.TestCase):
@@ -49,6 +50,13 @@ class WorkspacePreferencesTest(unittest.TestCase):
         window = self.window()
         self.assertFalse(window._workspace_log_toggle.isChecked())
         self.assertFalse(window.log_panel.isVisible())
+
+    def test_about_displays_current_product_version(self):
+        window = self.window()
+        with patch('features.workspace.frontend.QMessageBox.about') as about:
+            window._tutorial_menu.actions()[-2].trigger()
+        about.assert_called_once()
+        self.assertIn(APP_VERSION, about.call_args.args[2])
 
     def test_show_log_is_restored_after_closing_and_reopening(self):
         window = self.window()

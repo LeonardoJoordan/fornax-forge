@@ -2,6 +2,7 @@
 <TS version="2.1" language="en_US" sourcelanguage="pt_BR">
   <context>
     <name />
+    <message><source>Versão {version}</source><translation>Version {version}</translation></message>
     <message><source>Selecionar linha {number}</source><translation>Select row {number}</translation></message>
     <message><source>Selecionar coluna {number}</source><translation>Select column {number}</translation></message>
     <message><source>Selecionar todas as células</source><translation>Select all cells</translation></message>
@@ -4277,6 +4278,999 @@ role: Mayor</translation>
     <message>
       <source>Opacidade das bordas</source>
       <translation>Border opacity</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/object_floating.py" />
+      <source>Selecionar forma no canvas ou em Camadas</source>
+      <translation>Select a shape on the canvas or in Layers</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/object_floating.py" />
+      <source>Editar ou remover máscara</source>
+      <translation>Edit or remove mask</translation>
+    </message>
+    <message>
+      <location filename="../../features/editor/object_floating.py" />
+      <source>Clique em uma forma no canvas ou em Camadas. Esc cancela.</source>
+      <translation>Click a shape on the canvas or in Layers. Esc cancels.</translation>
+    </message>
+    <message>
+      <source>Informe a largura e a altura da folha.</source>
+      <translation>Enter the sheet width and height.</translation>
+    </message>
+    <message>
+      <source>As medidas de impressão devem ser números finitos.</source>
+      <translation>Print dimensions must be finite numbers.</translation>
+    </message>
+    <message>
+      <source>Cada dimensão da folha deve ser maior que zero e de até 5.000 mm.</source>
+      <translation>Each sheet dimension must be greater than zero and no more than 5,000 mm.</translation>
+    </message>
+    <message>
+      <source>A margem e a sobreposição não podem ser negativas.</source>
+      <translation>Margin and overlap cannot be negative.</translation>
+    </message>
+    <message>
+      <source>A margem ocupa toda a folha. Reduza a margem.</source>
+      <translation>The margin occupies the entire sheet. Reduce the margin.</translation>
+    </message>
+    <message>
+      <source>A sobreposição deve ser menor que a área útil da folha.</source>
+      <translation>Overlap must be smaller than the usable sheet area.</translation>
+    </message>
+    <message>
+      <source>O desenho não possui dimensões válidas para impressão.</source>
+      <translation>The design has no valid print dimensions.</translation>
+    </message>
+    <message>
+      <source>A posição do desenho deve usar medidas positivas ou zero.</source>
+      <translation>The design position must use nonnegative measurements.</translation>
+    </message>
+    <message>
+      <source>O ladrilhamento excede 1.000 folhas. Ajuste o papel ou a composição.</source>
+      <translation>Tiling exceeds 1,000 sheets. Adjust the paper or composition.</translation>
+    </message>
+    <message>
+      <source>Informe dimensões finais positivas para o desenho.</source>
+      <translation>Enter positive final dimensions for the design.</translation>
+    </message>
+    <message>
+      <source>As dimensões finais devem manter a proporção do desenho.</source>
+      <translation>Final dimensions must preserve the design's aspect ratio.</translation>
+    </message>
+    <message>
+      <source>Não foi possível concluir a operação.</source>
+      <translation>Could not complete the operation.</translation>
+    </message>
+    <message>
+      <source>preencha a coluna Bloco</source>
+      <translation>fill in the Block column</translation>
+    </message>
+    <message>
+      <source>bloco ‘{nome}’ não encontrado</source>
+      <translation>block ‘{nome}’ not found</translation>
+    </message>
+    <message>
+      <source>o bloco ‘{nome}’ não tem mais posições disponíveis</source>
+      <translation>block ‘{nome}’ has no available slots left</translation>
+    </message>
+    <message>
+      <source>registro fora dos intervalos ou filtros dos blocos</source>
+      <translation>record outside the block ranges or filters</translation>
+    </message>
+    <message>
+      <source>Informe um nome para o bloco.</source>
+      <translation>Enter a name for the block.</translation>
+    </message>
+    <message>
+      <source>Bloco {numero}</source>
+      <translation>Block {numero}</translation>
+    </message>
+    <message>
+      <source>Linha {linha}: {motivo}.</source>
+      <translation>Row {linha}: {motivo}.</translation>
+    </message>
+    <message>
+      <source>O nome ‘{nome}’ já está em uso. Escolha outro nome.</source>
+      <translation>The name ‘{nome}’ is already in use. Choose another name.</translation>
+    </message>
+    <message>
+      <source> — cópia</source>
+      <translation> — copy</translation>
+    </message>
+    <message>
+      <source>Mais {quantidade} pendência(s).</source>
+      <translation>{quantidade} more issue(s).</translation>
+    </message>
+    <message>
+      <source>Bloco</source>
+      <translation>Block</translation>
+    </message>
+    <message>
+      <source>Dimensões ajustáveis</source>
+      <translation>Adjustable dimensions</translation>
+    </message>
+    <message>
+      <source>Escolha um ponto de partida</source>
+      <translation>Choose a starting point</translation>
+    </message>
+    <message>
+      <source>Começar em branco</source>
+      <translation>Start blank</translation>
+    </message>
+    <message>
+      <source>Crie sua própria composição no editor.</source>
+      <translation>Create your own composition in the editor.</translation>
+    </message>
+    <message>
+      <source>Escolha um exemplo e personalize no editor.</source>
+      <translation>Choose an example and customize it in the editor.</translation>
+    </message>
+    <message>
+      <source>Escolha uma estrutura. Todos os blocos usarão o cartão da Página 1.</source>
+      <translation>Choose a structure. All blocks will use the card from Page 1.</translation>
+    </message>
+    <message>
+      <source>Usar modelo</source>
+      <translation>Use template</translation>
+    </message>
+    <message>
+      <source>Usar estrutura</source>
+      <translation>Use structure</translation>
+    </message>
+    <message>
+      <source>{colunas} × {linhas} · {quantidade} posições. Você poderá ajustar o bloco no editor.</source>
+      <translation>{colunas} × {linhas} · {quantidade} slots. You can adjust the block in the editor.</translation>
+    </message>
+    <message>
+      <source>Clique no bloco superior. Os blocos apagados estão bloqueados. Esc cancela.</source>
+      <translation>Click the parent block. Faded blocks are locked. Esc cancels.</translation>
+    </message>
+    <message>
+      <source>HIERARQUIA</source>
+      <translation>HIERARCHY</translation>
+    </message>
+    <message>
+      <source>Arraste na árvore para mudar o superior. O centro dos blocos encaixa em 5 mm e o dos textos em 2,5 mm.</source>
+      <translation>Drag in the tree to change the parent. Block centers snap to 5 mm and text centers to 2.5 mm.</translation>
+    </message>
+    <message>
+      <source>Selecione os blocos, clique em conectar e escolha o superior no desenho ou na árvore.</source>
+      <translation>Select the blocks, click connect, and choose the parent in the design or tree.</translation>
+    </message>
+    <message>
+      <source>Arraste os blocos na árvore para ajustar a hierarquia.</source>
+      <translation>Drag blocks in the tree to adjust the hierarchy.</translation>
+    </message>
+    <message>
+      <source>SAÍDA DO QUADRO</source>
+      <translation>BOARD OUTPUT</translation>
+    </message>
+    <message>
+      <source>BLOCO / CONJUNTO</source>
+      <translation>BLOCK / GROUP</translation>
+    </message>
+    <message>
+      <source>CAMADAS DO QUADRO</source>
+      <translation>BOARD LAYERS</translation>
+    </message>
+    <message>
+      <source>À frente do organograma</source>
+      <translation>In front of the organization chart</translation>
+    </message>
+    <message>
+      <source>Atrás do organograma</source>
+      <translation>Behind the organization chart</translation>
+    </message>
+    <message>
+      <source>Para uma imagem de fundo, escolha atrás do organograma.</source>
+      <translation>For a background image, choose behind the organization chart.</translation>
+    </message>
+    <message>
+      <source>LADOS PERMITIDOS</source>
+      <translation>ALLOWED SIDES</translation>
+    </message>
+    <message>
+      <source>Entrada</source>
+      <translation>Incoming</translation>
+    </message>
+    <message>
+      <source>Saída</source>
+      <translation>Outgoing</translation>
+    </message>
+    <message>
+      <source>Contornos diferentes</source>
+      <translation>Mixed outlines</translation>
+    </message>
+    <message>
+      <source>Em cada cartão</source>
+      <translation>On each card</translation>
+    </message>
+    <message>
+      <source>Ao redor do conjunto</source>
+      <translation>Around the group</translation>
+    </message>
+    <message>
+      <source>Cartões e conjunto</source>
+      <translation>Cards and group</translation>
+    </message>
+    <message>
+      <source>Escolha onde mostrar o contorno. Cartão e conjunto mantêm suas cores e configurações ao alternar. A opção Cartões e conjunto mostra ambos.</source>
+      <translation>Choose where to show the outline. Card and group colors and settings are preserved when switching. Cards and group shows both.</translation>
+    </message>
+    <message>
+      <source>Posições diferentes</source>
+      <translation>Mixed positions</translation>
+    </message>
+    <message>
+      <source>Espaço entre os cartões e o limite do conjunto, antes da espessura do contorno.</source>
+      <translation>Space between the cards and the group boundary, before the outline thickness.</translation>
+    </message>
+    <message>
+      <source>Folga do conjunto</source>
+      <translation>Group padding</translation>
+    </message>
+    <message>
+      <source>CONECTORES</source>
+      <translation>CONNECTORS</translation>
+    </message>
+    <message>
+      <source>Escolher a cor do conector</source>
+      <translation>Choose connector color</translation>
+    </message>
+    <message>
+      <source>0 mantém as quinas retas. O raio é limitado pelo comprimento dos trechos e pelo espaço entre os blocos.</source>
+      <translation>0 keeps corners square. The radius is limited by segment length and space between blocks.</translation>
+    </message>
+    <message>
+      <source>Cor do conector</source>
+      <translation>Connector color</translation>
+    </message>
+    <message>
+      <source>Sem superior</source>
+      <translation>No parent</translation>
+    </message>
+    <message>
+      <source>Aplica a alteração a todos os blocos selecionados.</source>
+      <translation>Applies the change to all selected blocks.</translation>
+    </message>
+    <message>
+      <source>Nome do bloco</source>
+      <translation>Block name</translation>
+    </message>
+    <message>
+      <source>A altura acompanha a proporção da página 1. Use este nome na coluna Bloco da tabela para enviar os registros a este destino, na ordem das linhas. O nome deve ser único e não cria um título na arte.</source>
+      <translation>Height follows Page 1's aspect ratio. Use this name in the table's Block column to send records to this destination in row order. The name must be unique and does not create a title in the design.</translation>
+    </message>
+    <message>
+      <source>Cima</source>
+      <translation>Top</translation>
+    </message>
+    <message>
+      <source>Baixo</source>
+      <translation>Bottom</translation>
+    </message>
+    <message>
+      <source>Superior</source>
+      <translation>Parent</translation>
+    </message>
+    <message>
+      <source>Margem de saída</source>
+      <translation>Output margin</translation>
+    </message>
+    <message>
+      <source>Aplicar em</source>
+      <translation>Apply to</translation>
+    </message>
+    <message>
+      <source>A posição escolhida vale somente para o contorno em edição.</source>
+      <translation>The selected position applies only to the outline being edited.</translation>
+    </message>
+    <message>
+      <source>Transparência</source>
+      <translation>Transparency</translation>
+    </message>
+    <message>
+      <source>Raio de curva</source>
+      <translation>Curve radius</translation>
+    </message>
+    <message>
+      <source>Algumas conexões não têm espaço livre. Afaste os blocos ou permita outros lados de entrada e saída.</source>
+      <translation>Some connections have no free space. Move blocks apart or allow other incoming and outgoing sides.</translation>
+    </message>
+    <message>
+      <source>Cancelar conexão</source>
+      <translation>Cancel connection</translation>
+    </message>
+    <message>
+      <source>Aparência das novas conexões</source>
+      <translation>New connection appearance</translation>
+    </message>
+    <message>
+      <source>Editar bloco</source>
+      <translation>Edit block</translation>
+    </message>
+    <message>
+      <source>Largura do cartão (mm)</source>
+      <translation>Card width (mm)</translation>
+    </message>
+    <message>
+      <source>Espaçamento horizontal (mm)</source>
+      <translation>Horizontal spacing (mm)</translation>
+    </message>
+    <message>
+      <source>Espaçamento vertical (mm)</source>
+      <translation>Vertical spacing (mm)</translation>
+    </message>
+    <message>
+      <source>Selecione os blocos que receberão um superior e deixe um bloco disponível como destino.</source>
+      <translation>Select the blocks that will receive a parent and leave one block available as the destination.</translation>
+    </message>
+    <message>
+      <source>Blocos e conexões do quadro</source>
+      <translation>Board blocks and connections</translation>
+    </message>
+    <message>
+      <source>Tamanho sugerido: {largura:.1f} × {altura:.1f} mm</source>
+      <translation>Suggested size: {largura:.1f} × {altura:.1f} mm</translation>
+    </message>
+    <message>
+      <source>Mantenha pelo menos um lado permitido em cada entrada e saída.</source>
+      <translation>Keep at least one side allowed for both incoming and outgoing connections.</translation>
+    </message>
+    <message>
+      <source>Bloco inválido</source>
+      <translation>Invalid block</translation>
+    </message>
+    <message>
+      <source>Permitir por {lado}. Mantenha pelo menos um lado marcado.</source>
+      <translation>Allow through {lado}. Keep at least one side checked.</translation>
+    </message>
+    <message>
+      <source>Conexões selecionadas: {numero}</source>
+      <translation>Selected connections: {numero}</translation>
+    </message>
+    <message>
+      <source>Nome de bloco inválido</source>
+      <translation>Invalid block name</translation>
+    </message>
+    <message>
+      <source>Quadro</source>
+      <translation>Board</translation>
+    </message>
+    <message>
+      <source>Blocos e conexões</source>
+      <translation>Blocks and connections</translation>
+    </message>
+    <message>
+      <source>Linha inicial: {linha}</source>
+      <translation>Starting row: {linha}</translation>
+    </message>
+    <message>
+      <source>Senha atual</source>
+      <translation>Current password</translation>
+    </message>
+    <message>
+      <source>Nova senha</source>
+      <translation>New password</translation>
+    </message>
+    <message>
+      <source>Confirmar nova senha</source>
+      <translation>Confirm new password</translation>
+    </message>
+    <message>
+      <source>A senha do modelo foi alterada.</source>
+      <translation>The template password has been changed.</translation>
+    </message>
+    <message>
+      <source>Cartões e conectores do organograma. Camadas acima aparecem à frente; camadas abaixo ficam atrás.</source>
+      <translation>Organization chart cards and connectors. Layers above appear in front; layers below appear behind.</translation>
+    </message>
+    <message>
+      <source>Este modelo não possui assinaturas para proteger.</source>
+      <translation>This template has no signatures to protect.</translation>
+    </message>
+    <message>
+      <source>Posição X</source>
+      <translation>X position</translation>
+    </message>
+    <message>
+      <source>Posição Y</source>
+      <translation>Y position</translation>
+    </message>
+    <message>
+      <source>A sessão protegida não está disponível.</source>
+      <translation>The protected session is not available.</translation>
+    </message>
+    <message>
+      <source>Falha ao alterar a proteção do modelo:
+{erro}</source>
+      <translation>Failed to change template protection:
+{erro}</translation>
+    </message>
+    <message>
+      <source>Centro do elemento ou da seleção — {eixo}</source>
+      <translation>Center of the element or selection — {eixo}</translation>
+    </message>
+    <message>
+      <source>Central de ajuda…</source>
+      <translation>Help Center…</translation>
+    </message>
+    <message>
+      <source>Central de ajuda — FORNAX Forge</source>
+      <translation>Help Center — FORNAX Forge</translation>
+    </message>
+    <message>
+      <source>Central de ajuda</source>
+      <translation>Help Center</translation>
+    </message>
+    <message>
+      <source>Pesquise uma ferramenta ou escolha um tópico do editor.</source>
+      <translation>Search for a tool or choose an editor topic.</translation>
+    </message>
+    <message>
+      <source>Buscar na ajuda… Ex.: máscara, guias, transparência</source>
+      <translation>Search help… E.g.: mask, guides, transparency</translation>
+    </message>
+    <message>
+      <source>Buscar na ajuda</source>
+      <translation>Search help</translation>
+    </message>
+    <message>
+      <source>Categoria da ajuda</source>
+      <translation>Help category</translation>
+    </message>
+    <message>
+      <source>Todas as categorias</source>
+      <translation>All categories</translation>
+    </message>
+    <message>
+      <source>Tópicos da ajuda</source>
+      <translation>Help topics</translation>
+    </message>
+    <message>
+      <source>Conteúdo da ajuda</source>
+      <translation>Help content</translation>
+    </message>
+    <message>
+      <source>Fechar</source>
+      <translation>Close</translation>
+    </message>
+    <message>
+      <source>{quantidade} tópicos</source>
+      <translation>{quantidade} topics</translation>
+    </message>
+    <message>
+      <source>Escolha um tópico</source>
+      <translation>Choose a topic</translation>
+    </message>
+    <message>
+      <source>Nenhum tópico encontrado</source>
+      <translation>No topics found</translation>
+    </message>
+    <message>
+      <source>Selecione um item da lista para consultar a ajuda.</source>
+      <translation>Select an item from the list to read its help.</translation>
+    </message>
+    <message>
+      <source>Tente outro termo ou selecione todas as categorias.</source>
+      <translation>Try another term or select all categories.</translation>
+    </message>
+    <message>
+      <source>Descrição ainda não disponível.</source>
+      <translation>Description not yet available.</translation>
+    </message>
+    <message>
+      <source>Não foi possível carregar os tópicos da ajuda.</source>
+      <translation>Help topics could not be loaded.</translation>
+    </message>
+    <message>
+      <source>Geração cancelada.</source>
+      <translation>Generation canceled.</translation>
+    </message>
+    <message>
+      <source>Ladrilhos gerados: {folhas} folhas.</source>
+      <translation>Tiles generated: {folhas} sheets.</translation>
+    </message>
+    <message>
+      <source>Já existe um arquivo com o mesmo nome na pasta de saída.</source>
+      <translation>A file with the same name already exists in the output folder.</translation>
+    </message>
+    <message>
+      <source>Selecionar uma predefinição de saída</source>
+      <translation>Select an output preset</translation>
+    </message>
+    <message>
+      <source>Configurar saída</source>
+      <translation>Configure output</translation>
+    </message>
+    <message>
+      <source>Selecionar ou gerenciar configurações de saída salvas</source>
+      <translation>Select or manage saved output settings</translation>
+    </message>
+    <message>
+      <source>Disposição dos arquivos</source>
+      <translation>File layout</translation>
+    </message>
+    <message>
+      <source>Disposição</source>
+      <translation>Layout</translation>
+    </message>
+    <message>
+      <source>Nomes dos arquivos</source>
+      <translation>File names</translation>
+    </message>
+    <message>
+      <source>Dê um nome para salvar esta predefinição:</source>
+      <translation>Enter a name to save this preset:</translation>
+    </message>
+    <message>
+      <source>Quadro de pessoas — FORNAX Forge</source>
+      <translation>Personnel board — FORNAX Forge</translation>
+    </message>
+    <message>
+      <source>Não foi possível reservar memória para a imagem.</source>
+      <translation>Memory could not be allocated for the image.</translation>
+    </message>
+    <message>
+      <source>Não foi possível gravar a imagem.</source>
+      <translation>The image could not be saved.</translation>
+    </message>
+    <message>
+      <source>Não foi possível reservar memória para a folha.</source>
+      <translation>Memory could not be allocated for the sheet.</translation>
+    </message>
+    <message>
+      <source>Para quadros maiores que 5 m, divida o PDF em ladrilhos.</source>
+      <translation>For boards larger than 5 m, split the PDF into tiles.</translation>
+    </message>
+    <message>
+      <source>O quadro excede o tamanho seguro para imagem nessa resolução. Escolha PDF ou divida em ladrilhos.</source>
+      <translation>The board exceeds the safe image size at this resolution. Choose PDF or split it into tiles.</translation>
+    </message>
+    <message>
+      <source>Não há cartões com informações válidas nos blocos do quadro.</source>
+      <translation>There are no cards with valid information in the board's blocks.</translation>
+    </message>
+    <message>
+      <source>Não foi possível adicionar uma folha ao PDF.</source>
+      <translation>A sheet could not be added to the PDF.</translation>
+    </message>
+    <message>
+      <source>Quadro gerado: {arquivos} arquivo(s), {folhas} folha(s), {quantidade} cartões.</source>
+      <translation>Board generated: {arquivos} file(s), {folhas} sheet(s), {quantidade} cards.</translation>
+    </message>
+    <message>
+      <source>Corrija a distribuição dos registros antes de gerar:
+{pendencias}</source>
+      <translation>Fix record distribution before generating:
+{pendencias}</translation>
+    </message>
+    <message>
+      <source>PDF Agrupado</source>
+      <translation>Combined PDF</translation>
+    </message>
+    <message>
+      <source>Não foi possível reservar memória para o JPEG.</source>
+      <translation>Memory could not be allocated for the JPEG.</translation>
+    </message>
+    <message>
+      <source>Arraste o desenho para ajustar sua posição nas folhas.</source>
+      <translation>Drag the design to adjust its position on the sheets.</translation>
+    </message>
+    <message>
+      <source>Dividir em ladrilhos</source>
+      <translation>Split into tiles</translation>
+    </message>
+    <message>
+      <source>Largura final</source>
+      <translation>Final width</translation>
+    </message>
+    <message>
+      <source>Altura final</source>
+      <translation>Final height</translation>
+    </message>
+    <message>
+      <source>Restaurar tamanho original</source>
+      <translation>Restore original size</translation>
+    </message>
+    <message>
+      <source>Folha de saída</source>
+      <translation>Output sheet</translation>
+    </message>
+    <message>
+      <source>Papel</source>
+      <translation>Paper</translation>
+    </message>
+    <message>
+      <source>Orientação</source>
+      <translation>Orientation</translation>
+    </message>
+    <message>
+      <source>Largura</source>
+      <translation>Width</translation>
+    </message>
+    <message>
+      <source>Altura</source>
+      <translation>Height</translation>
+    </message>
+    <message>
+      <source>Reserva 5 mm em cada lado da folha. A faixa vermelha é mostrada apenas na prévia.</source>
+      <translation>Reserves 5 mm on each side of the sheet. The red band appears only in the preview.</translation>
+    </message>
+    <message>
+      <source>Reserva mais 5 mm em cada lado: marcas de 3 mm, separadas do item por 2 mm.</source>
+      <translation>Reserves another 5 mm on each side: 3 mm marks, separated from the item by 2 mm.</translation>
+    </message>
+    <message>
+      <source>Otimizar disposição</source>
+      <translation>Optimize layout</translation>
+    </message>
+    <message>
+      <source>O tamanho final é preservado: itens menores são distribuídos na folha; desenhos maiores são divididos em ladrilhos A1, B1, A2… Arraste o desenho sobre as folhas para ajustar a posição. Depois de gerar, imprima os arquivos em tamanho real (100%).</source>
+      <translation>The final size is preserved: smaller items are arranged on the sheet; larger designs are split into tiles A1, B1, A2… Drag the design over the sheets to adjust its position. After generating, print the files at actual size (100%).</translation>
+    </message>
+    <message>
+      <source>Carregando prévia…</source>
+      <translation>Loading preview…</translation>
+    </message>
+    <message>
+      <source>Itens por folha</source>
+      <translation>Items per sheet</translation>
+    </message>
+    <message>
+      <source>Ladrilhos</source>
+      <translation>Tiles</translation>
+    </message>
+    <message>
+      <source>Retrato</source>
+      <translation>Portrait</translation>
+    </message>
+    <message>
+      <source>Paisagem</source>
+      <translation>Landscape</translation>
+    </message>
+    <message>
+      <source>Automática — menos folhas</source>
+      <translation>Automatic — fewer sheets</translation>
+    </message>
+    <message>
+      <source>Margem de sangria</source>
+      <translation>Bleed margin</translation>
+    </message>
+    <message>
+      <source>Habilitar margem na folha</source>
+      <translation>Enable sheet margin</translation>
+    </message>
+    <message>
+      <source>Margem da folha</source>
+      <translation>Sheet margin</translation>
+    </message>
+    <message>
+      <source>Marcas de corte</source>
+      <translation>Crop marks</translation>
+    </message>
+    <message>
+      <source>Mapa das folhas</source>
+      <translation>Sheet map</translation>
+    </message>
+    <message>
+      <source>Folha selecionada</source>
+      <translation>Selected sheet</translation>
+    </message>
+    <message>
+      <source>Automática — melhor aproveitamento</source>
+      <translation>Automatic — best fit</translation>
+    </message>
+    <message>
+      <source>Divida o desenho em folhas A1, B1, A2… Arraste para ajustar a posição. Imprima os arquivos em tamanho real (100%).</source>
+      <translation>Split the design into sheets A1, B1, A2… Drag to adjust the position. Print the files at actual size (100%).</translation>
+    </message>
+    <message>
+      <source>Distribua os itens na folha sem alterar a proporção. As marcas de corte podem ser usadas com ou sem margem de sangria.</source>
+      <translation>Arrange items on the sheet without changing their aspect ratio. Crop marks can be used with or without a bleed margin.</translation>
+    </message>
+    <message>
+      <source>Original: {largura:.1f} × {altura:.1f} mm</source>
+      <translation>Original: {largura:.1f} × {altura:.1f} mm</translation>
+    </message>
+    <message>
+      <source>Um item por página, no tamanho original do modelo.</source>
+      <translation>One item per page, at the template's original size.</translation>
+    </message>
+    <message>
+      <source>Não foi possível gerar a prévia: {erro}</source>
+      <translation>The preview could not be generated: {erro}</translation>
+    </message>
+    <message>
+      <source>Até {itens} itens por folha ({colunas} × {linhas})</source>
+      <translation>Up to {itens} items per sheet ({colunas} × {linhas})</translation>
+    </message>
+    <message>
+      <source>{colunas} colunas × {linhas} linhas — {folhas} folhas</source>
+      <translation>{colunas} columns × {linhas} rows — {folhas} sheets</translation>
+    </message>
+    <message>
+      <source>Cartão de {inicio} a {fim}</source>
+      <translation>Cards {inicio} to {fim}</translation>
+    </message>
+    <message>
+      <source>Configurar saída…</source>
+      <translation>Configure output…</translation>
+    </message>
+    <message>
+      <source>Revise o conteúdo recebido e escolha o que adicionar à biblioteca. O arquivo de origem será preservado.</source>
+      <translation>Review the received content and choose what to add to the library. The source file will be preserved.</translation>
+    </message>
+    <message>
+      <source>Modelo antigo</source>
+      <translation>Legacy template</translation>
+    </message>
+    <message>
+      <source>Proteção / formato</source>
+      <translation>Protection / format</translation>
+    </message>
+    <message>
+      <source>Na biblioteca</source>
+      <translation>In library</translation>
+    </message>
+    <message>
+      <source>Aplicar a todos os modelos repetidos</source>
+      <translation>Apply to all duplicate templates</translation>
+    </message>
+    <message>
+      <source>Criar cópia</source>
+      <translation>Create copy</translation>
+    </message>
+    <message>
+      <source>Criar cópias de todos os modelos repetidos.</source>
+      <translation>Create copies of all duplicate templates.</translation>
+    </message>
+    <message>
+      <source>Substituir todos os modelos repetidos selecionados para importar.</source>
+      <translation>Replace all duplicate templates selected for import.</translation>
+    </message>
+    <message>
+      <source>Os modelos existentes serão preservados. Para nomes repetidos, selecione Criar cópia ou Substituir existente.</source>
+      <translation>Existing templates will be preserved. For duplicate names, select Create copy or Replace existing.</translation>
+    </message>
+    <message>
+      <source>Importar com outro nome, preservando o modelo existente.</source>
+      <translation>Import under another name, preserving the existing template.</translation>
+    </message>
+    <message>
+      <source>Trocar o modelo existente pelo modelo recebido.</source>
+      <translation>Replace the existing template with the received template.</translation>
+    </message>
+    <message>
+      <source>Adicionar novo</source>
+      <translation>Add new</translation>
+    </message>
+    <message>
+      <source>{count} modelo(s) existente(s) serão substituídos. Confira as escolhas antes de continuar.</source>
+      <translation>{count} existing template(s) will be replaced. Review your choices before continuing.</translation>
+    </message>
+    <message>
+      <source>Escolha os modelos que deseja compartilhar. Os originais permanecem na sua biblioteca.</source>
+      <translation>Choose the templates you want to share. The originals remain in your library.</translation>
+    </message>
+    <message>
+      <source>Selecione pelo menos um modelo para continuar.</source>
+      <translation>Select at least one template to continue.</translation>
+    </message>
+    <message>
+      <source>Um modelo: arquivo .fornax. A seguir, escolha as opções de proteção e o destino.</source>
+      <translation>One template: .fornax file. Next, choose protection options and the destination.</translation>
+    </message>
+    <message>
+      <source>Lote: arquivo ZIP com {count} modelos .fornax. A seguir, escolha as opções de proteção e o destino.</source>
+      <translation>Batch: ZIP file with {count} .fornax templates. Next, choose protection options and the destination.</translation>
+    </message>
+    <message>
+      <source>Buscar modelos…</source>
+      <translation>Search templates…</translation>
+    </message>
+    <message>
+      <source>Buscar modelos</source>
+      <translation>Search templates</translation>
+    </message>
+    <message>
+      <source>Selecionar todos</source>
+      <translation>Select all</translation>
+    </message>
+    <message>
+      <source>Limpar seleção</source>
+      <translation>Clear selection</translation>
+    </message>
+    <message>
+      <source>{selected} de {total} selecionados</source>
+      <translation>{selected} of {total} selected</translation>
+    </message>
+    <message>
+      <source>Escolha o destino na coluna Bloco ou cole os dados da planilha.</source>
+      <translation>Choose the destination in the Block column or paste spreadsheet data.</translation>
+    </message>
+    <message>
+      <source>Aviso: links desativados em imagens</source>
+      <translation>Warning: links disabled in images</translation>
+    </message>
+    <message>
+      <source>Este modelo possui links ativos, mas o formato de saída atual é uma imagem.
+
+Os links funcionam somente em PDF. Deseja continuar e gerar as imagens sem links?</source>
+      <translation>This template has active links, but the current output format is an image.
+
+Links only work in PDF. Continue and generate images without links?</translation>
+    </message>
+    <message>
+      <source>Saída em ladrilhos. Ajuste papel, tamanho e posição em Arquivo → Configurar saída.</source>
+      <translation>Tiled output. Adjust paper, size, and position in File → Configure output.</translation>
+    </message>
+    <message>
+      <source>Revise a configuração de saída</source>
+      <translation>Review output settings</translation>
+    </message>
+    <message>
+      <source>Preencha os dados para visualizar o quadro. Cartões sem informações válidas ficam ocultos.</source>
+      <translation>Fill in the data to preview the board. Cards without valid information remain hidden.</translation>
+    </message>
+    <message>
+      <source>Não foi possível gerar a prévia do quadro.</source>
+      <translation>The board preview could not be generated.</translation>
+    </message>
+    <message>
+      <source>Não foi possível gerar o quadro</source>
+      <translation>The board could not be generated</translation>
+    </message>
+    <message>
+      <source>Não foi possível gerar os ladrilhos</source>
+      <translation>The tiles could not be generated</translation>
+    </message>
+    <message>
+      <source>Prévia indisponível — o arquivo do modelo precisa ser recarregado</source>
+      <translation>Preview unavailable — the template file needs to be reloaded</translation>
+    </message>
+    <message>
+      <source>Clique na célula para escolher o destino do registro no organograma.
+Blocos disponíveis: {nomes}</source>
+      <translation>Click the cell to choose the record's destination in the organization chart.
+Available blocks: {nomes}</translation>
+    </message>
+    <message>
+      <source>{cartoes} cartão(ões) no quadro · {pendencias} registro(s) com pendências. Corrija antes de gerar.</source>
+      <translation>{cartoes} card(s) on the board · {pendencias} record(s) with issues. Fix them before generating.</translation>
+    </message>
+    <message>
+      <source>{cartoes} cartão(ões) no quadro · Preencha Bloco com o nome do destino definido no editor.</source>
+      <translation>{cartoes} card(s) on the board · Fill in Block with the destination name defined in the editor.</translation>
+    </message>
+    <message>
+      <source>Fontes ausentes no modelo; o sistema usará substitutas: {fontes}</source>
+      <translation>Fonts missing from the template; the system will use substitutes: {fontes}</translation>
+    </message>
+    <message>
+      <source>Visualize o cartão da Página 1 ou o organograma completo.</source>
+      <translation>Preview the card from Page 1 or the complete organization chart.</translation>
+    </message>
+    <message>
+      <source>Organograma completo</source>
+      <translation>Complete organization chart</translation>
+    </message>
+    <message>
+      <source>Cada linha corresponde a um cartão</source>
+      <translation>Each row corresponds to a card</translation>
+    </message>
+    <message>
+      <source>Copiar</source>
+      <translation>Copy</translation>
+    </message>
+    <message>
+      <source>Copiar com cabeçalhos</source>
+      <translation>Copy with headers</translation>
+    </message>
+    <message>
+      <source>Selecionar tudo</source>
+      <translation>Select all</translation>
+    </message>
+    <message>
+      <source>Selecione um bloco</source>
+      <translation>Select a block</translation>
+    </message>
+    <message>
+      <source>Sem bloco</source>
+      <translation>No block</translation>
+    </message>
+    <message>
+      <source>Cartão de aniversário de pessoal</source>
+      <translation>Personnel birthday card</translation>
+    </message>
+    <message>
+      <source>Cartão de aniversário horizontal, com nome, data e cargo personalizáveis.</source>
+      <translation>Landscape birthday card with customizable name, date, and job title.</translation>
+    </message>
+    <message>
+      <source>Certificado de estágio</source>
+      <translation>Internship certificate</translation>
+    </message>
+    <message>
+      <source>Certificado em A4 horizontal, com nome, área, período e carga horária personalizáveis.</source>
+      <translation>Landscape A4 certificate with customizable name, field, period, and hours.</translation>
+    </message>
+    <message>
+      <source>Prisma de identificação</source>
+      <translation>Name tent</translation>
+    </message>
+    <message>
+      <source>Prisma de identificação em A4 horizontal, com nome, tratamento e função personalizáveis.</source>
+      <translation>Landscape A4 name tent with customizable name, title, and role.</translation>
+    </message>
+    <message>
+      <source>Convite institucional</source>
+      <translation>Institutional invitation</translation>
+    </message>
+    <message>
+      <source>Convite em A5 horizontal, com destinatário, evento, diretor e links personalizáveis.</source>
+      <translation>Landscape A5 invitation with customizable recipient, event, director, and links.</translation>
+    </message>
+    <message>
+      <source>Quadro de pessoal</source>
+      <translation>Personnel board</translation>
+    </message>
+    <message>
+      <source>Reconheça quem faz parte da instituição, turma ou equipe. Grade ajustável, cartões arredondados e contorno do conjunto, sem relações de chefia.</source>
+      <translation>Show who belongs to the institution, class, or team. Adjustable grid, rounded cards, and a group outline, without reporting relationships.</translation>
+    </message>
+    <message>
+      <source>Comando e responsáveis</source>
+      <translation>Command and leaders</translation>
+    </message>
+    <message>
+      <source>Responsável principal ao centro, com substituto e três responsáveis distribuídos ao redor. Estrutura revisada no editor, com contornos suaves e conexões pelos lados de cada cartão.</source>
+      <translation>Main leader in the center, with a deputy and three leaders arranged around them. Structure revised in the editor, with smooth outlines and connections through the sides of each card.</translation>
+    </message>
+    <message>
+      <source>Setores e equipes</source>
+      <translation>Departments and teams</translation>
+    </message>
+    <message>
+      <source>Mostre a distribuição por setor. Responsável geral, três chefias e três equipes de seis posições, com contornos nos cartões e conjuntos.</source>
+      <translation>Show the distribution by department. One overall leader, three department heads, and three teams of six slots, with card and group outlines.</translation>
+    </message>
+    <message>
+      <source>Turmas e grupos</source>
+      <translation>Classes and groups</translation>
+    </message>
+    <message>
+      <source>Organize participantes por turma ou grupo. Três responsáveis junto aos seus conjuntos de seis posições, sem impor conexões de subordinação.</source>
+      <translation>Organize participants by class or group. Three leaders alongside their groups of six slots, without imposed reporting connections.</translation>
+    </message>
+    <message>
+      <source>Equipe de atividade</source>
+      <translation>Activity team</translation>
+    </message>
+    <message>
+      <source>Distribua uma atividade entre coordenação, recepção, logística e execução. Três conjuntos de seis posições conectados à coordenação.</source>
+      <translation>Divide an activity between coordination, reception, logistics, and execution. Three groups of six slots connected to coordination.</translation>
+    </message>
+    <message>
+      <source>Organograma institucional</source>
+      <translation>Institutional organization chart</translation>
+    </message>
+    <message>
+      <source>Direção, gerências e equipes de operações, administração e comercial. 22 cartões com foto, nome, função e setor.</source>
+      <translation>Leadership, managers, and operations, administration, and sales teams. 22 cards with photo, name, role, and department.</translation>
+    </message>
+    <message>
+      <source>Carta</source>
+      <translation>Letter</translation>
+    </message>
+    <message>
+      <source>Personalizado</source>
+      <translation>Custom</translation>
+    </message>
+    <message>
+      <source>&lt;b&gt;HABILITAR LINK (URL)&lt;/b&gt;&lt;br&gt;&lt;br&gt;Cria uma área clicável no PDF exportado.</source>
+      <translation>&lt;b&gt;ENABLE LINK (URL)&lt;/b&gt;&lt;br&gt;&lt;br&gt;Creates a clickable area in the exported PDF.</translation>
     </message>
 </context>
   <context>

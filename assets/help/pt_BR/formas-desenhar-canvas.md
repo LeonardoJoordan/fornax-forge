@@ -14,8 +14,8 @@ Criar fundos, molduras, separadores e áreas que também podem receber imagens v
 
 Ao selecionar um retângulo ou círculo/elipse, a barra flutuante oferece atalhos
 para cor do preenchimento, habilitar/desabilitar contorno, opacidade geral e
-adicionar/remover máscara. Arraste a alça para encaixar a barra nos quatro lados
-da forma; o botão **−/+** recolhe ou expande as ferramentas. Linhas e o plano de
+adicionar/remover máscara. Arraste a alça para encaixar a barra em uma das oito
+posições, duas em cada lado da forma; o botão **−/+** recolhe ou expande as ferramentas. Linhas e o plano de
 fundo continuam usando os controles da lateral.
 
 ## Exemplo de uso
@@ -40,3 +40,4 @@ O nome “Quadrado” não limita o desenho a lados iguais; sem Shift, você pod
 - [Cor de preenchimento pelo seletor](help:FOR-09).
 - [Usar imagem variável em uma forma](help:DIN-01).
 - [Usar como máscara / Aplicar máscara](help:MAS-01).
+- [Barras flutuantes e posições de ancoragem](help:UI-17).

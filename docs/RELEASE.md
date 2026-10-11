@@ -28,6 +28,34 @@ sem sua dependência QtPdf; o FORNAX não usa esse handler e continua gerando PD
 com pypdf. O inventário final registra a saída após essa remoção.
 A redução do conjunto Qt não equivale a uma auditoria completa de suas licenças.
 
+## Versão e atualização
+
+A versão do produto é `1.1.0`, definida em `core/version.py`. Manter o
+`AppVersion` de `instalador.iss` sincronizado; a tela Sobre, os pontos de entrada
+Qt e os metadados Nuitka usam a constante Python. Essa versão não é a versão do
+formato dos documentos: não alterar o schema apenas por lançar uma release.
+
+Preservar o AppId do instalador, o ID `com.leobelisario.FornaxForge`, o nome
+do executável e o namespace de preferências `FORNAX Forge` / `MainApp`.
+No Windows, executar o novo instalador sobre a instalação existente, no mesmo
+diretório; não é necessário desinstalar primeiro. A atualização substitui os
+arquivos distribuídos, mantendo a biblioteca em `%APPDATA%\FornaxForge` e as
+preferências. A desinstalação só apaga esses dados se o usuário marcar
+explicitamente a opção de limpeza completa.
+
+No Flatpak, atualizar mantendo ID, arquitetura, branch e escopo de instalação
+(usuário ou sistema). No AppImage, substituir o arquivo antigo pelo novo;
+o AppImage não desinstala automaticamente a cópia anterior. Trocar entre
+AppImage e Flatpak não é uma atualização no mesmo armazenamento: a sandbox
+do Flatpak mantém seus próprios dados. Exportar/importar os modelos quando
+for necessário mudar de formato.
+
+Antes de publicar, testar a atualização de uma instalação anterior no SO alvo,
+com biblioteca descartável: guardar modelos, tema, idioma e visibilidade do log;
+atualizar; confirmar versão, arquivos, preferências, associação `.fornax` e
+ausência de um segundo cadastro do mesmo produto. Testes de código em Linux
+não substituem essa validação do instalador Windows.
+
 ## Evidências e fontes
 
 - `scripts/release_tools.py notices --output build/package-notices` copia avisos

@@ -12,8 +12,22 @@ Separar o tamanho dos elementos do tamanho do material completo e da forma de im
 2. Defina sua largura nos blocos e organize o quadro.
 3. Confira o tamanho sugerido da composição.
 4. Na tela principal, abra **Arquivo → Configurar saída** e escolha **Itens por folha** ou **Ladrilhos**. O botão verde indica o modo ativo.
-5. Escolha a folha e o tamanho final. **Itens por folha** distribui os cartões na folha; **Ladrilhos** divide o desenho em partes para montagem. O modo não muda automaticamente quando você altera as medidas.
+5. Escolha a folha e o tamanho final. **Itens por folha** organiza os itens completos na folha; **Ladrilhos** divide o desenho em partes para montagem. O modo não muda automaticamente quando você altera as medidas. No organograma, a composição inteira é o item de saída: esse modo não separa os cartões internos em arquivos individuais.
 6. Em **Ladrilhos**, arraste o desenho no mapa para ajustar sua posição. As folhas ficam paradas durante o arraste; ao soltar, o programa recalcula a distribuição.
+7. Use **Restaurar tamanho original** para voltar às dimensões do modelo sem precisar lembrar as medidas anteriores.
+
+Na tela principal, os formatos são **PNG**, **JPEG**, **PDF** e **PDF Agrupado**.
+PNG preserva os pixels sem perdas; JPEG usa qualidade de 95% e compõe regiões
+transparentes sobre branco. **PDF** cria arquivos separados; **PDF Agrupado**
+reúne as páginas. Na geração dos cartões, o PDF conserva a arte como imagem
+renderizada e pode conter links, mas não transforma o texto da arte em texto selecionável.
+
+**PDF Agrupado** reúne as páginas e usa o nome da pasta da Forja para identificar
+o arquivo. Nos cartões individuais, os marcadores e rótulos usam o nome que o
+arquivo individual teria. Em folhas com vários cartões, indicam intervalos como
+**Cartão de 1 a 8** e **Cartão de 9 a 16**. Frente e verso são identificados quando
+existem. Em ladrilhos, as posições **A1, B1, A2…** identificam as partes; PNG,
+JPEG e PDF separado geram arquivos por parte, enquanto PDF Agrupado as reúne.
 
 ## Exemplo de uso
 
@@ -32,6 +46,7 @@ Comece pelo tamanho de leitura do cartão; depois escolha a organização e o pl
 - **Marcas de corte** reservam mais 5 mm em cada lado: 3 mm para os traços e 2 mm de distância até o conteúdo. As opções são independentes; ativar ambas reserva 10 mm por lado, reduzindo a área disponível para os itens.
 - A resolução de saída usa 300 DPI; as medidas finais são definidas em milímetros.
 - Redimensionar na geração exige conferir a escala final de textos e fotos.
+- Marcadores e rótulos são informações de navegação do PDF; não acrescentam títulos sobre a arte. A exibição depende do leitor de PDF.
 
 ## Veja também
 

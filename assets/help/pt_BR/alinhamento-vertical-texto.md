@@ -9,7 +9,7 @@ Manter nomes e legendas alinhados mesmo quando têm quantidades diferentes de li
 ## Como usar
 
 1. Selecione a caixa.
-2. No painel Texto, escolha o ícone de alinhamento vertical.
+2. No painel **Texto** ou no seletor da barra flutuante, escolha o ícone de alinhamento vertical. O botão da barra indica a opção atual.
 3. Ajuste a altura da caixa para que haja espaço para o conteúdo.
 
 ## Exemplo de uso

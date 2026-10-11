@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QMessageBox, QMenu, QGridLayout, QSizePolicy, QListView, QApplication,
 )
 from core.paths import get_models_dir
+from core.version import APP_VERSION
 from core.resources import action_icon_path, navigation_icon_path
 from core.theme_icons import themed_svg_icon
 from core.i18n import SUPPORTED_LANGUAGES, current_locale, set_preferred_locale, tr
@@ -546,6 +547,7 @@ def install_frontend(window):
            'Desenvolvido por Leonardo Joordan Belisário Lima da Silva.<br>'
            'Licenciado sob a GNU GPL v3 exclusivamente.<br><br>'
            'Interface desenvolvida com <a href="https://www.qt.io/qt-for-python">Qt for Python (PySide6)</a>.')
+        + '<br><br>' + tr('Versão {version}').format(version=APP_VERSION)
     ))
     ajuda.addAction(tr('Licenças de terceiros'), lambda: QMessageBox.information(
         window, tr('Licenças de terceiros'),

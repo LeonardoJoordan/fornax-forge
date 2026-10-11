@@ -58,6 +58,11 @@ class TableI18nTest(unittest.TestCase):
                                                 ('es_ES','Tabla','Combinar celdas','Filas','Elementos','Contraer barra de herramientas')]:
             with self.subTest(locale=locale):
                 self.locale(locale);w,item=self.editor()
+                if locale != 'pt_BR':
+                    for source in ('Selecionar forma no canvas ou em Camadas',
+                                   'Editar ou remover máscara',
+                                   'Clique em uma forma no canvas ou em Camadas. Esc cancela.'):
+                        self.assertNotEqual(tr(source),source)
                 self.assertEqual(w.action_add_table.text(),table)
                 self.assertTrue(any(label.text()==tr('BORDAS') for label in w.table_panel.findChildren(QLabel)))
                 self.assertEqual(w.table_controller.floating_bar.buttons['rows'].text(), rows)

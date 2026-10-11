@@ -18,7 +18,8 @@ resultado, evidência e responsável/data. Campos vazios são pendências.
   PSD não preservado; limites da evidência explicitados em `ASSET_PROVENANCE.md`.
 - [ ] Conferir no pacote instalado os textos PT/EN/ES da recomendação de proteção,
   importação, exportação e erros de senha.
-- [ ] Confirmar versão do produto; `instalador.iss` ainda declara `1.0.0`.
+- [ ] Confirmar no pacote final a versão `1.1.0`, declarada em `core/version.py`
+  e `instalador.iss`, incluindo a janela Sobre e os metadados do executável.
 - [ ] Construir em ambiente limpo; registrar todas as dependências resolvidas,
   hashes de wheels/artefatos e ferramentas de build, não só requirements.
 - [ ] Inventariar bibliotecas efetivamente distribuídas e entregar seus avisos

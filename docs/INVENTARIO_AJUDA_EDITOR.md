@@ -1,6 +1,6 @@
 # Inventário para a ajuda do editor — FORNAX Forge
 
-Mapeamento da interface e dos comportamentos do editor em 07/10/2026.
+Mapeamento da interface e dos comportamentos do editor em 07/10/2026, revisado em 11/10/2026.
 Esta é uma lista de tópicos para desenvolver e revisar, não o texto final da
 ajuda. As caixas marcadas indicam artigos escritos e integrados à central;
 as desmarcadas indicam artigos ainda não escritos. Elas não indicam
@@ -59,6 +59,7 @@ Para cada tópico, preencher posteriormente, quando aplicável:
 - [x] UI-14 — Rolagem das barras e painéis quando faltar espaço.
 - [x] UI-15 — Dicas dos controles ao passar o mouse sobre ícones.
 - [x] UI-16 — Aparência dos controles nos temas claro e escuro.
+- [x] UI-17 — Barras flutuantes: atalhos, oito posições de ancoragem e recolhimento.
 
 ## 03. Navegação e visualização do desenho
 
@@ -512,7 +513,7 @@ manual correspondente já está listada em VAR-01 e VAR-06.
 - [x] TBL-05 — Medidas da tabela, linhas e colunas em milímetros.
 - [x] TBL-06 — Texto, alinhamento, quebra e espaço interno das células.
 - [x] TBL-07 — Preenchimento e transparência das células.
-- [x] TBL-08 — Contornos externos, internos e compartilhados da tabela.
+- [x] TBL-08 — Bordas das células: cor, espessura e opacidade.
 - [x] TBL-09 — Campos variáveis e placeholders nas células da tabela.
 - [x] TBL-10 — Copiar e colar células, intervalos ou texto na tabela.
 - [x] TBL-11 — Atalhos e desfazer/refazer por contexto na tabela.

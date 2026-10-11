@@ -1836,7 +1836,15 @@ class DesignerBox(QGraphicsRectItem):
             from core.themes import theme_color
             self.setPen(QPen(QColor(theme_color('canvas_outline')), 1, Qt.PenStyle.DotLine))
             self.setBrush(QBrush(QColor(255, 255, 255, 10)))
-        super().paint(painter, option, widget)
+        # O preenchimento rápido de drawRect pode variar alguns pixels entre
+        # recortes de repintura quando o quadro está girado e semitransparente.
+        # O caminho mantém a mesma geometria e os estilos, com pintura estável,
+        # usando a moldura de seleção definida pelas cores do tema.
+        path = QPainterPath()
+        path.addRect(self.rect())
+        painter.setPen(self.pen())
+        painter.setBrush(self.brush())
+        painter.drawPath(path)
 
     
     def resize_from_handle(self, w, h):

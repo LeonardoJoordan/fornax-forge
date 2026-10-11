@@ -506,6 +506,26 @@
       "status": "published"
     },
     {
+      "id": "UI-17",
+      "title": "Barras flutuantes: atalhos, oito posições de ancoragem e recolhimento.",
+      "category": "editor-02",
+      "keywords": [
+        "barra flutuante",
+        "menu flutuante",
+        "atalhos",
+        "ancoragem",
+        "arrastar",
+        "oito posições",
+        "recolher",
+        "minimizar",
+        "expandir",
+        "opacidade",
+        "máscara"
+      ],
+      "file": "barras-flutuantes-editor.md",
+      "status": "published"
+    },
+    {
       "id": "NAV-01",
       "title": "Ajustar à janela.",
       "category": "editor-03",

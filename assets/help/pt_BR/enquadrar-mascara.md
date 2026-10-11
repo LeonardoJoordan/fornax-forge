@@ -8,15 +8,16 @@ Escolher a posição da foto dentro da moldura sem deslocar a moldura inteira.
 
 ## Como usar
 
-1. Selecione a máscara, escolha a imagem vinculada e clique em Editar máscara.
+1. Selecione a imagem vinculada e use **Máscara → Editar máscara** na barra flutuante. Pela forma, escolha a imagem vinculada no painel lateral e clique em **Editar máscara**.
 2. Arraste a imagem e use suas alças para ajustar o enquadramento.
 3. Clique em Concluir ou pressione Enter para guardar o ajuste.
 4. Clique em Cancelar ou pressione Esc para voltar ao estado anterior da sessão.
 
 Durante o enquadramento, a barra flutuante é substituída pelos botões
 **Cancelar** e **Concluir**, posicionados junto à forma da máscara. Eles ficam
-visíveis mesmo se a barra estava recolhida. Ao usar um desses botões, a forma
-volta a ficar selecionada e sua barra normal reaparece no estado anterior.
+visíveis mesmo se a barra estava recolhida. Uma orientação acima dos botões
+indica como concluir o ajuste. Ao usar esses botões, a seleção volta ao objeto
+que iniciou o enquadramento, seja a imagem ou a forma, e sua barra normal reaparece.
 
 ## Exemplo de uso
 

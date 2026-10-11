@@ -132,6 +132,18 @@ class PaintBehaviorTest(unittest.TestCase):
         w.redo()
         self.record(w, 'board-redo')
 
+    def test_rotated_translucent_text_frames_keep_partial_and_full_pixels_equal(self):
+        session = self.session(PaintCase('page', 'rotate', 'mixed', 20))
+        w, box = session.window, session.box
+        box.resize_from_handle(340, 90)
+        for selected in (True, False):
+            box.setSelected(selected)
+            for angle, opacity in ((31, .45), (-31, .25), (67, .8)):
+                with self.subTest(selected=selected, angle=angle, opacity=opacity):
+                    box.setRotation(angle)
+                    box.setOpacity(opacity)
+                    self.record(w, f'text-frame-{selected}-{angle}-{opacity}')
+
     def test_navigation_and_rulers_follow_the_view(self):
         session = self.session(PaintCase('navigation', 'zoom', size=400))
         w = session.window

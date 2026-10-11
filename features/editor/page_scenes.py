@@ -62,6 +62,10 @@ class PageScenesMixin:
             pairs.append((scene.selectionChanged, self.canvas_edit.selection_changed))
         if getattr(self, 'table_edit', None):
             pairs.append((scene.selectionChanged, self.table_edit.selection_changed))
+        controller = getattr(self, 'table_controller', None)
+        if controller is not None:
+            pairs.extend(((scene.selectionChanged, controller.selectors.schedule),
+                          (scene.changed, controller.selectors.schedule)))
         for signal, slot in pairs:
             if connect:
                 signal.connect(slot)

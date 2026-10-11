@@ -1,6 +1,6 @@
 #define AppName "FORNAX Forge"
 #define AppDescription "Geração de material personalizado em lote"
-#define AppVersion "1.0.1"
+#define AppVersion "1.1.0"
 #define AppExeName "FORNAX_Forge.exe"
 #define AppPublisher "Leonardo Joordan Belisário Lima da Silva"
 
@@ -23,6 +23,8 @@ VersionInfoProductVersion={#AppVersion}
 LicenseFile=build\main.dist\LICENSE
 InfoAfterFile=build\main.dist\docs\AVISO-DISTRIBUICAO.txt
 DefaultDirName={autopf}\FORNAX Forge
+; Atualizar no diretório já instalado, sem desinstalar os dados do usuário.
+UsePreviousAppDir=yes
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 OutputDir=build\installer-windows

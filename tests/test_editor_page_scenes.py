@@ -208,9 +208,14 @@ class PageReuseTest(PageBehaviorTest):
 
     def test_current_selection_signals_are_connected_once(self):
         w=self.editor('duplex',60)
+        settle(self.app)
         initial=w.scene.receivers('2selectionChanged()')
+        changed=w.scene.receivers('2changed(QList<QRectF>)')
         for _ in range(5): self.cycle(w)
         self.assertEqual(w.scene.receivers('2selectionChanged()'),initial)
+        self.assertEqual(w.scene.receivers('2changed(QList<QRectF>)'),changed)
+        self.assertEqual(w._inactive_page_scene.scene.receivers('2selectionChanged()'),0)
+        self.assertEqual(w._inactive_page_scene.scene.receivers('2changed(QList<QRectF>)'),0)
 
     def test_real_protected_close_discards_both_scenes_and_asset_provider(self):
         from core.fornax_container import save_protected_fornax,FULL_MODE,PUBLIC_MODE

@@ -2,7 +2,7 @@
 
 As seções da barra lateral direita podem ser **expandidas** para mostrar seus
 controles ou **recolhidas** para deixar apenas o cabeçalho. Isso se aplica a
-Documento, Propriedades, Texto e, no organograma, Estrutura do quadro.
+Documento, Propriedades, Texto, Tabela e, no organograma, Estrutura do quadro.
 
 ## Para que serve
 
@@ -34,7 +34,7 @@ confira primeiro qual objeto está selecionado.
   elementos do arquivo final.
 - Os valores dos controles são mantidos ao recolher e reabrir a seção.
 - Se uma seção estiver desabilitada, selecione um objeto compatível para
-  disponibilizar seus controles.
+  disponibilizar seus controles. Uma seção sem conteúdo permanece recolhida e não pode ser expandida.
 - A animação de abertura não é uma transformação aplicada à arte.
 - Na Central de ajuda, as categorias também podem ser abertas e recolhidas
   clicando no nome ou na seta à esquerda.

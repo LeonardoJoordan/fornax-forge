@@ -21,7 +21,7 @@ Com a tabela selecionada, as setas acima selecionam colunas inteiras e as setas 
 
 As células selecionadas recebem um realce suave e um contorno. Quando a seleção é separada, cada célula escolhida é destacada individualmente. Uma barra flutuante próxima à tabela oferece linhas, colunas, mesclar/separar, alinhamento e cor de preenchimento. Com células selecionadas, a formatação e Delete atuam apenas nelas; sem seleção interna, as ferramentas atuam na tabela inteira. Os controles da lateral continuam disponíveis.
 
-Para reposicionar a barra, segure a alça de pontinhos e arraste para um dos destinos destacados em grafite claro. Solte para encaixar acima, abaixo, à esquerda ou à direita da tabela. Acima/abaixo a barra é horizontal; nas laterais é vertical. O lado escolhido permanece durante a sessão do editor, acompanhando a tabela e o zoom. **Esc** ou soltar fora dos destinos cancela o arrasto e mantém a posição anterior.
+Para reposicionar a barra, segure a alça de pontinhos e arraste para um dos destinos destacados em grafite claro. Há **oito posições**, duas acima, duas abaixo e duas em cada lateral: uma próxima e outra mais afastada da tabela. Acima/abaixo a barra é horizontal; nas laterais é vertical. A posição escolhida permanece durante a sessão do editor, acompanhando a tabela e o zoom. **Esc** ou soltar fora dos destinos cancela o arrasto e mantém a posição anterior.
 
 Os destinos ficam ao redor da tabela, mesmo quando você arrasta a barra recolhida.
 Os destaques de cima e de baixo não ultrapassam a largura da tabela; os laterais
@@ -65,3 +65,4 @@ Confira se há um cursor de texto ou um intervalo destacado antes de usar Delete
 - [Atalhos e histórico da tabela](help:TBL-11).
 - [Copiar e colar células ou texto](help:TBL-10).
 - [Tabela inteira, camadas e organograma](help:TBL-12).
+- [Barras flutuantes e posições de ancoragem](help:UI-17).

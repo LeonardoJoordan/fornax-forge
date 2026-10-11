@@ -18,6 +18,17 @@ de uma forma transparente mantendo seu contorno visível.
 4. Para a linha ao redor da forma, use a opacidade de **Contorno**.
 5. Confira também a opacidade geral, pois ela influencia o resultado dessas partes.
 
+As barras flutuantes oferecem atalhos conforme a seleção: em imagens e formas,
+**Opacidade** reduz o objeto inteiro; em texto, reduz a cor das letras. Os
+controles da lateral para preenchimento, bordas de tabelas e contornos de cartões
+ou conjuntos continuam independentes. Conectores usam **Transparência**: aumentar
+esse percentual deixa o traço menos visível, ao contrário de aumentar a opacidade.
+
+As setas dos controles exibem as mudanças em tempo real. Uma sequência de
+ajustes é consolidada no histórico ao concluir a edição. Ao digitar um número,
+confirme o campo para aceitar o valor completo; um número ainda incompleto não
+precisa ser aplicado enquanto você digita.
+
 ## Exemplo de uso
 
 Uma forma destaca um aviso sobre uma fotografia. Deixe o preenchimento com

@@ -132,9 +132,9 @@ class CaixaDeTextoPanel(QWidget):
         self.chk_link = QPushButton(tr("Habilitar link"), self)
         self.chk_link.setCheckable(True)
         self.chk_link.setFixedHeight(22)
-        self.chk_link.setToolTip(
+        self.chk_link.setToolTip(tr(
             "<b>HABILITAR LINK (URL)</b><br><br>Cria uma área clicável no PDF exportado."
-        )
+        ))
         self.chk_link.toggled.connect(self.linkToggled.emit)
         self.op_link = QGraphicsOpacityEffect(self.chk_link)
         self.chk_link.setGraphicsEffect(self.op_link)
@@ -385,12 +385,12 @@ class EditorDeTextoPanel(QWidget):
         self.txt_content.textChanged.connect(self._emit_clean_html)
 
         self.cbo_font = QFontComboBox(self)
-        self.cbo_font.setToolTip("Selecionar a família tipográfica.")
+        self.cbo_font.setToolTip(tr("Selecionar a família da fonte"))
         self.cbo_font.currentFontChanged.connect(self.set_font_family)
 
         self.spin_size = QSpinBox(self)
         self.spin_size.setRange(1, 999)
-        self.spin_size.setToolTip("Alterar o tamanho da fonte.")
+        self.spin_size.setToolTip(tr("Alterar o tamanho da fonte"))
         self.spin_size.valueChanged.connect(self.set_font_size)
 
         self.btn_bold = QPushButton(self)
@@ -412,7 +412,7 @@ class EditorDeTextoPanel(QWidget):
 
         self.btn_color = QPushButton("", self)
         self.btn_color.setFixedWidth(30)
-        self.btn_color.setToolTip("Selecionar a cor do texto.")
+        self.btn_color.setToolTip(tr("Selecionar a cor do texto"))
         themed_style(
             self.btn_color,
             "background-color: #000000; border: 1px solid @border_strong@; border-radius: 3px;",
