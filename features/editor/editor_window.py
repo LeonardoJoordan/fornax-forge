@@ -388,7 +388,33 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
 
     def showEvent(self, event):
         super().showEvent(event)
+        self._request_opening_fit()
+
+    def _request_opening_fit(self):
+        # showEvent ainda pode preceder o layout final e as barras de rolagem.
+        # O timer pertence à janela: fechar/destruir o editor cancela o callback.
+        if not hasattr(self, "_opening_fit_timer"):
+            self._opening_fit_timer = QTimer(self)
+            self._opening_fit_timer.setSingleShot(True)
+            self._opening_fit_timer.timeout.connect(self._finish_opening_fit)
+        self._opening_fit_pending = True
+        self._opening_fit_size = None
+        self._opening_fit_timer.start(0)
+
+    def _finish_opening_fit(self):
+        if not self._opening_fit_pending or not self.isVisible():
+            return
+        view = getattr(self, "view", None)
+        before = view.viewport().size() if view is not None else None
         self._zoom_to_fit()
+        after = view.viewport().size() if view is not None else None
+        if view is not None and (after != before or after != self._opening_fit_size):
+            # Confirma o tamanho em outra passagem do loop de eventos: tanto
+            # as barras de rolagem quanto a maximização podem alterar a área.
+            self._opening_fit_size = after
+            self._opening_fit_timer.start(0)
+        else:
+            self._opening_fit_pending = False
 
     def _release_workspace_window(self):
         workspace = self._workspace_window
@@ -782,6 +808,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             if event.type() == QEvent.Type.Resize:
                 self._update_workspace_scene_rect()
                 self._apply_zoom(1.0)
+                if getattr(self, "_opening_fit_pending", False):
+                    self._opening_fit_timer.start(0)
 
             if event.type() == QEvent.Type.FocusOut:
                 self._finish_canvas_pointer_interaction(leave_pan=True)
@@ -1111,7 +1139,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self._update_window_title()
         self.apply_scene_state(data, is_undo_redo=False)
         self._active_scene_baseline = self.get_current_scene_state()
-        self._zoom_to_fit()
+        self._request_opening_fit()
         self.history.clear()
         self.save_snapshot()
         self._last_saved_state = self.get_current_scene_state()
@@ -4710,10 +4738,13 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self.scene._document_rect = QRectF(self._document_rect)
         self._update_workspace_scene_rect()
 
-    def _get_content_rect(self):
+    def _get_content_rect(self, *, for_fit=False):
         total_rect = self._get_document_rect()
         for item in self.scene.items():
-            # Ignora as linhas guia infinitas e o papel branco de fallback
+            # O enquadramento considera os objetos visíveis, sem os limites
+            # auxiliares dos filhos. A área de navegação mantém seus limites.
+            if (for_fit and (not item.isVisible() or item.parentItem() is not None)):
+                continue
             if (isinstance(item, Guideline)
                     or item == getattr(self, 'fallback_bg', None)
                     or getattr(item, '_is_selection_overlay', False)):
@@ -4746,13 +4777,15 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self.view.setSceneRect(workspace_rect)
 
     def _zoom_to_fit(self):
-        total_rect = self._get_content_rect()
+        total_rect = self._get_content_rect(for_fit=True)
         
         if not total_rect.isEmpty():
             margin = 50
             view_rect = total_rect.adjusted(-margin, -margin, margin, margin)
             self.view.fitInView(view_rect, Qt.AspectRatioMode.KeepAspectRatio)
             self._update_workspace_scene_rect()
+            # Atualizar os limites da cena pode mover as barras de rolagem.
+            self.view.centerOn(total_rect.center())
 
     def _apply_zoom(self, zoom_factor):
         """Aplica zoom respeitando os limites mínimo dinâmico e máximo fixo."""

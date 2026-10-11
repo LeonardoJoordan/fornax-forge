@@ -153,7 +153,10 @@ class PageScenesMixin:
         self._selection_frame_timer.stop()
         self._history_capture_cache = None
         self._loading_board = True
-        center = self.view.mapToScene(self.view.viewport().rect().center())
+        # centerOn usa o centro contínuo do viewport. O centro inteiro de
+        # QRect acumulava até um pixel por eixo em cada troca de página.
+        center = self.view.viewportTransform().inverted()[0].map(
+            QRectF(self.view.viewport().rect()).center())
         updates = self.view.updatesEnabled(); self.view.setUpdatesEnabled(False)
         try:
             self._active_page_id = page_id
