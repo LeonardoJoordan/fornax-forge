@@ -1,8 +1,9 @@
 """Atalhos de texto na estrutura flutuante já usada pelos objetos do canvas."""
 from PySide6.QtCore import Qt, QSignalBlocker, QObject, QEvent
 from PySide6.QtGui import QColor, QIcon, QTextCursor
-from PySide6.QtWidgets import QFontComboBox, QSpinBox, QColorDialog
+from PySide6.QtWidgets import QFontComboBox, QSpinBox
 
+from core.color_dialog import get_color
 from core.i18n import tr
 from core.resources import align_icon_path
 from core.theme_icons import themed_svg_icon
@@ -181,7 +182,7 @@ class TextFloatingTools(QObject):
             return
         target = self.bar.target_key(box)
         original = self.current_format(box).foreground().color()
-        color = QColorDialog.getColor(original, self.bar.window, tr('Selecionar a cor do texto'))
+        color = get_color(original, self.bar.window, tr('Selecionar a cor do texto'))
         current = self.selected()
         if color.isValid() and current is not None and self.bar.target_key(current) == target:
             color.setAlpha(original.alpha())

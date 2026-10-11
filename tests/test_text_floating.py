@@ -101,7 +101,7 @@ class TextFloatingTest(unittest.TestCase):
             self.click_through_window(bar.text_tools.choices[key][value])
             self.assertEqual(box.text_item.toPlainText(), 'Primeiro segundo')
             self.assertEqual((box.text_item.textCursor().position(), box.text_item.textCursor().anchor()), selection)
-        with patch('features.editor.text_floating.QColorDialog.getColor', return_value=QColor('#123456')):
+        with patch('features.editor.text_floating.get_color', return_value=QColor('#123456')):
             self.click_through_window(bar.buttons['text_color'])
         self.assertEqual(box.text_item.document().find('Primeiro').charFormat().foreground().color().name(), '#123456')
         self.assertNotEqual(box.text_item.document().find('segundo').charFormat().foreground().color().name(), '#123456')
@@ -112,7 +112,7 @@ class TextFloatingTest(unittest.TestCase):
     def test_opacity_is_object_wide_and_color_keeps_existing_text_alpha(self):
         w, box, bar = self.setup_text()
         w.update_font_color('#80112233')
-        with patch('features.editor.text_floating.QColorDialog.getColor', return_value=QColor('#abcdef')):
+        with patch('features.editor.text_floating.get_color', return_value=QColor('#abcdef')):
             self.click_through_window(bar.buttons['text_color'])
         color = box.text_item.document().find('Primeiro').charFormat().foreground().color()
         self.assertEqual(color.name(), '#abcdef')
@@ -182,7 +182,7 @@ class TextFloatingTest(unittest.TestCase):
         def switch_selection(*_):
             self.select(w, self.shape(w))
             return QColor('#123456')
-        with patch('features.editor.text_floating.QColorDialog.getColor', side_effect=switch_selection):
+        with patch('features.editor.text_floating.get_color', side_effect=switch_selection):
             bar.text_tools.choose_color()
         self.assertEqual(box.text_item.toHtml(), before)
         self.assertEqual(self.shape(w).fill_color, '#ffffff')

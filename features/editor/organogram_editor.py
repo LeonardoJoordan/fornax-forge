@@ -13,9 +13,10 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout, QLabel, QPushButton, QSpinBox,
     QDoubleSpinBox, QLineEdit, QComboBox, QTreeWidget, QTreeWidgetItem,
     QDialog, QDialogButtonBox, QMessageBox, QGraphicsItem, QGraphicsRectItem,
-    QGraphicsPathItem, QMenu, QGraphicsView, QColorDialog, QCheckBox, QGridLayout, QHBoxLayout,
+    QGraphicsPathItem, QMenu, QGraphicsView, QCheckBox, QGridLayout, QHBoxLayout,
     QStyleOptionGraphicsItem, QStyle,
 )
+from core.color_dialog import get_color
 from core.i18n import tr
 from .live_opacity import connect_live_opacity
 from core.organogram import (
@@ -645,7 +646,7 @@ class OrganogramPanel(QWidget):
 
     def choose_color(self):
         initial = self.window._board_style_for_selection()["color"]
-        color = QColorDialog.getColor(QColor(initial), self, tr("Cor do conector"))
+        color = get_color(QColor(initial), self, tr("Cor do conector"))
         if color.isValid():
             self.window.change_board_connector_style(color=color.name())
 
@@ -653,7 +654,7 @@ class OrganogramPanel(QWidget):
         selected = self.window._selected_board_group()
         if selected is None:
             return
-        color = QColorDialog.getColor(QColor(border_style(selected.data)["color"]), self, tr("Cor do contorno"))
+        color = get_color(QColor(border_style(selected.data)["color"]), self, tr("Cor do contorno"))
         if color.isValid():
             self.window.change_board_border(color=color.name())
 

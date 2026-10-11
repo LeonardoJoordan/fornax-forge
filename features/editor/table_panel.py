@@ -2,8 +2,9 @@
 from PySide6.QtCore import Qt, QSignalBlocker
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (QWidget, QLabel, QPushButton,
-                              QCheckBox, QLineEdit, QColorDialog, QVBoxLayout)
+                              QCheckBox, QLineEdit, QVBoxLayout)
 from core.custom_widgets import MathDoubleSpinBox
+from core.color_dialog import get_color
 from core.i18n import tr
 from core.themes import themed_style, theme_manager
 from core.resources import state_icon_path
@@ -122,7 +123,7 @@ class TablePanel(QWidget):
 
     def choose_color(self, target):
         control = self.fill if target == 'fill' else self.edge
-        color = QColorDialog.getColor(QColor(control.text()), self.window, tr('Cor'))
+        color = get_color(QColor(control.text()), self.window, tr('Cor'))
         if color.isValid():
             control.setText(color.name())
             self.apply_color(target)

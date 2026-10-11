@@ -1,12 +1,13 @@
 """Ferramentas contextuais de texto, imagens, formas e blocos."""
 from PySide6.QtCore import Qt, QSignalBlocker, QRect, QRectF, QObject, QEvent
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QColorDialog, QDoubleSpinBox, QWidget, QGraphicsItem, QApplication, QLabel
+from PySide6.QtWidgets import QDoubleSpinBox, QWidget, QGraphicsItem, QApplication, QLabel
 from shiboken6 import isValid
 
+from core.color_dialog import get_color
 from core.i18n import tr
 from core.resources import action_icon_path, state_icon_path
-from core.theme_icons import themed_svg_icon, tool_icon
+from core.theme_icons import themed_svg_icon
 from core.themes import themed_style
 from .canvas_items import RectangleItem, DesignerBox, ImageItem, SignatureItem, BackgroundItem
 from .organogram_editor import BoardGroupItem
@@ -136,7 +137,7 @@ class ObjectFloatingBar(FloatingBar):
         self.mask_edit_hint = self.hint
         button = self.color_button('fill', tr('Cor do preenchimento'))
         button.clicked.connect(self.choose_fill)
-        button = self.button('outline', '', tool_icon('<rect x="4" y="4" width="16" height="16"/>'),
+        button = self.button('outline', '', themed_svg_icon(action_icon_path('outline')),
                              tr('Habilitar contorno'))
         button.setCheckable(True)
         button.clicked.connect(lambda: self.invoke('outline'))
@@ -162,13 +163,13 @@ class ObjectFloatingBar(FloatingBar):
         self.mask_picker = MaskImagePicker(self)
         button = self.button('group', '', themed_svg_icon(action_icon_path('unlock ratio')), tr('Agrupar'))
         button.clicked.connect(lambda: self.invoke('group'))
-        button = self.button('connect', '', tool_icon('<rect x="3" y="3" width="6" height="6"/><rect x="15" y="15" width="6" height="6"/><path d="M6 9v9h9"/>'),
+        button = self.button('connect', '', themed_svg_icon(action_icon_path('connect')),
                              tr('Conectar a elemento'))
         button.clicked.connect(lambda: self.invoke('connect'))
-        button = self.button('mask_cancel', tr('Cancelar'), tool_icon('<path d="m6 6 12 12M18 6 6 18"/>'),
+        button = self.button('mask_cancel', tr('Cancelar'), themed_svg_icon(action_icon_path('cancel')),
                              tr('Cancelar'), label_mode='always')
         button.clicked.connect(lambda: self.finish_mask(False))
-        button = self.button('mask_finish', tr('Concluir'), tool_icon('<path d="m5 12 4 4L19 6"/>'),
+        button = self.button('mask_finish', tr('Concluir'), themed_svg_icon(action_icon_path('confirm')),
                              tr('Concluir'), label_mode='always')
         button.clicked.connect(lambda: self.finish_mask(True))
         self.finish_setup()
@@ -335,7 +336,7 @@ class ObjectFloatingBar(FloatingBar):
         if kind != 'shape':
             return
         target = self.target_key(items[0])
-        color = QColorDialog.getColor(QColor(items[0].fill_color), self.window, tr('Cor do preenchimento'))
+        color = get_color(QColor(items[0].fill_color), self.window, tr('Cor do preenchimento'))
         current = self.selected()
         if color.isValid() and current is not None and self.target_key(current) == target:
             control = self.window._shape_quick_controls['color']

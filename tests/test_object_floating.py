@@ -130,7 +130,7 @@ class ObjectFloatingTest(unittest.TestCase):
     def test_fill_outline_opacity_use_existing_controls_and_undo_redo(self):
         w = self.editor(); self.select(w, self.shape(w)); bar = w.object_floating_bar
         start = w.history._current_index
-        with patch('features.editor.object_floating.QColorDialog.getColor', return_value=QColor('#123456')):
+        with patch('features.editor.object_floating.get_color', return_value=QColor('#123456')):
             QTest.mouseClick(bar.buttons['fill'], Qt.MouseButton.LeftButton)
         self.assertEqual(self.shape(w).fill_color, '#123456')
         self.assertEqual(w._shape_quick_controls['color'].text(), '#123456')
@@ -154,13 +154,13 @@ class ObjectFloatingTest(unittest.TestCase):
         w = self.editor(); rectangle, ellipse = self.shape(w), self.shape(w, 2)
         self.select(w, rectangle); bar = w.object_floating_bar
         start = w.history._current_index
-        with patch('features.editor.object_floating.QColorDialog.getColor', return_value=QColor()):
+        with patch('features.editor.object_floating.get_color', return_value=QColor()):
             bar.choose_fill()
         self.assertEqual(start, w.history._current_index)
         def changed_selection(*args):
             self.select(w, ellipse)
             return QColor('#123456')
-        with patch('features.editor.object_floating.QColorDialog.getColor', side_effect=changed_selection):
+        with patch('features.editor.object_floating.get_color', side_effect=changed_selection):
             bar.choose_fill()
         self.assertEqual(rectangle.fill_color, '#ffffff')
         self.assertEqual(ellipse.fill_color, '#ffffff')

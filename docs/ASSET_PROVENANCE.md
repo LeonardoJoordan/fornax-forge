@@ -125,6 +125,26 @@ arquivos auxiliares e variantes, mesmo quando não utilizados na interface.
 pendente para os SVGs atuais. A entrega dos avisos nos pacotes e a conferência
 de modificações são checkpoints da Etapa 5.
 
+## Ícones extraídos das barras flutuantes — 11/10/2026
+
+Os nove recursos abaixo foram extraídos das geometrias SVG que já estavam
+definidas no código próprio do editor. Os desenhos foram produzidos no projeto
+com auxílio do Codex e permanecem sob GPL-3.0-only; não foram baixados de uma
+coleção externa. Preservam viewBox, traçado e espessura de 1,7 das versões
+anteriores. A cor é aplicada pelo renderizador de ícones conforme o tema.
+
+- `actions/outline.svg`
+- `actions/connect.svg`
+- `actions/cancel.svg`
+- `actions/confirm.svg`
+- `actions/merge-cells.svg`
+- `actions/split-cells.svg`
+- `align/mixed-align.svg`
+- `navigation/collapse.svg`
+- `navigation/expand.svg`
+
+Este registro complementa o inventário histórico de 22/09/2026 acima.
+
 ## Marca do aplicativo — registro de procedência
 
 Declaração de Leonardo Joordan Belisário Lima da Silva, registrada em 22/09/2026:

@@ -11,10 +11,11 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QLabel,
     QVBoxLayout, QHBoxLayout,
-    QComboBox, QFormLayout, QPushButton, QColorDialog, QLineEdit, QMessageBox,
+    QComboBox, QFormLayout, QPushButton, QLineEdit, QMessageBox,
 )
 
 from features.generator.export_dialog import ConfigDialog as ExportConfigDialog
+from core.color_dialog import get_color
 from core.i18n import tr
 
 
@@ -83,7 +84,7 @@ class CustomThemeDialog(QDialog):
             button.setStyleSheet(f'background: {color}; color: {foreground}; padding: 5px;')
 
     def choose_color(self, role):
-        color = QColorDialog.getColor(QColor(self.manager.color(role)), self, tr('Escolher cor'))
+        color = get_color(QColor(self.manager.color(role)), self, tr('Escolher cor'))
         if not color.isValid():
             return
         data = copy.deepcopy(self.manager.current)

@@ -8,8 +8,8 @@ from PySide6.QtWidgets import (QFrame, QHBoxLayout, QVBoxLayout, QBoxLayout, QLa
 from shiboken6 import isValid
 
 from core.i18n import tr
-from core.resources import state_icon_path
-from core.theme_icons import tool_icon, themed_svg_icon
+from core.resources import state_icon_path, navigation_icon_path
+from core.theme_icons import themed_svg_icon
 from core.themes import themed_style, theme_color, theme_manager
 
 
@@ -139,7 +139,7 @@ class FloatingBar(QWidget):
         self.grip = FloatingBarGrip(self)
 
     def finish_setup(self):
-        self.collapse_button = self.button('collapse', '', tool_icon('<path d="M5 12h14"/>'),
+        self.collapse_button = self.button('collapse', '', themed_svg_icon(navigation_icon_path('collapse')),
                                            self.collapse_tooltip(False))
         self.collapse_button.clicked.connect(self.toggle_collapsed)
         self._layout.addWidget(self.grip)
@@ -402,8 +402,8 @@ class FloatingBar(QWidget):
         for separator in self._separators:
             separator.setVisible(not collapsed)
             separator.setFixedSize(22, 1) if vertical else separator.setFixedSize(1, 22)
-        self.collapse_button.setIcon(tool_icon('<path d="M5 12h14M12 5v14"/>' if collapsed
-                                               else '<path d="M5 12h14"/>'))
+        self.collapse_button.setIcon(themed_svg_icon(navigation_icon_path(
+            'expand' if collapsed else 'collapse')))
         self.collapse_button.setToolTip(self.collapse_tooltip(collapsed))
         self.collapse_button.setAccessibleName(self.collapse_button.toolTip())
         self._layout.invalidate()

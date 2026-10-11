@@ -6,6 +6,7 @@ from core.resources import (
     state_icon_path,
 )
 from core.theme_icons import themed_svg_icon
+from core.color_dialog import get_color
 from core.i18n import tr, current_locale
 from PySide6.QtCore import (
     Qt, QSize, QObject, QEvent, QPoint, QTimer, QPropertyAnimation, QEasingCurve,
@@ -18,7 +19,7 @@ from .canvas_items import RectangleItem, mm_to_px, px_to_mm
 from .live_opacity import connect_live_opacity
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea,
-    QSplitter, QFrame, QLineEdit, QAbstractSpinBox, QColorDialog,
+    QSplitter, QFrame, QLineEdit, QAbstractSpinBox,
     QDoubleSpinBox, QComboBox, QMenu, QSizePolicy, QListView,
     QGridLayout, QButtonGroup,
 )
@@ -139,11 +140,6 @@ QAbstractScrollArea::corner { background: @scroll_track@; border: none; }
 QSplitter::handle { background: @border@; width: 1px; }
 QToolTip { background: @button@; color: @text@; border: 1px solid @border_strong@; padding: 6px; }
 """
-
-
-def icon(path):
-    from core.theme_icons import tool_icon
-    return tool_icon(path)
 
 
 def _connect_theme_callback(owner, callback):
@@ -908,7 +904,7 @@ def install_frontend(w):
             themed_style(shape_swatch, f'background: {color.name()};')
             w.save_snapshot()
     def choose_shape_color():
-        color = QColorDialog.getColor(QColor(shape_color.text()), w, tr('Cor do preenchimento'))
+        color = get_color(QColor(shape_color.text()), w, tr('Cor do preenchimento'))
         if color.isValid():
             set_shape_color(color.name())
     shape_swatch.clicked.connect(choose_shape_color)
@@ -1009,7 +1005,7 @@ def install_frontend(w):
             control.setEnabled(item.outline_enabled)
         w.save_snapshot()
     def choose_outline_color():
-        color = QColorDialog.getColor(QColor(outline_color.text()), w, tr('Cor do contorno'))
+        color = get_color(QColor(outline_color.text()), w, tr('Cor do contorno'))
         if color.isValid():
             outline_color.setText(color.name())
             apply_outline()

@@ -1,11 +1,11 @@
 """Atalhos de células; a estrutura flutuante é compartilhada com o editor."""
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QColorDialog
 from shiboken6 import isValid
+from core.color_dialog import get_color
 from core.i18n import tr
-from core.resources import object_icon_path, align_icon_path
-from core.theme_icons import themed_svg_icon, tool_icon
+from core.resources import object_icon_path, align_icon_path, action_icon_path
+from core.theme_icons import themed_svg_icon
 from .floating_bar import FloatingBar
 
 
@@ -32,10 +32,10 @@ class TableFloatingBar(FloatingBar):
                 action.triggered.connect(lambda _=False, op=key: self.invoke(
                     'structure', op, 1, from_menu=True))
         self.separator()
-        for key, label, path in (
-            ('merge', tr('Mesclar células'), '<rect x="3" y="5" width="18" height="14"/><path d="M7 12h10m-3-3 3 3-3 3"/>'),
-            ('split', tr('Separar células'), '<rect x="3" y="5" width="18" height="14"/><path d="M12 5v14m-5-7h2m6 0h2"/>')):
-            button = self.button(key, '', tool_icon(path), label)
+        for key, label, asset in (
+            ('merge', tr('Mesclar células'), 'merge-cells'),
+            ('split', tr('Separar células'), 'split-cells')):
+            button = self.button(key, '', themed_svg_icon(action_icon_path(asset)), label)
             button.clicked.connect(lambda _=False, op=key: self.invoke('structure', op))
         self.separator()
         for axis, choices in (
@@ -76,7 +76,7 @@ class TableFloatingBar(FloatingBar):
         if item is None:
             return
         target = item.data['object_id']
-        color = QColorDialog.getColor(QColor(self.controller.panel.fill.text() or '#ffffff'),
+        color = get_color(QColor(self.controller.panel.fill.text() or '#ffffff'),
                                       self.controller.window, tr('Cor'))
         current = self.controller.selected()
         if color.isValid() and current is not None and current.data['object_id'] == target:
@@ -109,7 +109,7 @@ class TableFloatingBar(FloatingBar):
             selected = combo.currentIndex()
             # Mistos não devem sugerir que todas as células têm a mesma opção.
             icon = (self.actions[axis+'_'+values[selected]].icon() if selected in range(len(values))
-                    else tool_icon('<path d="M4 7h16M7 12h10M4 17h16"/>'))
+                    else themed_svg_icon(align_icon_path('mixed-align')))
             self.buttons[axis].setIcon(icon)
             self.buttons[axis].setProperty('mixed', selected < 0)
         self.reposition()

@@ -142,7 +142,7 @@ class TableFloatingTest(unittest.TestCase):
         self.assertIn('Conteúdo em edição', item.to_data()['cells'][3]['html'])
         self.assertEqual(cell_at(item.data, 1, 1)['style']['align'], 'center')
         self.assertEqual(bar.buttons['align'].icon().cacheKey(), bar.actions['align_center'].icon().cacheKey())
-        with patch('features.editor.table_floating.QColorDialog.getColor', return_value=QColor('#cceedd')):
+        with patch('features.editor.table_floating.get_color', return_value=QColor('#cceedd')):
             QTest.mouseClick(bar.buttons['fill'], Qt.MouseButton.LeftButton)
         self.assertEqual(cell_at(item.data, 1, 1)['style']['fill_color'], '#cceedd')
         self.assertIs(w.table_edit.item, item)
@@ -199,7 +199,7 @@ class TableFloatingTest(unittest.TestCase):
     def test_popup_cannot_apply_to_a_different_table_and_cancel_preserves_draft(self):
         w, item = self.editor(); self.type(w, item, text='Rascunho preservado')
         self.drain(); bar = w.table_controller.floating_bar
-        with patch('features.editor.table_floating.QColorDialog.getColor', return_value=QColor()):
+        with patch('features.editor.table_floating.get_color', return_value=QColor()):
             QTest.mouseClick(bar.buttons['fill'], Qt.MouseButton.LeftButton)
         self.assertIs(w.table_edit.item, item)
         self.assertIn('Rascunho preservado', item.to_data()['cells'][3]['html'])

@@ -6,7 +6,6 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QFont, QTextCharFormat, QTextCursor
 from shiboken6 import isValid
-from features.editor.frontend import icon
 from core.resources import action_icon_path, align_icon_path
 from core.theme_icons import themed_svg_icon
 from core.i18n import tr
@@ -109,10 +108,6 @@ class CellContentEditor(QTextEdit):
         super().keyPressEvent(event)
 
 
-def sheet_icon(path):
-    return icon(path)
-
-
 def install_frontend(panel):
     layout = panel.layout()
     layout.setSpacing(0)
@@ -153,15 +148,15 @@ def install_frontend(panel):
     panel.spin_add_rows.setFixedWidth(46)
     panel.spin_add_rows.setAccessibleName(tr('Quantidade de linhas a adicionar'))
     specs = (
-        (panel.btn_add_rows, tr('Adicionar'), tr('Adicionar linhas'), None),
-        (panel.btn_duplicate_row, tr('Duplicar'), tr('Duplicar linhas selecionadas'), None),
-        (panel.btn_delete_rows, tr('Excluir'), tr('Excluir linhas selecionadas'), None),
+        (panel.btn_add_rows, tr('Adicionar'), tr('Adicionar linhas')),
+        (panel.btn_duplicate_row, tr('Duplicar'), tr('Duplicar linhas selecionadas')),
+        (panel.btn_delete_rows, tr('Excluir'), tr('Excluir linhas selecionadas')),
     )
-    for button, text, tip, path in specs:
+    for button, text, tip in specs:
         button.setText(text)
         button.setToolTip(tip)
         button.setAccessibleName(tip)
-        button.setIcon(sheet_icon(path) if path else QIcon())
+        button.setIcon(QIcon())
         button.setIconSize(QSize(18, 18))
         button.setObjectName('sheetLineAction' if text else 'sheetSquare')
         if not text:

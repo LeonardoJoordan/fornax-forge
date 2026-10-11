@@ -1,6 +1,6 @@
 from core.themes import themed_style
 from PySide6.QtWidgets import (QWidget, QSpinBox, QTextEdit, QFontComboBox,
-                               QPushButton, QComboBox, QDoubleSpinBox, QColorDialog,
+                               QPushButton, QComboBox, QDoubleSpinBox,
                                QGraphicsOpacityEffect, QMessageBox)
 from PySide6.QtCore import Qt, Signal, QMimeData, QSize, QSignalBlocker
 from PySide6.QtGui import QFont, QTextCursor, QTextBlockFormat, QTextCharFormat, QIcon
@@ -12,6 +12,7 @@ from core.html_utils import normalize_text_decoration
 from core.text_layout import PLACEHOLDER_PATTERN
 from core.resources import action_icon_path, align_icon_path
 from core.theme_icons import themed_svg_icon
+from core.color_dialog import get_color
 from core.i18n import tr
 
 
@@ -578,7 +579,7 @@ class EditorDeTextoPanel(QWidget):
         self.txt_content.setFocus()
 
     def _choose_color(self):
-        color = QColorDialog.getColor()
+        color = get_color(parent=self, title=tr('Selecionar a cor do texto'))
         if color.isValid():
             hex_color = color.name()
             alpha_control = self.window().findChild(QDoubleSpinBox, 'textColorAlpha')
