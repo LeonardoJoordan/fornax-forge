@@ -13,6 +13,7 @@ from core.text_layout import variables_in_html
 from core.board_connectors import connector_style, connector_pen, connector_paths, text_cutouts, connector_clip
 from core.board_borders import paint_group_borders, card_clip_path
 from core.i18n import tr
+from core.performance import EXPORT_DPI, allocation_failure_message, set_physical_density
 from core.naming_engine import confined_output_path
 from core.tiling import build_tile_plan, tile_crop_mark_segments
 from .renderer import NativeRenderer
@@ -23,6 +24,12 @@ from .image_output import raster_format, image_extension, save_image
 
 
 class OrganogramRenderer:
+    def validate_output_size(self, width, height):
+        performance = getattr(self, 'performance', None)
+        if performance is not None:
+            return performance.validate(width, height)
+        return validate_raster_dimensions(width, height, label='quadro raster')
+
     def __init__(self, document, rows_plain, rows_rich=None, *, asset_provider=None, dynamic_image_dir=None,
                  layout_preview=False, fixed_layout=False):
         self.document = normalize_model_document(document)
@@ -146,32 +153,36 @@ class OrganogramRenderer:
             painter.end()
         return image
 
-    def export_png(self, path, dpi=150, stop=None):
+    def export_png(self, path, dpi=EXPORT_DPI, stop=None):
         self.export_image(path, dpi=dpi, stop=stop)
 
-    def export_image(self, path, dpi=150, stop=None, *, export_format="PNG"):
+    def export_image(self, path, dpi=EXPORT_DPI, stop=None, *, export_format="PNG"):
         scale = dpi / 300
         width = max(1, math.ceil(self.bounds.width() * scale))
         height = max(1, math.ceil(self.bounds.height() * scale))
+        if getattr(self, 'performance', None) is not None:
+            width, height = self.performance.dimensions(self.bounds.width() / UNITS_PER_MM,
+                                                       self.bounds.height() / UNITS_PER_MM)
         try:
-            validate_raster_dimensions(width, height, label="quadro raster")
+            self.validate_output_size(width, height)
         except ValueError as error:
+            if getattr(self, 'performance', None) is not None:
+                raise
             raise ValueError(tr("O quadro excede o tamanho seguro para imagem nessa resolução. Escolha PDF ou divida em ladrilhos.")) from error
         image = QImage(width, height, QImage.Format.Format_ARGB32)
         if image.isNull():
-            raise MemoryError(tr("Não foi possível reservar memória para a imagem."))
+            raise MemoryError(allocation_failure_message())
         image.setDotsPerMeterX(3780)
         image.setDotsPerMeterY(3780)
         image.fill(Qt.GlobalColor.white)
         painter = QPainter(image)
         try:
-            painter.scale(scale, scale)
+            painter.scale(width / self.bounds.width(), height / self.bounds.height())
             painter.translate(-self.bounds.left(), -self.bounds.top())
             self.paint(painter, stop=stop)
         finally:
             painter.end()
-        image.setDotsPerMeterX(round(dpi * 1000 / 25.4))
-        image.setDotsPerMeterY(round(dpi * 1000 / 25.4))
+        set_physical_density(image, self.bounds.width() / UNITS_PER_MM, self.bounds.height() / UNITS_PER_MM)
         if not save_image(image, path, export_format):
             raise OSError(tr("Não foi possível gravar a imagem."))
 
@@ -223,28 +234,30 @@ class OrganogramRenderer:
     def tile_image(self, plan, tile, *, scale, stop=None):
         width = max(1, math.ceil(plan.paper[0] * UNITS_PER_MM * scale))
         height = max(1, math.ceil(plan.paper[1] * UNITS_PER_MM * scale))
-        validate_raster_dimensions(width, height, label='folha em ladrilhos')
+        if getattr(self, 'performance', None) is not None:
+            width = max(1, round(plan.paper[0] * UNITS_PER_MM * scale))
+            height = max(1, round(plan.paper[1] * UNITS_PER_MM * scale))
+        self.validate_output_size(width, height)
         image = QImage(width, height, QImage.Format.Format_ARGB32)
         if image.isNull():
-            raise MemoryError(tr("Não foi possível reservar memória para a folha."))
+            raise MemoryError(allocation_failure_message())
         image.setDotsPerMeterX(3780)
         image.setDotsPerMeterY(3780)
         image.fill(Qt.GlobalColor.white)
         painter = QPainter(image)
         try:
-            painter.scale(scale, scale)
+            painter.scale(width / (plan.paper[0] * UNITS_PER_MM), height / (plan.paper[1] * UNITS_PER_MM))
             self.paint_tile(painter, plan, tile, stop=stop)
         finally:
             painter.end()
         return image
 
-    def export_tile_png(self, path, plan, tile, *, dpi=150, stop=None):
+    def export_tile_png(self, path, plan, tile, *, dpi=EXPORT_DPI, stop=None):
         self.export_tile_image(path, plan, tile, dpi=dpi, stop=stop)
 
-    def export_tile_image(self, path, plan, tile, *, dpi=150, stop=None, export_format="PNG"):
+    def export_tile_image(self, path, plan, tile, *, dpi=EXPORT_DPI, stop=None, export_format="PNG"):
         image = self.tile_image(plan, tile, scale=dpi / 300, stop=stop)
-        image.setDotsPerMeterX(round(dpi * 1000 / 25.4))
-        image.setDotsPerMeterY(round(dpi * 1000 / 25.4))
+        set_physical_density(image, *plan.paper)
         if not save_image(image, path, export_format):
             raise OSError(tr("Não foi possível gravar a imagem."))
 
@@ -301,13 +314,15 @@ class OrganogramWorker(QThread):
     error_occurred = Signal(str)
     finished_process = Signal()
 
-    def __init__(self, document, rows_plain, rows_rich, output_dir, mode, *, dpi=150,
+    def __init__(self, document, rows_plain, rows_rich, output_dir, mode, *, dpi=EXPORT_DPI,
                  asset_provider=None, dynamic_image_dir=None, authorized_snapshot=None, parent=None,
-                 tiling_options=None, separate_files=False):
+                 tiling_options=None, separate_files=False, performance=None):
         super().__init__(parent)
         self.args = (deepcopy(document), deepcopy(rows_plain), deepcopy(rows_rich))
         self.output_dir = Path(output_dir)
-        self.mode, self.dpi = mode, dpi
+        # Mantém o argumento legado, mas a saída final não aceita DPI variável.
+        self.mode, self.dpi = mode, EXPORT_DPI
+        self.performance = performance
         self.asset_provider, self.dynamic_image_dir = asset_provider, dynamic_image_dir
         self.tiling_options = deepcopy(tiling_options)
         self.separate_files = separate_files
@@ -326,6 +341,7 @@ class OrganogramWorker(QThread):
             renderer = OrganogramRenderer(*self.args, asset_provider=self.asset_provider,
                                          dynamic_image_dir=self.dynamic_image_dir,
                                          fixed_layout=self.tiling_options is not None or self.mode in ('a4', 'a3'))
+            renderer.performance = self.performance
             from core.table_warnings import table_warning_messages
             warned = set()
             def report_warnings(warnings):

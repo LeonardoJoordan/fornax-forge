@@ -10,9 +10,9 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QSettings, Qt, QTimer
-from PySide6.QtGui import QColor, QImage
+from PySide6.QtGui import QColor, QImage, QAction
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QComboBox, QLabel, QLineEdit, QMainWindow, QWidget
+from PySide6.QtWidgets import QApplication, QComboBox, QLabel, QLineEdit, QMainWindow, QWidget, QPushButton
 
 from core.fornax_container import (
     FULL_MODE, PUBLIC_MODE, SIGNATURES_MODE, save_protected_fornax, save_public_fornax,
@@ -37,6 +37,11 @@ class PreviewWorkspace(MainWindow):
     def __init__(self, path, sessions, settings):
         QMainWindow.__init__(self)
         self.settings = settings
+        self.manager = None
+        self.btn_generate_cards = QPushButton(self)
+        self.btn_config_model = QPushButton(self)
+        self._output_config_action = QAction(self)
+        self._model_actions_button = QPushButton(self)
         self._fornax_sessions = sessions
         self.preview_panel = PreviewPanel()
         self.preview_panel.setParent(self)

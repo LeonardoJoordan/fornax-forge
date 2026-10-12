@@ -27,6 +27,86 @@ EDITABLE_COLORS = (
 )
 
 
+class PerformanceDialog(QDialog):
+    """Preferências da máquina; não alteram documentos nem o DPI do editor."""
+
+    def __init__(self, settings, document=None, parent=None):
+        super().__init__(parent)
+        from core.performance import PIXEL_LIMITS, load_performance
+        self.settings, self.document = settings, document
+        self.setWindowTitle(tr('Limite de exportação'))
+        self.setMinimumWidth(520)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 18, 20, 16)
+        layout.setSpacing(12)
+        title = QLabel(tr('Limite de exportação'))
+        title.setStyleSheet('font-size: 16px; font-weight: 600;')
+        layout.addWidget(title)
+        explanation = QLabel(tr('Limita o tamanho das imagens geradas para controlar o consumo de memória.'))
+        explanation.setWordWrap(True)
+        layout.addWidget(explanation)
+        form = QFormLayout()
+        self.pixels = QComboBox()
+        for value in PIXEL_LIMITS:
+            label = tr('{value} MP (padrão)').format(value=value) if value == 150 else f'{value} MP'
+            self.pixels.addItem(label, value)
+        form.addRow(tr('Limite por imagem'), self.pixels)
+        layout.addLayout(form)
+        self.estimate = QLabel()
+        self.estimate.setWordWrap(True)
+        layout.addWidget(self.estimate)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Apply | QDialogButtonBox.StandardButton.Cancel)
+        buttons.button(QDialogButtonBox.StandardButton.Apply).setText(tr('Aplicar'))
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText(tr('Cancelar'))
+        # Enter nos campos não confirma acidentalmente o diálogo.
+        for button in buttons.buttons():
+            button.setAutoDefault(False)
+            button.setDefault(False)
+        buttons.button(QDialogButtonBox.StandardButton.Apply).clicked.connect(self.save)
+        buttons.rejected.connect(self.reject)
+        style_dialog_button_box(buttons)
+        layout.addWidget(buttons)
+        selected = load_performance(settings)
+        self.pixels.setCurrentIndex(self.pixels.findData(selected.megapixels))
+        self.refresh()
+
+    def refresh(self):
+        from core.performance import ExportPerformance
+        self.estimate.setVisible(bool(self.document))
+        if not self.document:
+            return
+        try:
+            from features.generator.output_layout import output_bounds
+            bounds = output_bounds(self.document)
+            policy = ExportPerformance()
+            width, height = policy.dimensions(bounds.width() * 25.4 / 300,
+                                              bounds.height() * 25.4 / 300)
+            self.estimate.setText(tr('Este documento exige aproximadamente {mp:.1f} MP.').format(
+                mp=width * height / 1_000_000))
+        except (ValueError, TypeError, KeyError):
+            self.estimate.setText(tr('Não foi possível calcular a estimativa deste modelo.'))
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._fit_contents()
+
+    def _fit_contents(self):
+        # Reserve espaço para as traduções e para a estimativa do documento.
+        layout = self.layout()
+        layout.activate()
+        height = layout.totalHeightForWidth(self.width())
+        if height >= 0:
+            self.resize(self.width(), height)
+
+    def save(self):
+        # Preserve a leitura de preferências antigas; a interface usa apenas o limite.
+        self.settings.setValue('performance/profile', 'custom')
+        self.settings.setValue('performance/megapixels', self.pixels.currentData())
+        self.settings.remove('performance/dpi')
+        self.settings.sync()
+        self.accept()
+
+
 class CustomThemeDialog(QDialog):
     """Editor avançado aberto apenas pela opção Personalizado."""
 

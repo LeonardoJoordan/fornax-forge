@@ -1,5 +1,6 @@
 import traceback
 import shutil
+import math
 from PySide6.QtCore import QThread, Signal, QSizeF, QMarginsF
 from PySide6.QtGui import QImage, QPainter, QPdfWriter, QPageLayout, QPageSize
 
@@ -22,6 +23,9 @@ def emit_table_warnings(worker, renderer, source_row):
 
 
 def physical_page(width_mm, height_mm):
+    if any(isinstance(value, bool) or not isinstance(value, (int, float))
+           or not math.isfinite(value) or not 0 < value <= 5000 for value in (width_mm, height_mm)):
+        raise ValueError(tr('Uma página PDF deve ter até 5 metros por lado. Para documentos maiores, use Ladrilhos.'))
     # Evita que medidas personalizadas próximas de A4 sejam arredondadas para A4.
     return QPageSize(QSizeF(width_mm, height_mm), QPageSize.Unit.Millimeter,
                      "", QPageSize.SizeMatchPolicy.ExactMatch)
@@ -92,6 +96,7 @@ class DirectRenderWorker(QThread):
                         image = renderer.render_to_qimage(row_plain, row_rich, out_links=local_links)
                         emit_table_warnings(self,renderer,source_row)
                         painter.drawImage(layout.paintRectPixels(writer.resolution()), image)
+                        del image
                         links_by_page[page_index] = local_links
                     painter.end()
                     del painter
@@ -100,13 +105,13 @@ class DirectRenderWorker(QThread):
                     if not self._is_running:
                         temporary.unlink(missing_ok=True)
                         break
-                    if any(links_by_page.values()):
-                        canvas = self.renderers[0].tpl.get("canvas_size", {})
-                        inject_pdf_links(
-                            temporary, links_by_page,
-                            canvas.get("w", 1000), canvas.get("h", 1000),
-                            memory_only=self.secure_output,
-                        )
+                    canvas = self.renderers[0].tpl.get("canvas_size", {})
+                    inject_pdf_links(
+                        temporary, links_by_page,
+                        canvas.get("w", 1000), canvas.get("h", 1000),
+                        memory_only=self.secure_output, page_size_mm=(self.target_w_mm, self.target_h_mm),
+                        scale_content_to_page=True,
+                    )
                     if not self.secure_output:
                         temporary.replace(out_path)
                     published_paths.append(out_path)
@@ -267,12 +272,13 @@ class PageRenderWorker(QThread):
                     if not self._is_running:
                         temporary.unlink(missing_ok=True)
                         break
-                    if any(links_by_face.values()):
-                        inject_pdf_links(
-                            temporary, links_by_face,
-                            self.assembler.sheet_w, self.assembler.sheet_h,
-                            memory_only=self.secure_output,
-                        )
+                    inject_pdf_links(
+                        temporary, links_by_face,
+                        self.assembler.sheet_w, self.assembler.sheet_h,
+                        memory_only=self.secure_output,
+                        page_size_mm=(self.assembler.sheet_w_mm, self.assembler.sheet_h_mm),
+                        scale_content_to_page=True,
+                    )
                     if not self.secure_output:
                         temporary.replace(out_path)
                     temporary_paths.clear()
@@ -409,6 +415,7 @@ class SecureGroupedPdfWorker(QThread):
                             ),
                         )
                         painter.drawImage(layout.paintRectPixels(writer.resolution()), image)
+                        del image
                         links_by_page[page_number] = sheet_links
                         page_labels.append(labels[face_index])
                         page_number += 1
@@ -434,6 +441,7 @@ class SecureGroupedPdfWorker(QThread):
                         )
                         emit_table_warnings(self,renderer,_source_row)
                         painter.drawImage(layout.paintRectPixels(writer.resolution()), image)
+                        del image
                         links_by_page[page_number] = local_links
                         page_labels.append(face_labels(filename, len(self.renderers))[page_index])
                         page_number += 1
@@ -447,6 +455,9 @@ class SecureGroupedPdfWorker(QThread):
             if links_by_page:
                 inject_pdf_links(
                     output_path, links_by_page, *link_canvas, memory_only=True, page_labels=page_labels,
+                    page_size_mm=((plan.assembler.sheet_w_mm, plan.assembler.sheet_h_mm)
+                                  if self.is_imposition else (self.target_w_mm, self.target_h_mm)),
+                    scale_content_to_page=True,
                 )
             self.finished_assembly.emit(output_path.name)
         except InterruptedError:
@@ -537,17 +548,19 @@ class HybridAssemblerWorker(QThread):
                 return
 
             # --- PÓS-PROCESSAMENTO: Injeção de Hiperlinks no PDF Único ---
-            if self.all_links or self.page_labels:
-                try:
-                    inject_pdf_links(
-                        temporary_pdf,
-                        self.all_links,
-                        self.canvas_w,
-                        self.canvas_h,
-                        page_labels=[self.page_labels[name] for name in sorted_files] if self.page_labels else None,
-                    )
-                except Exception as e:
-                    raise OSError(f"Erro ao injetar links no PDF Híbrido: {e}") from e
+            try:
+                inject_pdf_links(
+                    temporary_pdf,
+                    self.all_links,
+                    self.canvas_w,
+                    self.canvas_h,
+                    page_labels=[self.page_labels[name] for name in sorted_files] if self.page_labels else None,
+                    page_size_mm=((temp_asm.sheet_w_mm, temp_asm.sheet_h_mm)
+                                  if self.is_imposition else (self.target_w_mm, self.target_h_mm)),
+                    scale_content_to_page=True,
+                )
+            except Exception as e:
+                raise OSError(f"Erro ao injetar links no PDF Híbrido: {e}") from e
 
             temporary_pdf.replace(out_path_single)
             shutil.rmtree(self.work_dir, ignore_errors=True)

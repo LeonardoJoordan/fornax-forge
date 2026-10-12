@@ -1,6 +1,6 @@
 from core.themes import themed_style, theme_color, theme_manager
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame,
-                               QComboBox, QPushButton, QSpinBox)
+                               QComboBox, QPushButton, QSpinBox, QStackedWidget)
 from PySide6.QtCore import Qt, Signal, QSignalBlocker, QSize
 from PySide6.QtGui import QPixmap, QResizeEvent, QImageReader
 from pathlib import Path
@@ -64,6 +64,7 @@ class PreviewPanel(QWidget):
     modeChanged = Signal(str)
     indexRequested = Signal(int)
     pageChanged = Signal(int)
+    newModelRequested = Signal()
 
     def __init__(self):
         super().__init__()
@@ -97,7 +98,34 @@ class PreviewPanel(QWidget):
         self.preview.setText(tr("Nenhum modelo selecionado"))
         self.preview.setFrameShape(QFrame.Shape.StyledPanel)
         themed_style(self.preview, "background-color: @canvas@; border-radius: 10px;")
-        layout.addWidget(self.preview, 1)
+        self.preview_stack = QStackedWidget()
+        self.preview_stack.addWidget(self.preview)
+        self.empty_library = QWidget()
+        empty_layout = QVBoxLayout(self.empty_library)
+        empty_layout.addStretch()
+        notice = QFrame()
+        notice.setObjectName('emptyLibraryNotice')
+        notice.setMaximumWidth(330)
+        themed_style(notice, 'QFrame#emptyLibraryNotice { background: @surface@; border: 1px solid @border@; border-radius: 10px; }')
+        notice_layout = QVBoxLayout(notice)
+        notice_layout.setContentsMargins(30, 48, 30, 48)
+        notice_layout.setSpacing(18)
+        title = QLabel(tr('Crie um modelo para começar'))
+        title.setWordWrap(True)
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        themed_style(title, 'font-size: 18px; font-weight: bold;')
+        notice_layout.addWidget(title)
+        hint = QLabel(tr('Escolha um ponto de partida em Novo modelo ou importe um modelo existente.'))
+        hint.setWordWrap(True)
+        hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        notice_layout.addWidget(hint)
+        self.btn_create_model = QPushButton(tr('Criar modelo'))
+        self.btn_create_model.clicked.connect(self.newModelRequested)
+        notice_layout.addWidget(self.btn_create_model)
+        empty_layout.addWidget(notice, 0, Qt.AlignmentFlag.AlignCenter)
+        empty_layout.addStretch()
+        self.preview_stack.addWidget(self.empty_library)
+        layout.addWidget(self.preview_stack, 1)
 
         navigation_bar = QHBoxLayout()
         navigation_bar.setContentsMargins(14, 0, 14, 8)
@@ -182,7 +210,9 @@ class PreviewPanel(QWidget):
             self.unlock_action_slot, 0,
             Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
         )
-        layout.addLayout(navigation_bar)
+        self.navigation_widget = QWidget()
+        self.navigation_widget.setLayout(navigation_bar)
+        layout.addWidget(self.navigation_widget)
 
         self.btn_previous.clicked.connect(lambda: self.indexRequested.emit(self.spin_navigation.value() - 2))
         self.btn_next.clicked.connect(lambda: self.indexRequested.emit(self.spin_navigation.value()))
@@ -264,10 +294,24 @@ class PreviewPanel(QWidget):
             self.btn_back.setChecked(current_page == 1)
 
     def set_preview_text(self, text: str):
+        self.set_empty_library(False)
         self.preview.set_message(text)
 
     def set_preview_image(self, path: str):
+        self.set_empty_library(False)
         self.preview.set_image_path(path)
 
     def set_preview_pixmap(self, pixmap: QPixmap):
+        self.set_empty_library(False)
         self.preview.set_pixmap_direct(pixmap)
+
+    def set_empty_library(self, empty: bool):
+        self.preview_stack.setCurrentWidget(self.empty_library if empty else self.preview)
+        self.navigation_widget.setVisible(not empty)
+        self.cbo_models.setEnabled(not empty)
+        self.cbo_preview_mode.setEnabled(not empty)
+        if empty:
+            self.preview.set_message('')
+            self.set_navigation('item', 0, 0, sheet_available=False)
+            self.set_page_navigation(1, 0)
+            self.set_model_lock_state(False)

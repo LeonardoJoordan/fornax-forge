@@ -64,7 +64,7 @@ def resolve_output_layout(settings, bounds, *, repeat=True):
                    bleed_margin=bool(settings.get('margin_enabled')), margin_mm=options['margin_mm'],
                    offset_mm=options['offset_mm'] if settings.get('positioned') else None,
                    auto_rotate=options['auto_orientation'])
-        assembler = SheetAssembler.from_settings(imp)
+        assembler = SheetAssembler.from_settings(imp, validate_output=False)
         if assembler.capacity:
             return OutputLayout('imposition', assembler=assembler, imposition=imp)
         if mode == 'imposition':

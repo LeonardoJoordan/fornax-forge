@@ -44,7 +44,7 @@ Comece pelo tamanho de leitura do cartão; depois escolha a organização e o pl
 - **Margem de sangria** reserva 5 mm em cada lado da folha, indicados em vermelho com 30% de opacidade na prévia. Essa indicação não aparece no arquivo gerado.
 - Em **Ladrilhos**, duas folhas vizinhas têm 5 mm de margem cada uma na junção, totalizando 10 mm de papel a recortar. A arte continua na área útil da folha seguinte, sem uma sobreposição adicional de conteúdo. Uma folha A4 com apenas a margem de sangria oferece 200 × 287 mm de área útil.
 - **Marcas de corte** reservam mais 5 mm em cada lado: 3 mm para os traços e 2 mm de distância até o conteúdo. As opções são independentes; ativar ambas reserva 10 mm por lado, reduzindo a área disponível para os itens.
-- A resolução de saída usa 300 DPI; as medidas finais são definidas em milímetros.
+- As medidas finais são definidas em milímetros. A exportação permanece em 300 DPI. Configurações → Limite de exportação permite escolher apenas o limite de megapixels por imagem, sem alterar automaticamente as medidas ou a resolução do resultado.
 - Redimensionar na geração exige conferir a escala final de textos e fotos.
 - Marcadores e rótulos são informações de navegação do PDF; não acrescentam títulos sobre a arte. A exibição depende do leitor de PDF.
 

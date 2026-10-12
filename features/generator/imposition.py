@@ -5,6 +5,7 @@ from PySide6.QtGui import QImage, QPainter, QColor, QPen, QPageLayout, QTransfor
 from PySide6.QtCore import Qt, QPointF, QRectF
 from core.model_document import ModelValidationError, validate_raster_dimensions
 from core.tiling import crop_mark_segments
+from core.performance import ExportPerformance, allocation_failure_message, set_physical_density
 
 DPI = 300
 EPS_MM = 1e-6
@@ -19,20 +20,24 @@ def _fit_count_mm(available_mm, item_mm):
 
 class SheetAssembler:
     @classmethod
-    def from_settings(cls, settings):
+    def from_settings(cls, settings, *, validate_output=True):
         return cls(settings.get('target_w_mm', 100), settings.get('target_h_mm', 150),
                    settings.get('sheet_w_mm', 210), settings.get('sheet_h_mm', 297),
                    settings.get('crop_marks', True), settings.get('bleed_margin', False),
                    auto_rotate=settings.get('auto_rotate', True),
-                   margin_mm=settings.get('margin_mm'), offset_mm=settings.get('offset_mm'))
+                   margin_mm=settings.get('margin_mm'), offset_mm=settings.get('offset_mm'),
+                   performance=(ExportPerformance(settings['pixel_limit'])
+                                if 'pixel_limit' in settings else None), validate_output=validate_output)
 
-    def __init__(self, target_w_mm: float, target_h_mm: float, sheet_w_mm: float = 210.0, sheet_h_mm: float = 297.0, crop_marks: bool = True, bleed_margin: bool = False, auto_rotate: bool = True, *, margin_mm=None, offset_mm=None):
+    def __init__(self, target_w_mm: float, target_h_mm: float, sheet_w_mm: float = 210.0, sheet_h_mm: float = 297.0, crop_marks: bool = True, bleed_margin: bool = False, auto_rotate: bool = True, *, margin_mm=None, offset_mm=None, performance=None, validate_output=True):
         for label, value in (
             ("largura do item", target_w_mm), ("altura do item", target_h_mm),
             ("largura da folha", sheet_w_mm), ("altura da folha", sheet_h_mm),
         ):
             if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value) or value <= 0:
                 raise ModelValidationError(f"A {label} deve ser um número positivo.")
+        self.performance = performance
+        self.dpi = performance.dpi if performance else DPI
         self.target_w_mm = target_w_mm
         self.target_h_mm = target_h_mm
         self.crop_marks = crop_marks
@@ -67,10 +72,10 @@ class SheetAssembler:
             raise ModelValidationError("A posição deve conter duas medidas positivas ou zero.")
         offset_x, offset_y = offset_mm or (0, 0)
 
-        self.card_w_px = mm_to_px_300(target_w_mm)
-        self.card_h_px = mm_to_px_300(target_h_mm)
-        self.mark_len = mm_to_px_300(self.mark_len_mm)
-        self.mark_gap = mm_to_px_300(self.mark_gap_mm)
+        self.card_w_px = self.mm_to_px(target_w_mm)
+        self.card_h_px = self.mm_to_px(target_h_mm)
+        self.mark_len = self.mm_to_px(self.mark_len_mm)
+        self.mark_gap = self.mm_to_px(self.mark_gap_mm)
 
         usable_w_mm = sheet_w_mm - (self.edge_reserve_mm * 2)
         usable_h_mm = sheet_h_mm - (self.edge_reserve_mm * 2)
@@ -99,13 +104,11 @@ class SheetAssembler:
         self.orientation = (QPageLayout.Orientation.Landscape if self.sheet_w_mm > self.sheet_h_mm
                             else QPageLayout.Orientation.Portrait)
 
-        validate_raster_dimensions(
-            mm_to_px_300(self.sheet_w_mm), mm_to_px_300(self.sheet_h_mm),
-            label="folha de impressão",
-        )
+        if validate_output:
+            self.validate_output()
 
-        self.sheet_w = mm_to_px_300(self.sheet_w_mm)
-        self.sheet_h = mm_to_px_300(self.sheet_h_mm)
+        self.sheet_w = self.mm_to_px(self.sheet_w_mm)
+        self.sheet_h = self.mm_to_px(self.sheet_h_mm)
 
         total_grid_w_mm = self.cols * target_w_mm
         total_grid_h_mm = self.rows * target_h_mm
@@ -115,14 +118,23 @@ class SheetAssembler:
         if offset_mm is not None:
             self.margin_left_mm = self.edge_reserve_mm + offset_x
             self.margin_top_mm = self.edge_reserve_mm + offset_y
-        self.margin_left = mm_to_px_300(self.margin_left_mm)
-        self.margin_top = mm_to_px_300(self.margin_top_mm)
+        self.margin_left = self.mm_to_px(self.margin_left_mm)
+        self.margin_top = self.mm_to_px(self.margin_top_mm)
+
+    def mm_to_px(self, mm):
+        return round(mm * self.dpi / 25.4)
+
+    def validate_output(self):
+        size = (self.mm_to_px(self.sheet_w_mm), self.mm_to_px(self.sheet_h_mm))
+        if self.performance:
+            return self.performance.validate(*size)
+        return validate_raster_dimensions(*size, label='folha de impressão')
 
     def _grid_x(self, col: int):
-        return mm_to_px_300(self.margin_left_mm + (col * self.target_w_mm))
+        return self.mm_to_px(self.margin_left_mm + (col * self.target_w_mm))
 
     def _grid_y(self, row: int):
-        return mm_to_px_300(self.margin_top_mm + (row * self.target_h_mm))
+        return self.mm_to_px(self.margin_top_mm + (row * self.target_h_mm))
 
     def render_sheet(self, cards: list[QImage | None], *, preserve_slots=False,
                      card_links=None, canvas_size=None, out_links=None,
@@ -135,14 +147,16 @@ class SheetAssembler:
                 back.margin_top_mm = self.sheet_h_mm - self.rows * self.target_h_mm - self.margin_top_mm
             else:
                 back.margin_left_mm = self.sheet_w_mm - self.cols * self.target_w_mm - self.margin_left_mm
-            back.margin_left = mm_to_px_300(back.margin_left_mm)
-            back.margin_top = mm_to_px_300(back.margin_top_mm)
+            back.margin_left = self.mm_to_px(back.margin_left_mm)
+            back.margin_top = self.mm_to_px(back.margin_top_mm)
             return back.render_sheet(cards, preserve_slots=preserve_slots, card_links=card_links,
                                      canvas_size=canvas_size, out_links=out_links,
                                      rotate_cards_180=rotate_cards_180)
+        self.validate_output()
         sheet = QImage(self.sheet_w, self.sheet_h, QImage.Format_ARGB32)
-        sheet.setDotsPerMeterX(round(DPI / 0.0254))
-        sheet.setDotsPerMeterY(round(DPI / 0.0254))
+        if sheet.isNull():
+            raise MemoryError(allocation_failure_message())
+        set_physical_density(sheet, self.sheet_w_mm, self.sheet_h_mm)
         sheet.fill(Qt.GlobalColor.white)
         
         painter = QPainter(sheet)
@@ -219,7 +233,7 @@ class SheetAssembler:
         pen = QPen(Qt.GlobalColor.black)
         # No mapa reduzido, um pixel de tela mantém as marcas legíveis. A saída
         # final continua com a espessura original de dois pixels em 300 DPI.
-        pen.setWidth(1 if preview else 2)
+        pen.setWidthF(1 if preview else 2 * self.dpi / 300)
         pen.setCosmetic(preview)
         painter.setPen(pen)
 

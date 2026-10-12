@@ -3510,7 +3510,16 @@
       "keywords": [
         "documento",
         "página",
-        "dimensoes documento paginas"
+        "dimensoes documento paginas",
+        "desempenho",
+        "DPI",
+        "megapixels",
+        "memória",
+        "3 metros",
+        "qualidade",
+        "limite de exportação",
+        "limite por imagem",
+        "RAM"
       ],
       "file": "dimensoes-documento-paginas.md",
       "status": "published"
@@ -3522,7 +3531,16 @@
       "keywords": [
         "documento",
         "página",
-        "dimensoes documento paginas"
+        "dimensoes documento paginas",
+        "desempenho",
+        "DPI",
+        "megapixels",
+        "memória",
+        "3 metros",
+        "qualidade",
+        "limite de exportação",
+        "limite por imagem",
+        "RAM"
       ],
       "file": "dimensoes-documento-paginas.md",
       "status": "published"
@@ -3536,7 +3554,16 @@
         "página",
         "proporção",
         "aspect ratio",
-        "dimensoes documento paginas"
+        "dimensoes documento paginas",
+        "desempenho",
+        "DPI",
+        "megapixels",
+        "memória",
+        "3 metros",
+        "qualidade",
+        "limite de exportação",
+        "limite por imagem",
+        "RAM"
       ],
       "file": "dimensoes-documento-paginas.md",
       "status": "published"
@@ -3548,7 +3575,16 @@
       "keywords": [
         "documento",
         "página",
-        "dimensoes documento paginas"
+        "dimensoes documento paginas",
+        "desempenho",
+        "DPI",
+        "megapixels",
+        "memória",
+        "3 metros",
+        "qualidade",
+        "limite de exportação",
+        "limite por imagem",
+        "RAM"
       ],
       "file": "dimensoes-documento-paginas.md",
       "status": "published"
@@ -3560,7 +3596,16 @@
       "keywords": [
         "documento",
         "página",
-        "dimensoes documento paginas"
+        "dimensoes documento paginas",
+        "desempenho",
+        "DPI",
+        "megapixels",
+        "memória",
+        "3 metros",
+        "qualidade",
+        "limite de exportação",
+        "limite por imagem",
+        "RAM"
       ],
       "file": "dimensoes-documento-paginas.md",
       "status": "published"
@@ -3644,7 +3689,16 @@
       "keywords": [
         "documento",
         "página",
-        "dimensoes documento paginas"
+        "dimensoes documento paginas",
+        "desempenho",
+        "DPI",
+        "megapixels",
+        "memória",
+        "3 metros",
+        "qualidade",
+        "limite de exportação",
+        "limite por imagem",
+        "RAM"
       ],
       "file": "dimensoes-documento-paginas.md",
       "status": "published"
@@ -5385,7 +5439,10 @@
       "keywords": [
         "quadro",
         "organograma",
-        "cartao quadro folha impressao"
+        "cartao quadro folha impressao",
+        "limite de exportação",
+        "limite por imagem",
+        "RAM"
       ],
       "file": "cartao-quadro-folha-impressao.md",
       "status": "published"

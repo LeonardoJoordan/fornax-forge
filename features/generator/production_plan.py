@@ -41,10 +41,10 @@ def _standard_a4_back_slots(front_slots, cols, rows, orientation):
     return tuple(back)
 
 
-def build_imposition_plan(items: Sequence[Any], settings: dict) -> ImpositionPlan:
+def build_imposition_plan(items: Sequence[Any], settings: dict, *, validate_output=True) -> ImpositionPlan:
     """Divide uma sequência na mesma malha física usada para montar as folhas."""
     duplex = bool(settings.get("duplex", False))
-    assembler = SheetAssembler.from_settings(settings)
+    assembler = SheetAssembler.from_settings(settings, validate_output=validate_output)
     if assembler.capacity <= 0:
         return ImpositionPlan(assembler, (), (), duplex)
 

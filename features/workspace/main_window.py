@@ -27,6 +27,7 @@ from features.generator.manager import RenderManager
 from features.generator.image_output import export_choices, raster_format, restored_export_mode
 from features.generator.production_plan import build_imposition_plan
 from features.workspace.settings_dialogs import ExportConfigDialog, ThemeDialog
+from core.performance import load_performance
 from features.generator.preset_warnings import warning_display_name, warning_tooltip
 from features.workspace.import_models_dialog import ImportModelsDialog
 from features.workspace.export_models_dialog import ExportModelsDialog
@@ -161,6 +162,7 @@ class MainWindow(QMainWindow):
         self.preview_panel.indexRequested.connect(self._on_preview_index_requested)
         self.preview_panel.pageChanged.connect(self._on_preview_page_changed)
         self.preview_panel.btn_unlock_model.clicked.connect(self._toggle_selected_model_lock)
+        self.preview_panel.newModelRequested.connect(self._on_add_model)
 
         self.cached_model_data = None
         self.cached_model_document = None
@@ -212,48 +214,12 @@ class MainWindow(QMainWindow):
             self.txt_output_path.setText(str(last_output))
 
     def _ensure_starter_pack(self):
-        models_dir = get_models_dir()
-        
-        # Se a pasta já contém algo, o usuário não é novo. Interrompe a criação.
-        if any(models_dir.iterdir()):
-            return
-            
-        self.log_panel.append(tr("🌱 Primeiro uso detectado. Preparando modelo de exemplo…"))
-        slug = "modelo_exemplo"
-        example_dir = models_dir / slug
-        example_dir.mkdir(parents=True, exist_ok=True)
-        
-        example_data = {
-            "name": "Modelo Exemplo",
-            "canvas_size": {"w": 1000, "h": 1000},
-            "target_w_mm": 100.0,
-            "target_h_mm": 100.0,
-            "placeholders": ["Nome", "Cargo"],
-            "boxes": [
-                {
-                    "id": "Nome",
-                    "html": "<b>{Nome}</b>",
-                    "x": 350, "y": 400, "w": 300, "h": 60,
-                    "font_family": "Arial", "font_size": 36,
-                    "align": "center", "visible": True
-                },
-                {
-                    "id": "Cargo",
-                    "html": "<i>{Cargo}</i>",
-                    "x": 350, "y": 480, "w": 300, "h": 60,
-                    "font_family": "Arial", "font_size": 24,
-                    "align": "center", "visible": True
-                }
-            ]
-        }
-        example_document = normalize_model_document(example_data)
-        example_page = example_document["pages"][0]
-        example_page["layer_order"] = [
-            item["object_id"]
-            for collection in ("shapes", "images", "signatures", "boxes")
-            for item in example_page[collection]
-        ]
-        save_model_document(example_document, example_dir)
+        from core.initial_library import ensure_initial_library
+        try:
+            if ensure_initial_library(get_models_dir()):
+                self.log_panel.append(tr("Primeiro uso: modelo inicial adicionado à biblioteca."))
+        except (OSError, ValueError):
+            self.log_panel.append(tr("Não foi possível preparar o modelo inicial. Você pode criar ou importar um modelo."))
 
     def _initialize_theme(self):
         from core.themes import theme_manager
@@ -1790,6 +1756,13 @@ class MainWindow(QMainWindow):
                 tr("Falha ao exportar os modelos:\n{erro}").format(erro=e),
             )
 
+    def _update_model_controls(self):
+        loaded = bool(self.cached_model_data)
+        self.btn_generate_cards.setEnabled(loaded and not getattr(self.manager, '_is_running', False))
+        self.btn_config_model.setEnabled(loaded)
+        self._output_config_action.setEnabled(loaded)
+        self._model_actions_button.setEnabled(bool(getattr(self, 'active_model_name', '')))
+
     def _on_model_changed(self, name: str):
         self._preview_generation = getattr(self, "_preview_generation", 0) + 1
         generation = self._preview_generation
@@ -1811,11 +1784,13 @@ class MainWindow(QMainWindow):
         self.log_panel.append(tr("Modelo ativo: {nome}").format(nome=name))
         self.active_model_name = name
         self.current_filename_suffix = ""
+        self._update_model_controls()
 
         if not name:
             self._fornax_sessions.leave_active()
             self._active_library_model = None
             self._update_table_columns([])
+            self.preview_panel.set_empty_library(True)
             return
 
         model_id = self.preview_panel.cbo_models.currentData()
@@ -2177,7 +2152,7 @@ class MainWindow(QMainWindow):
     def _preview_plan(self):
         def build():
             plain, rich = self._preview_rows()
-            return build_imposition_plan(list(zip(plain, rich)), self._preview_imposition_settings())
+            return build_imposition_plan(list(zip(plain, rich)), self._preview_imposition_settings(), validate_output=False)
         return self._preview_cached("plan", build)
 
     def _preview_source_rows(self):
@@ -2325,6 +2300,7 @@ class MainWindow(QMainWindow):
 
     @preview_update
     def _refresh_preview_navigation(self):
+        self._update_model_controls()
         if (self.cached_model_document or {}).get("organogram") is not None:
             if self._preview_mode == "sheet":
                 self._preview_sheet_index = 0
@@ -2794,6 +2770,11 @@ class MainWindow(QMainWindow):
         dlg = ThemeDialog(self)
         dlg.exec()
 
+    def _open_performance_dialog(self):
+        from features.workspace.settings_dialogs import PerformanceDialog
+        dlg = PerformanceDialog(self.settings, self.cached_model_document or self.cached_model_data, self)
+        dlg.exec()
+
     def _select_output_folder(self):
         start_dir = self.txt_output_path.text() or ""
         folder = QFileDialog.getExistingDirectory(self, tr("Selecionar pasta de saída"), start_dir)
@@ -3163,6 +3144,8 @@ class MainWindow(QMainWindow):
             themed_style(status_label, "color: @danger@; font-size: 11px;")
 
     def _generate_cards_async(self):
+        if not self.cached_model_data or not self.preview_panel.cbo_models.currentText():
+            return
         rows_plain, rows_rich, source_rows = self._scrape_table_data(include_sources=True)
         if not rows_plain:
             self.log_panel.append(tr("AVISO: a tabela está vazia. Nada a gerar."))
@@ -3330,6 +3313,7 @@ class MainWindow(QMainWindow):
             source_rows=source_rows,
             authorized_snapshot=authorized_snapshot,
             protected_content=protected_content,
+            performance=load_performance(self.settings),
         )
         self._generation_failed = False
         self.manager.progress_updated.connect(self.progress_bar.setValue)
@@ -3419,10 +3403,14 @@ class MainWindow(QMainWindow):
             if options is not None:
                 from core.tiling import build_tile_plan
                 build_tile_plan(renderer.bounds, **options)
-            output_dir, _number = create_forge_output_dir(Path(output_path), self.settings)
             mode = self.cbo_export_format.currentData()
+            performance = load_performance(self.settings)
+            if raster_format(mode):
+                width, height = options['paper'] if options else (renderer.bounds.width() / (300 / 25.4), renderer.bounds.height() / (300 / 25.4))
+                performance.validate(*performance.dimensions(width, height))
+            output_dir, _number = create_forge_output_dir(Path(output_path), self.settings)
             worker = OrganogramWorker(document, rows_plain, rows_rich, output_dir,
-                mode if raster_format(mode) else 'pdf', dpi=300,
+                mode if raster_format(mode) else 'pdf', dpi=performance.dpi, performance=performance,
                 tiling_options=options, separate_files=mode == 'pdf_item', asset_provider=asset_provider,
                 dynamic_image_dir=directory, authorized_snapshot=authorized_snapshot, parent=self)
             self._start_tiled_generation(worker, output_dir)
@@ -3441,10 +3429,13 @@ class MainWindow(QMainWindow):
             options = tiling_options(configuration)
             renderer = PageTilingRenderer(document, asset_provider=asset_provider)
             build_tile_plan(renderer.bounds, **tiling_options(configuration, renderer.bounds))
+            performance = load_performance(self.settings)
+            if raster_format(self.cbo_export_format.currentData()):
+                performance.validate(*performance.dimensions(*options['paper']))
             output_dir, _number = create_forge_output_dir(Path(output_path), self.settings)
             worker = TiledDocumentWorker(document, rows_plain, rows_rich, output_dir,
                 self.cbo_export_format.currentData(), options=options,
-                dpi=300,
+                dpi=performance.dpi, performance=performance,
                 pattern=self.current_filename_suffix or '{modelo}', asset_provider=asset_provider,
                 dynamic_image_dir=document.get('__dynamic_image_dir'),
                 authorized_snapshot=authorized_snapshot, parent=self)
@@ -3455,11 +3446,14 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, tr("Não foi possível gerar os ladrilhos"), str(error))
 
     def _on_generation_error(self, message):
+        first_error = not getattr(self, '_generation_failed', False)
         self._generation_failed = True
         self.log_panel.append(tr("[ERRO] {erro}").format(erro=message))
+        if first_error:
+            QMessageBox.warning(self, tr('Não foi possível gerar o material'), message)
 
     def _on_generation_finished(self):
-        self.btn_generate_cards.setEnabled(True)
+        self._update_model_controls()
         self.btn_generate_cards.setText(tr("Gerar material"))
         end_time = time.time()
         duration = end_time - getattr(self, 'start_time', end_time)

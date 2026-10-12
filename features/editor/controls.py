@@ -128,7 +128,7 @@ def initialize_editor_controls(window):
     window.spin_phys_w = MathDoubleSpinBox(window)
     window.spin_phys_h = MathDoubleSpinBox(window)
     for control, value in ((window.spin_phys_w, doc_width_mm), (window.spin_phys_h, doc_height_mm)):
-        control.setRange(10.0, 1000.0)
+        control.setRange(10.0, 10000.0)
         control.setDecimals(2)
         control.setKeyboardTracking(False)
         control.setValue(value)

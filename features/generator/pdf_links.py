@@ -35,7 +35,7 @@ def _pdf_link_rect(page, rect, canvas_width, canvas_height):
 
 def inject_pdf_links(
     pdf_path, links_by_page, canvas_width, canvas_height, *, memory_only=False, page_labels=None,
-    page_size_mm=None,
+    page_size_mm=None, scale_content_to_page=False,
 ):
     """Adiciona hyperlinks, rótulos e marcadores de navegação a um PDF pronto.
 
@@ -61,8 +61,16 @@ def inject_pdf_links(
                 for page in writer.pages:
                     # QPageSize arredonda para pontos inteiros. Corrige o papel
                     # mantendo a escala e a posição do desenho a partir do topo.
-                    offset_y = height - float(page.mediabox.height)
-                    page.add_transformation(Transformation().translate(ty=offset_y))
+                    if scale_content_to_page:
+                        # PDF raster: a imagem ocupa a página inteira do Qt.
+                        # Corrigir também a escala preserva o tamanho físico da
+                        # arte ao retirar o arredondamento para pontos inteiros.
+                        page.add_transformation(Transformation().scale(
+                            sx=width / float(page.mediabox.width),
+                            sy=height / float(page.mediabox.height)))
+                    else:
+                        offset_y = height - float(page.mediabox.height)
+                        page.add_transformation(Transformation().translate(ty=offset_y))
                     page.mediabox = RectangleObject((0, 0, width, height))
                     page.cropbox = RectangleObject((0, 0, width, height))
             for page_index, label in enumerate(page_labels or []):

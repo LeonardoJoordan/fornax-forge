@@ -5274,7 +5274,209 @@ Bloques disponibles: {nomes}</translation>
       <source>&lt;b&gt;HABILITAR LINK (URL)&lt;/b&gt;&lt;br&gt;&lt;br&gt;Cria uma área clicável no PDF exportado.</source>
       <translation>&lt;b&gt;ACTIVAR ENLACE (URL)&lt;/b&gt;&lt;br&gt;&lt;br&gt;Crea un área pulsable en el PDF exportado.</translation>
     </message>
-</context>
+    <message>
+      <source>Esta disposição exige muita memória. Reduza os itens por folha ou divida o documento em ladrilhos.</source>
+      <translation>Esta disposición requiere demasiada memoria. Reduzca los elementos por hoja o divida el documento en mosaicos.</translation>
+    </message>
+    <message>
+      <source>Primeiro uso: cartão de identificação adicionado à biblioteca.</source>
+      <translation>Primer uso: se añadió una tarjeta de identificación a la biblioteca.</translation>
+    </message>
+    <message>
+      <source>Não foi possível preparar o modelo inicial. Você pode criar ou importar um modelo.</source>
+      <translation>No se pudo preparar la plantilla inicial. Puede crear o importar una plantilla.</translation>
+    </message>
+    <message>
+      <source>Crie um modelo para começar</source>
+      <translation>Cree una plantilla para comenzar</translation>
+    </message>
+    <message>
+      <source>Escolha um ponto de partida em Novo modelo ou importe um modelo existente.</source>
+      <translation>Elija un punto de partida en Nueva plantilla o importe una plantilla existente.</translation>
+    </message>
+    <message>
+      <source>Criar modelo</source>
+      <translation>Crear plantilla</translation>
+    </message>
+    <message>
+      <source>Escolher o tamanho da página</source>
+      <translation>Elegir el tamaño de la página</translation>
+    </message>
+    <message>
+      <source>Cartão de visita</source>
+      <translation>Tarjeta de visita</translation>
+    </message>
+    <message>
+      <source>Quadrado — 100 × 100 mm</source>
+      <translation>Cuadrado — 100 × 100 mm</translation>
+    </message>
+    <message>
+      <source>Orientação vertical</source>
+      <translation>Orientación vertical</translation>
+    </message>
+    <message>
+      <source>Orientação horizontal</source>
+      <translation>Orientación horizontal</translation>
+    </message>
+    <message>
+      <source>Este formato ultrapassa o limite de pixels do modelo. Use Configurar saída para ampliar e dividir em ladrilhos.</source>
+      <translation>Este formato supera el límite de píxeles de la plantilla. Use Configurar salida para ampliar y dividir en mosaicos.</translation>
+    </message>
+    <message>
+      <source>Tamanho acima do limite</source>
+      <translation>Tamaño superior al límite</translation>
+    </message>
+    <message>
+      <source>Desempenho e qualidade</source>
+      <translation>Rendimiento y calidad</translation>
+    </message>
+    <message>
+      <source>Desempenho e qualidade…</source>
+      <translation>Rendimiento y calidad…</translation>
+    </message>
+    <message>
+      <source>Perfil</source>
+      <translation>Perfil</translation>
+    </message>
+    <message>
+      <source>Limite de pixels por imagem</source>
+      <translation>Límite de píxeles por imagen</translation>
+    </message>
+    <message>
+      <source>Resolução de saída</source>
+      <translation>Resolución de salida</translation>
+    </message>
+    <message>
+      <source>Econômico — 12 MP / 150 DPI</source>
+      <translation>Económico — 12 MP / 150 PPP</translation>
+    </message>
+    <message>
+      <source>Equilibrado — 36 MP / 300 DPI</source>
+      <translation>Equilibrado — 36 MP / 300 PPP</translation>
+    </message>
+    <message>
+      <source>Ampliado — 72 MP / 300 DPI</source>
+      <translation>Ampliado — 72 MP / 300 PPP</translation>
+    </message>
+    <message>
+      <source>Grande formato — 150 MP / 300 DPI</source>
+      <translation>Gran formato — 150 MP / 300 PPP</translation>
+    </message>
+    <message>
+      <source>As dimensões físicas devem ser positivas.</source>
+      <translation>Las dimensiones físicas deben ser positivas.</translation>
+    </message>
+    <message>
+      <source>As dimensões da imagem devem ser inteiras e positivas.</source>
+      <translation>Las dimensiones de la imagen deben ser enteros positivos.</translation>
+    </message>
+    <message>
+      <source>A saída excede o orçamento de memória do perfil. Reduza o DPI ou use Ladrilhos.</source>
+      <translation>La salida supera el presupuesto de memoria del perfil. Reduzca los PPP o use Mosaico.</translation>
+    </message>
+    <message>
+      <source>A saída prevista tem {mp:.1f} MP ({w} × {h} pixels) e ultrapassa o perfil de {limit} MP ou o limite de {side} pixels por lado. Reduza o DPI em Configurações → Desempenho e qualidade, escolha outro perfil ou use Ladrilhos.</source>
+      <translation>La salida prevista tiene {mp:.1f} MP ({w} × {h} píxeles) y supera el perfil de {limit} MP o el límite de {side} píxeles por lado. Reduzca los PPP en Configuración → Rendimiento y calidad, elija otro perfil o use Mosaico.</translation>
+    </message>
+    <message>
+      <source>Cada dimensão do documento deve ser de até 10.000 mm. A resolução e os limites de exportação são definidos em Desempenho e qualidade.</source>
+      <translation>Cada dimensión del documento debe ser de hasta 10.000 mm. La resolución y los límites de exportación se definen en Rendimiento y calidad.</translation>
+    </message>
+    <message>
+      <source>Escolha a resolução e o limite de pixels da exportação. As medidas em milímetros, a edição e a abertura dos modelos permanecem independentes do perfil.</source>
+      <translation>Elija la resolución y el límite de píxeles de exportación. Las medidas en milímetros, la edición y la apertura de modelos permanecen independientes del perfil.</translation>
+    </message>
+    <message>
+      <source>Combine DPI e limite conforme o trabalho. O programa não reduz automaticamente a qualidade para caber no perfil.</source>
+      <translation>Combine los PPP y el límite según el trabajo. El programa no reduce automáticamente la calidad para ajustarse al perfil.</translation>
+    </message>
+    <message>
+      <source>Recomendado para computadores com pouca memória, como os de 4 GB. A memória disponível e os demais programas abertos também influenciam.</source>
+      <translation>Recomendado para equipos con poca memoria, como los de 4 GB. La memoria disponible y los demás programas abiertos también influyen.</translation>
+    </message>
+    <message>
+      <source>Para cartões, certificados e documentos comuns, preservando a resolução de 300 DPI.</source>
+      <translation>Para tarjetas, certificados y documentos comunes, conservando la resolución de 300 PPP.</translation>
+    </message>
+    <message>
+      <source>Para documentos maiores, incluindo A1 a 300 DPI. Requer mais memória disponível.</source>
+      <translation>Para documentos más grandes, incluido A1 a 300 PPP. Requiere más memoria disponible.</translation>
+    </message>
+    <message>
+      <source>Para quadros grandes. Um documento de 1 × 1 m a 300 DPI ocupa cerca de 139,5 MP; 3 × 3 m a 96 DPI ocupa cerca de 128,6 MP.</source>
+      <translation>Para cuadros grandes. Un documento de 1 × 1 m a 300 PPP ocupa unos 139,5 MP; 3 × 3 m a 96 PPP ocupa unos 128,6 MP.</translation>
+    </message>
+    <message>
+      <source>O limite vale para cada imagem ou folha gerada, não para o tamanho do arquivo em MB. Um buffer de 150 MP ocupa cerca de 600 MB; a geração pode usar mais de um buffer. DPI menor reduz a definição de textos pequenos e linhas finas. Para preservar as medidas ao imprimir, use tamanho real/100%; PNG e JPEG dependem de o leitor respeitar os metadados de resolução.</source>
+      <translation>El límite se aplica a cada imagen u hoja generada, no al tamaño del archivo en MB. Un búfer de 150 MP ocupa unos 600 MB; la generación puede usar varios búferes. Los PPP bajos reducen la definición de textos pequeños y líneas finas. Para conservar las medidas al imprimir, use tamaño real/100%; PNG y JPEG dependen de que el lector respete los metadatos de resolución.</translation>
+    </message>
+    <message>
+      <source>Abra um modelo para consultar a estimativa de saída.</source>
+      <translation>Abra un modelo para consultar la estimación de salida.</translation>
+    </message>
+    <message>
+      <source>Não foi possível calcular a estimativa deste modelo.</source>
+      <translation>No se pudo calcular la estimación de este modelo.</translation>
+    </message>
+    <message>
+      <source>O documento inteiro excede este perfil. Reduza o DPI, aumente o limite ou use Ladrilhos.</source>
+      <translation>El documento completo supera este perfil. Reduzca los PPP, aumente el límite o use Mosaico.</translation>
+    </message>
+    <message>
+      <source>Documento inteiro: {mmw:g} × {mmh:g} mm → {w} × {h} pixels ({mp:.1f} MP), cerca de {mb:.0f} MB por buffer. Em Ladrilhos ou Itens por folha, o limite é verificado por folha.</source>
+      <translation>Documento completo: {mmw:g} × {mmh:g} mm → {w} × {h} píxeles ({mp:.1f} MP), unos {mb:.0f} MB por búfer. En Mosaico o Elementos por hoja, el límite se comprueba por hoja.</translation>
+    </message>
+    <message>
+      <source>Imagem prevista: {mmw:g} × {mmh:g} mm; {w} × {h} pixels ({mp:.1f} MP), {mb:.0f} MB por buffer.</source>
+      <translation>Imagen prevista: {mmw:g} × {mmh:g} mm; {w} × {h} píxeles ({mp:.1f} MP), {mb:.0f} MB por búfer.</translation>
+    </message>
+    <message>
+      <source>Saída: {dpi} DPI; limite de {mp} MP por imagem.</source>
+      <translation>Salida: {dpi} PPP; límite de {mp} MP por imagen.</translation>
+    </message>
+    <message>
+      <source>Uma página PDF deve ter até 5 metros por lado. Para documentos maiores, use Ladrilhos.</source>
+      <translation>Una página PDF debe tener hasta 5 metros por lado. Para documentos más grandes, use Mosaico.</translation>
+    </message>
+    <message><source>300 DPI (fixo)</source><translation>300 DPI (fijo)</translation></message>
+    <message><source>Econômico — 12 MP</source><translation>Económico — 12 MP</translation></message>
+    <message><source>Equilibrado — 36 MP</source><translation>Equilibrado — 36 MP</translation></message>
+    <message><source>Ampliado — 72 MP</source><translation>Ampliado — 72 MP</translation></message>
+    <message><source>Grande formato — 150 MP</source><translation>Gran formato — 150 MP</translation></message>
+    <message><source>A saída excede o orçamento de memória do perfil. Escolha outro perfil ou use Ladrilhos.</source><translation>La salida supera el presupuesto de memoria del perfil. Elija otro perfil o use Mosaico.</translation></message>
+    <message><source>A saída prevista tem {mp:.1f} MP ({w} × {h} pixels) e ultrapassa o perfil de {limit} MP ou o limite de {side} pixels por lado. Escolha outro perfil em Configurações → Desempenho e qualidade ou use Ladrilhos.</source><translation>La salida prevista tiene {mp:.1f} MP ({w} × {h} píxeles) y supera el perfil de {limit} MP o el límite de {side} píxeles por lado. Elija otro perfil en Configuración → Rendimiento y calidad o use Mosaico.</translation></message>
+    <message><source>Cada dimensão do documento deve ser de até 10.000 mm. A exportação permanece em 300 DPI; os limites de pixels são definidos em Desempenho e qualidade.</source><translation>Cada dimensión del documento debe ser de hasta 10.000 mm. La exportación permanece en 300 DPI; los límites de píxeles se definen en Rendimiento y calidad.</translation></message>
+    <message><source>Escolha o limite de pixels conforme o trabalho e a memória disponível. A saída permanece em 300 DPI.</source><translation>Elija el límite de píxeles según el trabajo y la memoria disponible. La salida permanece en 300 DPI.</translation></message>
+    <message><source>Escolha o limite de pixels da exportação. A resolução permanece fixa em 300 DPI em todos os perfis. As medidas em milímetros, a edição e a abertura dos modelos permanecem independentes do perfil.</source><translation>Elija el límite de píxeles de la exportación. La resolución permanece fija en 300 DPI en todos los perfiles. Las medidas en milímetros, la edición y la apertura de plantillas permanecen independientes del perfil.</translation></message>
+    <message><source>O documento inteiro excede este perfil. Aumente o limite ou use Ladrilhos.</source><translation>El documento completo supera este perfil. Aumente el límite o use Mosaico.</translation></message>
+    <message><source>O limite vale para cada imagem ou folha gerada, não para o tamanho do arquivo em MB. Um buffer de 150 MP ocupa cerca de 600 MB; a geração pode usar mais de um buffer. O perfil não reduz a resolução nem redimensiona a saída automaticamente. Para preservar as medidas ao imprimir, use tamanho real/100%; PNG e JPEG dependem de o leitor respeitar os metadados de resolução.</source><translation>El límite se aplica a cada imagen u hoja generada, no al tamaño del archivo en MB. Un búfer de 150 MP ocupa unos 600 MB; la generación puede usar más de un búfer. El perfil no reduce la resolución ni cambia el tamaño de la salida automáticamente. Para conservar las medidas al imprimir, use tamaño real/100%; PNG y JPEG requieren que el lector respete los metadatos de resolución.</translation></message>
+    <message><source>Para quadros grandes. Um documento de 1 × 1 m a 300 DPI ocupa cerca de 139,5 MP. Documentos maiores podem ser divididos em Ladrilhos.</source><translation>Para cuadros grandes. Un documento de 1 × 1 m a 300 DPI ocupa unos 139,5 MP. Los documentos más grandes pueden dividirse en Mosaico.</translation></message>
+    <message><source>Econômico — 20 MP</source><translation>Económico — 20 MP</translation></message>
+    <message><source>Equilibrado — 40 MP</source><translation>Equilibrado — 40 MP</translation></message>
+    <message><source>Ampliado — 80 MP</source><translation>Ampliado — 80 MP</translation></message>
+    <message><source>Alta capacidade — 300 MP</source><translation>Alta capacidad — 300 MP</translation></message>
+    <message><source>Máximo — 600 MP</source><translation>Máximo — 600 MP</translation></message>
+    <message><source>Não foi possível gerar o material</source><translation>No se pudo generar el material</translation></message>
+    <message><source>Não foi possível reservar memória para a geração. A memória disponível pode ter mudado durante o processo.</source><translation>No se pudo reservar memoria para la generación. La memoria disponible puede haber cambiado durante el proceso.</translation></message>
+    <message><source>Não há capacidade de memória suficiente para esta geração: são necessários cerca de {required:.0f} MB para os buffers, mas o orçamento atual permite {budget:.0f} MB.</source><translation>No hay suficiente capacidad de memoria para esta generación: los búferes requieren unos {required:.0f} MB, pero el presupuesto actual permite {budget:.0f} MB.</translation></message>
+    <message><source>O programa está configurado para até {limit} MP por imagem. Esta saída exige {mp:.1f} MP ({w} × {h} pixels).</source><translation>El programa está configurado para hasta {limit} MP por imagen. Esta salida requiere {mp:.1f} MP ({w} × {h} píxeles).</translation></message>
+    <message><source>A saída prevista tem {w} × {h} pixels e excede o limite técnico de {side} pixels por lado. Aumentar o perfil de desempenho não remove esse limite. Use Ladrilhos.</source><translation>La salida prevista tiene {w} × {h} píxeles y supera el límite técnico de {side} píxeles por lado. Aumentar el perfil de rendimiento no elimina este límite. Use Mosaico.</translation></message>
+    <message><source>Verifique a quantidade de memória disponível. Se houver memória suficiente, acesse Configurações → Desempenho e qualidade para escolher um perfil de maior capacidade, até 600 MP. Aumentar o perfil não aumenta a memória livre do computador. Você também pode dividir a saída em Ladrilhos.</source><translation>Compruebe la cantidad de memoria disponible. Si hay suficiente memoria, vaya a Configuración → Rendimiento y calidad para elegir un perfil de mayor capacidad, hasta 600 MP. Aumentar el perfil no aumenta la memoria libre del equipo. También puede dividir la salida en Mosaico.</translation></message>
+    <message><source>O limite vale para cada imagem ou folha gerada, não para o tamanho do arquivo em MB. Um buffer de 600 MP ocupa cerca de 2,4 GB; dois buffers ocupam 4,8 GB, além dos recursos do modelo. A memória disponível continua sendo verificada. O perfil não reduz a resolução nem redimensiona a saída automaticamente. Para imprimir nas medidas planejadas, use tamanho real/100%.</source><translation>El límite se aplica a cada imagen u hoja generada, no al tamaño del archivo en MB. Un búfer de 600 MP ocupa unos 2,4 GB; dos búferes ocupan 4,8 GB, además de los recursos de la plantilla. Se sigue comprobando la memoria disponible. El perfil no reduce la resolución ni cambia el tamaño de la salida automáticamente. Para imprimir con las medidas previstas, use tamaño real/100%.</translation></message>
+    <message><source>Para quadros de até aproximadamente 1,46 × 1,46 m a 300 DPI. Dois buffers de 300 MP ocupam cerca de 2,4 GB. Exige memória disponível suficiente.</source><translation>Para cuadros de hasta aproximadamente 1,46 × 1,46 m a 300 DPI. Dos búferes de 300 MP ocupan unos 2,4 GB. Requiere suficiente memoria disponible.</translation></message>
+    <message><source>Para quadros de até aproximadamente 2,07 × 2,07 m a 300 DPI. Dois buffers de 600 MP ocupam cerca de 4,8 GB. Pela proteção de 70%, são necessários aproximadamente 6,9 GB disponíveis só para esse orçamento.</source><translation>Para cuadros de hasta aproximadamente 2,07 × 2,07 m a 300 DPI. Dos búferes de 600 MP ocupan unos 4,8 GB. Con la protección del 70%, se necesitan aproximadamente 6,9 GB disponibles solo para este presupuesto.</translation></message>
+    <message><source>Limite de exportação</source><translation>Límite de exportación</translation></message>
+    <message><source>Limite de exportação…</source><translation>Límite de exportación…</translation></message>
+    <message><source>Limite por imagem</source><translation>Límite por imagen</translation></message>
+    <message><source>Limita o tamanho das imagens geradas para controlar o consumo de memória.</source><translation>Limita el tamaño de las imágenes generadas para controlar el consumo de memoria.</translation></message>
+    <message><source>{value} MP (padrão)</source><translation>{value} MP (predeterminado)</translation></message>
+    <message><source>Este documento exige aproximadamente {mp:.1f} MP.</source><translation>Este documento requiere aproximadamente {mp:.1f} MP.</translation></message>
+    <message><source>Verifique a memória disponível. Se houver memória suficiente, aumente o limite em Configurações → Limite de exportação, até 600 MP, ou divida a saída em Ladrilhos. Aumentar o limite não aumenta a memória livre do computador.</source><translation>Compruebe la memoria disponible. Si hay suficiente memoria, aumente el límite en Configuración → Límite de exportación, hasta 600 MP, o divida la salida con Mosaico. Aumentar el límite no aumenta la memoria libre del equipo.</translation></message>
+    <message><source>A saída prevista tem {w} × {h} pixels e excede o limite técnico de {side} pixels por lado. Aumentar o limite de exportação não remove esse limite técnico. Use Ladrilhos.</source><translation>La salida prevista tiene {w} × {h} píxeles y supera el límite técnico de {side} píxeles por lado. Aumentar el límite de exportación no elimina este límite técnico. Use Mosaico.</translation></message>
+    <message><source>Cada dimensão do documento deve ser de até 10.000 mm. A exportação permanece em 300 DPI; os limites de pixels são definidos em Limite de exportação.</source><translation>Cada dimensión del documento debe ser de hasta 10.000 mm. La exportación se mantiene en 300 DPI; los límites de píxeles se definen en Límite de exportación.</translation></message>
+    <message><source>Primeiro uso: modelo inicial adicionado à biblioteca.</source><translation>Primer uso: plantilla inicial añadida a la biblioteca.</translation></message>
+    <message><source>Formato quadrado (1:1)</source><translation>Formato cuadrado (1:1)</translation></message>
+  </context>
   <context>
     <name>EditorProtection</name>
     <message><source>Alterar senha</source><translation>Cambiar contraseña</translation></message>

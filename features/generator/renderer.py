@@ -5,8 +5,9 @@ import re
 from pathlib import Path
 from core.render_cache import get_background_proxy_path, infer_model_dir
 from core.model_document import (
-    adapt_model_page, normalize_model_document, validate_raster_dimensions,
+    adapt_model_page, normalize_model_document, validate_raster_dimensions, validate_canvas_dimensions, MAX_STATIC_BASE_PIXELS,
 )
+from core.performance import allocation_failure_message, set_physical_density
 from core.document_layers import layer_entries
 from core.object_style import draw_shape, outline_margin, rounded_rect_path
 from core.text_layout import PLACEHOLDER_PATTERN, build_document, text_geometry, resolve_rich_text
@@ -69,7 +70,9 @@ class NativeRenderer:
         for table in self.tpl.get("tables", []):
             validate_table(table)
         canvas = self.tpl.get("canvas_size", {})
-        validate_raster_dimensions(canvas.get("w"), canvas.get("h"), label="canvas")
+        validate_canvas_dimensions(canvas.get("w"), canvas.get("h"))
+        self._export_performance = None
+        self._output_size = None
         self.page_id = self.tpl.get("__page_id", "front")
         self.model_dir = infer_model_dir(self.tpl)
         self._image_cache = ImageMemoryCache()
@@ -91,10 +94,35 @@ class NativeRenderer:
         renderer.model_dir = self.model_dir
         renderer.dynamic_image_dir = self.dynamic_image_dir
         renderer._image_cache = self._image_cache.fork()
+        renderer._export_performance = self._export_performance
+        renderer._output_size = self._output_size
         if self._static_base_cache is not None:
             renderer._static_base_cache = QImage(self._static_base_cache)
             renderer._static_table_warnings = [dict(warning) for warning in self._static_table_warnings]
         return renderer
+
+    def configure_export(self, performance, width_mm, height_mm):
+        size = performance.dimensions(width_mm, height_mm)
+        canvas_size = validate_canvas_dimensions(self.tpl['canvas_size']['w'], self.tpl['canvas_size']['h'])
+        if performance.dpi == 300 and all(abs(a - b) <= 1 for a, b in zip(canvas_size, size)):
+            # Arquivos existentes arredondavam o canvas para baixo. Na saída
+            # nativa, preserve seus pixels; a densidade e o PDF continuam
+            # sendo calculados pelas medidas físicas efetivas.
+            size = canvas_size
+        performance.validate(*size)
+        self._export_performance = performance
+        self._output_size = size
+        self._static_base_cache = None
+        return self
+
+    def output_dimensions(self):
+        if self._output_size is not None:
+            return self._output_size
+        return validate_raster_dimensions(self.tpl['canvas_size']['w'], self.tpl['canvas_size']['h'])
+
+    def _scale_output_painter(self, painter, width, height):
+        canvas = self.tpl['canvas_size']
+        painter.scale(width / canvas['w'], height / canvas['h'])
 
     def paint_card(self, painter, row_plain, row_rich, out_links=None):
         """Pinta em um dispositivo existente, mantendo textos e formas vetoriais."""
@@ -143,22 +171,29 @@ class NativeRenderer:
 
             target_rect = QRectF(float(x), float(y), w, h)
             painter.drawImage(target_rect, img, QRectF(img.rect()))
-            return target_rect
+            return painter.transform().mapRect(target_rect)
         finally:
             painter.restore()
 
     def pre_render_static_base(self):
-        w, h = validate_raster_dimensions(
-            self.tpl["canvas_size"]["w"], self.tpl["canvas_size"]["h"], label="canvas"
-        )
+        w, h = self.output_dimensions()
         
+        self._static_base_cache = None
+        self._static_table_warnings = []
+        if w * h > MAX_STATIC_BASE_PIXELS:
+            # Documento grande: pintar uma única saída, sem duplicar o papel
+            # inteiro no cache. As métricas e a resolução permanecem iguais.
+            return
         self._static_base_cache = QImage(w, h, QImage.Format_ARGB32)
+        if self._static_base_cache.isNull():
+            raise MemoryError(allocation_failure_message())
         self._static_base_cache.setDotsPerMeterX(3780)
         self._static_base_cache.setDotsPerMeterY(3780)
         self._static_base_cache.fill(Qt.GlobalColor.white)
 
         painter = QPainter(self._static_base_cache)
         try:
+            self._scale_output_painter(painter, w, h)
             self._paint_card(painter, {}, out_links=None, static_only=True)
         finally:
             painter.end()
@@ -171,8 +206,7 @@ class NativeRenderer:
         # têm seu próprio dispositivo fixo de 300 DPI para pontos físicos.
         w_mm = target_w_mm or self.tpl.get("target_w_mm") or image.width() * 25.4 / 300
         h_mm = target_h_mm or self.tpl.get("target_h_mm") or image.height() * 25.4 / 300
-        image.setDotsPerMeterX(round(image.width() * 1000 / w_mm))
-        image.setDotsPerMeterY(round(image.height() * 1000 / h_mm))
+        set_physical_density(image, w_mm, h_mm)
         saved = (save_png(image, out_path, intermediate=intermediate_png) if export_format == "PNG"
                  else save_image(image, out_path, export_format))
         if not saved:
@@ -184,9 +218,9 @@ class NativeRenderer:
 
     def render_preview_image(self, row_rich=None, max_side=None, transparent=False) -> QImage:
         """Prévia em QImage, utilizável em workers sem criar QPixmap."""
-        w, h = validate_raster_dimensions(
-            self.tpl["canvas_size"]["w"], self.tpl["canvas_size"]["h"], label="canvas"
-        )
+        w, h = validate_canvas_dimensions(self.tpl["canvas_size"]["w"], self.tpl["canvas_size"]["h"])
+        if max_side is None and w * h > MAX_STATIC_BASE_PIXELS:
+            max_side = 1600
 
         scale = 1.0
         if max_side and max(w, h) > max_side:
@@ -196,8 +230,12 @@ class NativeRenderer:
         else:
             render_w = w
             render_h = h
+
+        validate_raster_dimensions(render_w, render_h, label='prévia')
         
         image = QImage(render_w, render_h, QImage.Format_ARGB32)
+        if image.isNull():
+            raise MemoryError("Não foi possível reservar memória para a imagem.")
         image.setDotsPerMeterX(3780) # Trava o Gerador em exatos 96 DPI
         image.setDotsPerMeterY(3780)
         image.fill(Qt.GlobalColor.transparent if transparent else Qt.GlobalColor.white)
@@ -223,18 +261,26 @@ class NativeRenderer:
         if self._static_base_cache is not None:
             image = self._static_base_cache.copy()
         else:
-            w, h = validate_raster_dimensions(
-                self.tpl["canvas_size"]["w"], self.tpl["canvas_size"]["h"], label="canvas"
-            )
+            w, h = self.output_dimensions()
             image = QImage(w, h, QImage.Format_ARGB32)
             image.setDotsPerMeterX(3780)
             image.setDotsPerMeterY(3780)
             image.fill(Qt.GlobalColor.white)
 
+        if image.isNull():
+            raise MemoryError(allocation_failure_message())
+
         painter = QPainter(image)
+        local_links = [] if out_links is not None else None
         try:
+            self._scale_output_painter(painter, image.width(), image.height())
+            inverse, invertible = painter.transform().inverted()
             is_dynamic = (self._static_base_cache is not None)
-            self._paint_card(painter, row_rich, out_links, dynamic_only=is_dynamic, row_plain=row_plain)
+            self._paint_card(painter, row_rich, local_links, dynamic_only=is_dynamic, row_plain=row_plain)
+            if out_links is not None and invertible:
+                # O contrato dos links continua no canvas lógico, independente
+                # do DPI escolhido; PDF e imposição já convertem estas medidas.
+                out_links.extend({**link, 'rect': inverse.mapRect(link['rect'])} for link in local_links)
         finally:
             painter.end()
         return image

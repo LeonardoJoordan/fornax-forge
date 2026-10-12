@@ -93,6 +93,15 @@ class HelpCatalogTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 read_catalog(path)
 
+    def test_export_limit_help_matches_compact_dialog(self):
+        article = help_catalog().by_id['DOC-01'].markdown
+        for text in ('Configurações → Limite de exportação', '150 MP', '300 DPI',
+                     '40, 80, 150, 300 ou 600 MP', 'memória disponível',
+                     'Cancelar preserva', 'por folha raster'):
+            self.assertIn(text, article)
+        self.assertNotIn('Desempenho e qualidade', article)
+        self.assertNotIn('Grande formato', article)
+
     def test_missing_language_falls_back_to_portuguese(self):
         self.assertEqual(help_catalog("en_US").topics, help_catalog("pt_BR").topics)
 
@@ -101,6 +110,7 @@ class HelpCatalogTest(unittest.TestCase):
         for query, expected in (
             ('oito posições', 'UI-17'), ('barra flutuante imagem', 'UI-17'),
             ('JPEG', 'QUA-11'), ('marcadores PDF', 'QUA-11'),
+            ('limite de exportação', 'DOC-01'), ('limite por imagem', 'DOC-01'), ('RAM', 'DOC-01'),
         ):
             with self.subTest(query=query):
                 self.assertIn(expected, [topic.id for topic in catalog.search(query)])

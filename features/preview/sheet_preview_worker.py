@@ -37,7 +37,14 @@ class SheetPreviewWorker(QThread):
 
     def run(self):
         try:
-            plan = build_imposition_plan(self.rows, self.settings)
+            # A prévia tem seu próprio buffer pequeno, independente do perfil
+            # e do tamanho lógico dos cartões. O layout continua em milímetros.
+            settings = dict(self.settings)
+            settings.pop('export_dpi', None)
+            settings.pop('pixel_limit', None)
+            preview_dpi = max(1, min(300, int(1800 * 25.4 / max(
+                settings.get('sheet_w_mm', 210), settings.get('sheet_h_mm', 297)))))
+            plan = build_imposition_plan(self.rows, settings, validate_output=False)
             if not plan.sheets:
                 return
             if "pages" in self.template:
@@ -48,6 +55,20 @@ class SheetPreviewWorker(QThread):
                 renderers = [NativeRenderer(
                     self.template, asset_provider=self.asset_provider,
                 )]
+            # Configure a malha após planejá-la: a orientação/capacidade são
+            # físicas, e não dependem da densidade raster.
+            a = plan.assembler
+            a.dpi = preview_dpi
+            a.sheet_w, a.sheet_h = a.mm_to_px(a.sheet_w_mm), a.mm_to_px(a.sheet_h_mm)
+            a.card_w_px, a.card_h_px = a.mm_to_px(a.target_w_mm), a.mm_to_px(a.target_h_mm)
+            a.mark_len, a.mark_gap = a.mm_to_px(a.mark_len_mm), a.mm_to_px(a.mark_gap_mm)
+            a.margin_left, a.margin_top = a.mm_to_px(a.margin_left_mm), a.mm_to_px(a.margin_top_mm)
+            for renderer in renderers:
+                renderer._output_size = (max(1, a.card_w_px), max(1, a.card_h_px))
+                renderer._static_base_cache = None
+            from features.generator.manager import _bounded_worker_count
+            _bounded_worker_count(1, renderers, sheet=plan.assembler,
+                                  capacity=plan.capacity, duplex=plan.duplex)
             for renderer in renderers:
                 renderer.pre_render_static_base()
             first = min(max(0, self.first_page), len(plan.sheets) - 1)

@@ -9,6 +9,7 @@ from PySide6.QtCore import QRectF, QThread, Signal, Qt
 from pypdf import PdfWriter
 
 from core.i18n import tr
+from core.performance import EXPORT_DPI
 from core.model_document import adapt_model_page, normalize_model_document
 from core.naming_engine import build_output_filename, confined_output_path
 from core.tiling import build_tile_plan, UNITS_PER_MM, reserved_margin_mm
@@ -74,7 +75,7 @@ class TiledDocumentWorker(QThread):
 
     def __init__(self, document, rows_plain, rows_rich, output_dir, mode, *, options,
                  pattern='{modelo}', asset_provider=None, dynamic_image_dir=None,
-                 authorized_snapshot=None, parent=None, dpi=150):
+                 authorized_snapshot=None, parent=None, dpi=EXPORT_DPI, performance=None):
         super().__init__(parent)
         self.document = deepcopy(document)
         self.rows = list(zip(deepcopy(rows_plain), deepcopy(rows_rich)))
@@ -82,7 +83,9 @@ class TiledDocumentWorker(QThread):
         self.options, self.pattern = deepcopy(options), pattern
         self.asset_provider, self.dynamic_image_dir = asset_provider, dynamic_image_dir
         self.authorized_snapshot = authorized_snapshot
-        self.dpi = dpi
+        # Mantém o argumento legado, mas a saída final não aceita DPI variável.
+        self.dpi = EXPORT_DPI
+        self.performance = performance
         self._is_running = True
 
     def stop(self):
@@ -101,6 +104,7 @@ class TiledDocumentWorker(QThread):
             for page in pages:
                 renderer = PageTilingRenderer(self.document, page['page_id'],
                     asset_provider=self.asset_provider, dynamic_image_dir=self.dynamic_image_dir)
+                renderer.performance = self.performance
                 plan = build_tile_plan(renderer.bounds, **proportional_options(self.options, renderer.bounds))
                 templates.append((renderer, plan))
             for plain, rich in self.rows:

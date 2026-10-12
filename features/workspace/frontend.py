@@ -286,6 +286,7 @@ def install_frontend(window):
         ))
     model_actions.aboutToShow.connect(refresh_model_actions)
     more.setMenu(model_actions)
+    window._model_actions_button = more
     model_row.addWidget(more)
     for control in (window.preview_panel.cbo_models, window.btn_config_model, more):
         control.setFixedHeight(38)
@@ -456,7 +457,7 @@ def install_frontend(window):
     arquivo.addAction(tr('Importar modelos…'), window._on_import_models)
     arquivo.addAction(tr('Exportar modelos…'), window._on_export_models)
     arquivo.addSeparator()
-    arquivo.addAction(tr('Configurar saída…'), window._open_config_dialog)
+    window._output_config_action = arquivo.addAction(tr('Configurar saída…'), window._open_config_dialog)
     arquivo.addSeparator()
     arquivo.addAction(
         tr('Abrir biblioteca de modelos'),
@@ -495,6 +496,7 @@ def install_frontend(window):
 
     configuracoes = menu.addMenu(tr('Configurações'))
     configuracoes.addAction(tr('Tema da interface…'), window._open_theme_dialog)
+    configuracoes.addAction(tr('Limite de exportação…'), window._open_performance_dialog)
     idioma = configuracoes.addMenu(tr('Idioma'))
     language_group = QActionGroup(idioma)
     language_group.setExclusive(True)

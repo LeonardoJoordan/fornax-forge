@@ -1572,6 +1572,9 @@ def install_frontend(w):
     il.addWidget(table_section)
     doc, dl = column()
     dimensions_heading = property_heading(dl, tr('DIMENSÕES'))
+    from .document_sizes import DocumentSizeControls
+    w.document_size_controls = DocumentSizeControls(w)
+    dl.addWidget(w.document_size_controls)
     w.chk_doc_proporcao.setText('')
     w.chk_doc_proporcao.setToolTip(tr('Manter a proporção do documento'))
     w.chk_doc_proporcao.setFixedSize(30, 30)

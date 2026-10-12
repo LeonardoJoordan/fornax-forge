@@ -7,7 +7,7 @@ from pathlib import Path
 from PySide6.QtWidgets import (QGraphicsLineItem, QGraphicsRectItem, QGraphicsTextItem,
                                QGraphicsItem, QInputDialog, QLineEdit, QGraphicsPixmapItem,
                                QStyle, QStyleOptionGraphicsItem)
-from PySide6.QtCore import Qt, QPointF, QRectF, QSize, QBuffer, QByteArray, QIODevice
+from PySide6.QtCore import Qt, QPointF, QRectF, QLineF, QSize, QBuffer, QByteArray, QIODevice
 from PySide6.QtGui import (QPen, QBrush, QColor, QTextCursor, QGuiApplication,
                            QPixmap, QPainterPathStroker,
                            QImageReader, QPainterPath, QPainter,
@@ -1078,10 +1078,8 @@ class Guideline(QGraphicsLineItem):
         self._is_mouse_dragging = False
         
         if is_vertical:
-            self.setLine(0, -20000, 0, 40000)
             self.setPos(position_px, 0)
         else:
-            self.setLine(-20000, 0, 40000, 0)
             self.setPos(0, position_px)
 
         from core.themes import theme_color
@@ -1093,6 +1091,22 @@ class Guideline(QGraphicsLineItem):
                       QGraphicsItem.GraphicsItemFlag.ItemIsSelectable |
                       QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges)
         self.setZValue(10)
+
+    def update_workspace_extent(self, rect=None):
+        """Estende a guia à área navegável, sem alterar sua posição ou o snap."""
+        scene = self.scene()
+        if scene is None:
+            return
+        rect = scene.sceneRect() if rect is None else rect
+        if self.is_vertical:
+            start = QPointF(self.x(), rect.top())
+            end = QPointF(self.x(), rect.bottom())
+        else:
+            start = QPointF(rect.left(), self.y())
+            end = QPointF(rect.right(), self.y())
+        line = QLineF(self.mapFromScene(start), self.mapFromScene(end))
+        if line != self.line():
+            self.setLine(line)
 
     def shape(self):
         path = super().shape()
@@ -1113,6 +1127,9 @@ class Guideline(QGraphicsLineItem):
         super().paint(painter, option, widget)
     
     def itemChange(self, change, value):
+        if change == QGraphicsItem.GraphicsItemChange.ItemSceneHasChanged:
+            # Também cobre criação, carregamento e restauração pelo histórico.
+            self.update_workspace_extent()
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
             new_pos = value
             

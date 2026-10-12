@@ -1573,6 +1573,7 @@ class OrganogramEditorMixin:
         self.spin_phys_w.setEnabled(not active)
         self.spin_phys_h.setEnabled(not active)
         self.chk_doc_proporcao.setEnabled(not active)
+        self.document_size_controls.refresh()
         if not hasattr(self, "organogram_panel"):
             return
         self._organogram_section.setVisible(active)

@@ -124,6 +124,7 @@ def history_inputs(window):
                   for i in range(window.lst_placeholders.count())),
             window.btn_lock_guides.isChecked(), window.btn_toggle_guides.isChecked(),
             window.chk_doc_proporcao.isChecked(), window._doc_aspect_ratio,
+            getattr(window, '_document_size_preset', 'custom'),
             getattr(window, "_board_margin_mm", None), getattr(window, "_board_grid_mm", None),
             _freeze(getattr(window, "_board_connector_style", None)),
         )

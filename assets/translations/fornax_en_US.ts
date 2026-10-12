@@ -5274,7 +5274,209 @@ Available blocks: {nomes}</translation>
       <source>&lt;b&gt;HABILITAR LINK (URL)&lt;/b&gt;&lt;br&gt;&lt;br&gt;Cria uma área clicável no PDF exportado.</source>
       <translation>&lt;b&gt;ENABLE LINK (URL)&lt;/b&gt;&lt;br&gt;&lt;br&gt;Creates a clickable area in the exported PDF.</translation>
     </message>
-</context>
+    <message>
+      <source>Esta disposição exige muita memória. Reduza os itens por folha ou divida o documento em ladrilhos.</source>
+      <translation>This layout requires too much memory. Reduce the items per sheet or tile the document.</translation>
+    </message>
+    <message>
+      <source>Primeiro uso: cartão de identificação adicionado à biblioteca.</source>
+      <translation>First use: an identification card was added to the library.</translation>
+    </message>
+    <message>
+      <source>Não foi possível preparar o modelo inicial. Você pode criar ou importar um modelo.</source>
+      <translation>The initial template could not be prepared. You can create or import a template.</translation>
+    </message>
+    <message>
+      <source>Crie um modelo para começar</source>
+      <translation>Create a template to get started</translation>
+    </message>
+    <message>
+      <source>Escolha um ponto de partida em Novo modelo ou importe um modelo existente.</source>
+      <translation>Choose a starting point in New template or import an existing template.</translation>
+    </message>
+    <message>
+      <source>Criar modelo</source>
+      <translation>Create template</translation>
+    </message>
+    <message>
+      <source>Escolher o tamanho da página</source>
+      <translation>Choose the page size</translation>
+    </message>
+    <message>
+      <source>Cartão de visita</source>
+      <translation>Business card</translation>
+    </message>
+    <message>
+      <source>Quadrado — 100 × 100 mm</source>
+      <translation>Square — 100 × 100 mm</translation>
+    </message>
+    <message>
+      <source>Orientação vertical</source>
+      <translation>Portrait orientation</translation>
+    </message>
+    <message>
+      <source>Orientação horizontal</source>
+      <translation>Landscape orientation</translation>
+    </message>
+    <message>
+      <source>Este formato ultrapassa o limite de pixels do modelo. Use Configurar saída para ampliar e dividir em ladrilhos.</source>
+      <translation>This format exceeds the template pixel limit. Use Configure output to enlarge and split into tiles.</translation>
+    </message>
+    <message>
+      <source>Tamanho acima do limite</source>
+      <translation>Size exceeds the limit</translation>
+    </message>
+    <message>
+      <source>Desempenho e qualidade</source>
+      <translation>Performance and quality</translation>
+    </message>
+    <message>
+      <source>Desempenho e qualidade…</source>
+      <translation>Performance and quality…</translation>
+    </message>
+    <message>
+      <source>Perfil</source>
+      <translation>Profile</translation>
+    </message>
+    <message>
+      <source>Limite de pixels por imagem</source>
+      <translation>Pixel limit per image</translation>
+    </message>
+    <message>
+      <source>Resolução de saída</source>
+      <translation>Output resolution</translation>
+    </message>
+    <message>
+      <source>Econômico — 12 MP / 150 DPI</source>
+      <translation>Economy — 12 MP / 150 DPI</translation>
+    </message>
+    <message>
+      <source>Equilibrado — 36 MP / 300 DPI</source>
+      <translation>Balanced — 36 MP / 300 DPI</translation>
+    </message>
+    <message>
+      <source>Ampliado — 72 MP / 300 DPI</source>
+      <translation>Expanded — 72 MP / 300 DPI</translation>
+    </message>
+    <message>
+      <source>Grande formato — 150 MP / 300 DPI</source>
+      <translation>Large format — 150 MP / 300 DPI</translation>
+    </message>
+    <message>
+      <source>As dimensões físicas devem ser positivas.</source>
+      <translation>Physical dimensions must be positive.</translation>
+    </message>
+    <message>
+      <source>As dimensões da imagem devem ser inteiras e positivas.</source>
+      <translation>Image dimensions must be positive integers.</translation>
+    </message>
+    <message>
+      <source>A saída excede o orçamento de memória do perfil. Reduza o DPI ou use Ladrilhos.</source>
+      <translation>The output exceeds the profile memory budget. Lower the DPI or use Tiles.</translation>
+    </message>
+    <message>
+      <source>A saída prevista tem {mp:.1f} MP ({w} × {h} pixels) e ultrapassa o perfil de {limit} MP ou o limite de {side} pixels por lado. Reduza o DPI em Configurações → Desempenho e qualidade, escolha outro perfil ou use Ladrilhos.</source>
+      <translation>The expected output has {mp:.1f} MP ({w} × {h} pixels) and exceeds the {limit} MP profile or the limit of {side} pixels per side. Lower the DPI in Settings → Performance and quality, choose another profile, or use Tiles.</translation>
+    </message>
+    <message>
+      <source>Cada dimensão do documento deve ser de até 10.000 mm. A resolução e os limites de exportação são definidos em Desempenho e qualidade.</source>
+      <translation>Each document dimension must be at most 10,000 mm. Export resolution and limits are set in Performance and quality.</translation>
+    </message>
+    <message>
+      <source>Escolha a resolução e o limite de pixels da exportação. As medidas em milímetros, a edição e a abertura dos modelos permanecem independentes do perfil.</source>
+      <translation>Choose the export resolution and pixel limit. Dimensions in millimeters, editing, and opening templates remain independent of the profile.</translation>
+    </message>
+    <message>
+      <source>Combine DPI e limite conforme o trabalho. O programa não reduz automaticamente a qualidade para caber no perfil.</source>
+      <translation>Combine DPI and pixel limit to suit the job. The program does not automatically lower quality to fit the profile.</translation>
+    </message>
+    <message>
+      <source>Recomendado para computadores com pouca memória, como os de 4 GB. A memória disponível e os demais programas abertos também influenciam.</source>
+      <translation>Recommended for computers with little memory, such as those with 4 GB. Available memory and other running programs also affect performance.</translation>
+    </message>
+    <message>
+      <source>Para cartões, certificados e documentos comuns, preservando a resolução de 300 DPI.</source>
+      <translation>For cards, certificates, and common documents, preserving 300 DPI resolution.</translation>
+    </message>
+    <message>
+      <source>Para documentos maiores, incluindo A1 a 300 DPI. Requer mais memória disponível.</source>
+      <translation>For larger documents, including A1 at 300 DPI. Requires more available memory.</translation>
+    </message>
+    <message>
+      <source>Para quadros grandes. Um documento de 1 × 1 m a 300 DPI ocupa cerca de 139,5 MP; 3 × 3 m a 96 DPI ocupa cerca de 128,6 MP.</source>
+      <translation>For large boards. A 1 × 1 m document at 300 DPI uses about 139.5 MP; 3 × 3 m at 96 DPI uses about 128.6 MP.</translation>
+    </message>
+    <message>
+      <source>O limite vale para cada imagem ou folha gerada, não para o tamanho do arquivo em MB. Um buffer de 150 MP ocupa cerca de 600 MB; a geração pode usar mais de um buffer. DPI menor reduz a definição de textos pequenos e linhas finas. Para preservar as medidas ao imprimir, use tamanho real/100%; PNG e JPEG dependem de o leitor respeitar os metadados de resolução.</source>
+      <translation>The limit applies to each generated image or sheet, not the file size in MB. A 150 MP buffer uses about 600 MB; generation may use multiple buffers. Lower DPI reduces the definition of small text and thin lines. To preserve print dimensions, use actual size/100%; PNG and JPEG depend on the viewer respecting resolution metadata.</translation>
+    </message>
+    <message>
+      <source>Abra um modelo para consultar a estimativa de saída.</source>
+      <translation>Open a template to view the output estimate.</translation>
+    </message>
+    <message>
+      <source>Não foi possível calcular a estimativa deste modelo.</source>
+      <translation>Could not calculate the estimate for this template.</translation>
+    </message>
+    <message>
+      <source>O documento inteiro excede este perfil. Reduza o DPI, aumente o limite ou use Ladrilhos.</source>
+      <translation>The entire document exceeds this profile. Lower the DPI, increase the limit, or use Tiles.</translation>
+    </message>
+    <message>
+      <source>Documento inteiro: {mmw:g} × {mmh:g} mm → {w} × {h} pixels ({mp:.1f} MP), cerca de {mb:.0f} MB por buffer. Em Ladrilhos ou Itens por folha, o limite é verificado por folha.</source>
+      <translation>Entire document: {mmw:g} × {mmh:g} mm → {w} × {h} pixels ({mp:.1f} MP), about {mb:.0f} MB per buffer. For Tiles or Items per sheet, the limit is checked per sheet.</translation>
+    </message>
+    <message>
+      <source>Imagem prevista: {mmw:g} × {mmh:g} mm; {w} × {h} pixels ({mp:.1f} MP), {mb:.0f} MB por buffer.</source>
+      <translation>Expected image: {mmw:g} × {mmh:g} mm; {w} × {h} pixels ({mp:.1f} MP), {mb:.0f} MB per buffer.</translation>
+    </message>
+    <message>
+      <source>Saída: {dpi} DPI; limite de {mp} MP por imagem.</source>
+      <translation>Output: {dpi} DPI; limit of {mp} MP per image.</translation>
+    </message>
+    <message>
+      <source>Uma página PDF deve ter até 5 metros por lado. Para documentos maiores, use Ladrilhos.</source>
+      <translation>A PDF page must be at most 5 meters per side. For larger documents, use Tiles.</translation>
+    </message>
+    <message><source>300 DPI (fixo)</source><translation>300 DPI (fixed)</translation></message>
+    <message><source>Econômico — 12 MP</source><translation>Economy — 12 MP</translation></message>
+    <message><source>Equilibrado — 36 MP</source><translation>Balanced — 36 MP</translation></message>
+    <message><source>Ampliado — 72 MP</source><translation>Expanded — 72 MP</translation></message>
+    <message><source>Grande formato — 150 MP</source><translation>Large format — 150 MP</translation></message>
+    <message><source>A saída excede o orçamento de memória do perfil. Escolha outro perfil ou use Ladrilhos.</source><translation>The output exceeds the profile memory budget. Choose another profile or use Tiles.</translation></message>
+    <message><source>A saída prevista tem {mp:.1f} MP ({w} × {h} pixels) e ultrapassa o perfil de {limit} MP ou o limite de {side} pixels por lado. Escolha outro perfil em Configurações → Desempenho e qualidade ou use Ladrilhos.</source><translation>The planned output has {mp:.1f} MP ({w} × {h} pixels) and exceeds the {limit} MP profile or the limit of {side} pixels per side. Choose another profile in Settings → Performance and quality or use Tiles.</translation></message>
+    <message><source>Cada dimensão do documento deve ser de até 10.000 mm. A exportação permanece em 300 DPI; os limites de pixels são definidos em Desempenho e qualidade.</source><translation>Each document dimension must be at most 10,000 mm. Export remains at 300 DPI; pixel limits are set in Performance and quality.</translation></message>
+    <message><source>Escolha o limite de pixels conforme o trabalho e a memória disponível. A saída permanece em 300 DPI.</source><translation>Choose the pixel limit according to the task and available memory. Output remains at 300 DPI.</translation></message>
+    <message><source>Escolha o limite de pixels da exportação. A resolução permanece fixa em 300 DPI em todos os perfis. As medidas em milímetros, a edição e a abertura dos modelos permanecem independentes do perfil.</source><translation>Choose the export pixel limit. Resolution stays fixed at 300 DPI in all profiles. Measurements in millimeters, editing and opening templates remain independent of the profile.</translation></message>
+    <message><source>O documento inteiro excede este perfil. Aumente o limite ou use Ladrilhos.</source><translation>The entire document exceeds this profile. Increase the limit or use Tiles.</translation></message>
+    <message><source>O limite vale para cada imagem ou folha gerada, não para o tamanho do arquivo em MB. Um buffer de 150 MP ocupa cerca de 600 MB; a geração pode usar mais de um buffer. O perfil não reduz a resolução nem redimensiona a saída automaticamente. Para preservar as medidas ao imprimir, use tamanho real/100%; PNG e JPEG dependem de o leitor respeitar os metadados de resolução.</source><translation>The limit applies to each generated image or sheet, not to the file size in MB. A 150 MP buffer uses about 600 MB; generation may use more than one buffer. The profile does not automatically lower the resolution or resize the output. To preserve measurements when printing, use actual size/100%; PNG and JPEG require the viewer to respect resolution metadata.</translation></message>
+    <message><source>Para quadros grandes. Um documento de 1 × 1 m a 300 DPI ocupa cerca de 139,5 MP. Documentos maiores podem ser divididos em Ladrilhos.</source><translation>For large boards. A 1 × 1 m document at 300 DPI uses about 139.5 MP. Larger documents can be split into Tiles.</translation></message>
+    <message><source>Econômico — 20 MP</source><translation>Economy — 20 MP</translation></message>
+    <message><source>Equilibrado — 40 MP</source><translation>Balanced — 40 MP</translation></message>
+    <message><source>Ampliado — 80 MP</source><translation>Expanded — 80 MP</translation></message>
+    <message><source>Alta capacidade — 300 MP</source><translation>High capacity — 300 MP</translation></message>
+    <message><source>Máximo — 600 MP</source><translation>Maximum — 600 MP</translation></message>
+    <message><source>Não foi possível gerar o material</source><translation>Could not generate the material</translation></message>
+    <message><source>Não foi possível reservar memória para a geração. A memória disponível pode ter mudado durante o processo.</source><translation>Could not allocate memory for generation. Available memory may have changed during the process.</translation></message>
+    <message><source>Não há capacidade de memória suficiente para esta geração: são necessários cerca de {required:.0f} MB para os buffers, mas o orçamento atual permite {budget:.0f} MB.</source><translation>There is insufficient memory capacity for this generation: the buffers require about {required:.0f} MB, but the current budget allows {budget:.0f} MB.</translation></message>
+    <message><source>O programa está configurado para até {limit} MP por imagem. Esta saída exige {mp:.1f} MP ({w} × {h} pixels).</source><translation>The program is configured for up to {limit} MP per image. This output requires {mp:.1f} MP ({w} × {h} pixels).</translation></message>
+    <message><source>A saída prevista tem {w} × {h} pixels e excede o limite técnico de {side} pixels por lado. Aumentar o perfil de desempenho não remove esse limite. Use Ladrilhos.</source><translation>The planned output has {w} × {h} pixels and exceeds the technical limit of {side} pixels per side. Increasing the performance profile does not remove this limit. Use Tiles.</translation></message>
+    <message><source>Verifique a quantidade de memória disponível. Se houver memória suficiente, acesse Configurações → Desempenho e qualidade para escolher um perfil de maior capacidade, até 600 MP. Aumentar o perfil não aumenta a memória livre do computador. Você também pode dividir a saída em Ladrilhos.</source><translation>Check the amount of available memory. If there is enough memory, go to Settings → Performance and quality to choose a higher-capacity profile, up to 600 MP. Increasing the profile does not increase the computer's free memory. You can also split the output into Tiles.</translation></message>
+    <message><source>O limite vale para cada imagem ou folha gerada, não para o tamanho do arquivo em MB. Um buffer de 600 MP ocupa cerca de 2,4 GB; dois buffers ocupam 4,8 GB, além dos recursos do modelo. A memória disponível continua sendo verificada. O perfil não reduz a resolução nem redimensiona a saída automaticamente. Para imprimir nas medidas planejadas, use tamanho real/100%.</source><translation>The limit applies to each generated image or sheet, not to the file size in MB. A 600 MP buffer uses about 2.4 GB; two buffers use 4.8 GB, in addition to template resources. Available memory is still checked. The profile does not automatically lower the resolution or resize the output. To print at the planned dimensions, use actual size/100%.</translation></message>
+    <message><source>Para quadros de até aproximadamente 1,46 × 1,46 m a 300 DPI. Dois buffers de 300 MP ocupam cerca de 2,4 GB. Exige memória disponível suficiente.</source><translation>For boards up to approximately 1.46 × 1.46 m at 300 DPI. Two 300 MP buffers use about 2.4 GB. Requires enough available memory.</translation></message>
+    <message><source>Para quadros de até aproximadamente 2,07 × 2,07 m a 300 DPI. Dois buffers de 600 MP ocupam cerca de 4,8 GB. Pela proteção de 70%, são necessários aproximadamente 6,9 GB disponíveis só para esse orçamento.</source><translation>For boards up to approximately 2.07 × 2.07 m at 300 DPI. Two 600 MP buffers use about 4.8 GB. With the 70% safeguard, approximately 6.9 GB must be available for this budget alone.</translation></message>
+    <message><source>Limite de exportação</source><translation>Export limit</translation></message>
+    <message><source>Limite de exportação…</source><translation>Export limit…</translation></message>
+    <message><source>Limite por imagem</source><translation>Limit per image</translation></message>
+    <message><source>Limita o tamanho das imagens geradas para controlar o consumo de memória.</source><translation>Limits the size of generated images to control memory usage.</translation></message>
+    <message><source>{value} MP (padrão)</source><translation>{value} MP (default)</translation></message>
+    <message><source>Este documento exige aproximadamente {mp:.1f} MP.</source><translation>This document requires approximately {mp:.1f} MP.</translation></message>
+    <message><source>Verifique a memória disponível. Se houver memória suficiente, aumente o limite em Configurações → Limite de exportação, até 600 MP, ou divida a saída em Ladrilhos. Aumentar o limite não aumenta a memória livre do computador.</source><translation>Check the available memory. If there is enough memory, increase the limit in Settings → Export limit, up to 600 MP, or split the output into Tiles. Increasing the limit does not increase the computer’s free memory.</translation></message>
+    <message><source>A saída prevista tem {w} × {h} pixels e excede o limite técnico de {side} pixels por lado. Aumentar o limite de exportação não remove esse limite técnico. Use Ladrilhos.</source><translation>The planned output is {w} × {h} pixels and exceeds the technical limit of {side} pixels per side. Increasing the export limit does not remove this technical limit. Use Tiles.</translation></message>
+    <message><source>Cada dimensão do documento deve ser de até 10.000 mm. A exportação permanece em 300 DPI; os limites de pixels são definidos em Limite de exportação.</source><translation>Each document dimension must be at most 10,000 mm. Export remains at 300 DPI; pixel limits are set in Export limit.</translation></message>
+    <message><source>Primeiro uso: modelo inicial adicionado à biblioteca.</source><translation>First use: initial template added to the library.</translation></message>
+    <message><source>Formato quadrado (1:1)</source><translation>Square format (1:1)</translation></message>
+  </context>
   <context>
     <name>EditorProtection</name>
     <message><source>Alterar senha</source><translation>Change password</translation></message>

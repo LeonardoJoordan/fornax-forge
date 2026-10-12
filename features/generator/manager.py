@@ -9,6 +9,7 @@ from pathlib import Path
 # Imports corrigidos para a nova arquitetura
 from core.naming_engine import build_output_filename, sanitize_filename, unique_filename
 from .production_plan import build_imposition_plan
+from .imposition import SheetAssembler
 from .pdf_naming import grouped_pdf_name, face_labels, sheet_page_labels
 from .image_output import JPEG_QUALITY
 from .workers import (
@@ -17,25 +18,38 @@ from .workers import (
 )
 from core.i18n import tr
 from core.paths import get_temp_dir
+from core.model_document import MAX_STATIC_BASE_PIXELS
+from core.performance import generation_memory_message
 
 RENDER_MEMORY_BUDGET = 768 * 1024 * 1024
 
 
-def _bounded_worker_count(requested, renderers, *, sheet=None, capacity=1, duplex=False, jpeg=False):
+def _bounded_worker_count(requested, renderers, *, sheet=None, capacity=1, duplex=False, jpeg=False, memory_budget=None):
     """Limita buffers simultâneos sem reduzir a velocidade de modelos comuns."""
-    canvas = renderers[0].tpl.get("canvas_size", {})
-    canvas_pixels = int(canvas.get("w", 0)) * int(canvas.get("h", 0))
-    page_count = len(renderers)
-    shared_bases = canvas_pixels * 4 * page_count
+    memory_budget = RENDER_MEMORY_BUDGET if memory_budget is None else memory_budget
+    dimensions = [r.output_dimensions() if hasattr(r, 'output_dimensions') else
+                  (int(r.tpl['canvas_size']['w']), int(r.tpl['canvas_size']['h'])) for r in renderers]
+    pixels = [w * h for w, h in dimensions]
+    canvas_pixels = max(pixels)
+    shared_bases = sum(p * 4 for p in pixels if p <= MAX_STATIC_BASE_PIXELS)
     if sheet is None:
-        per_worker = canvas_pixels * 4 * (2 if jpeg else 1)
+        # Folhas grandes reservam também espaço para cópias temporárias do
+        # codificador/PDF, mesmo quando não há composição JPEG.
+        per_worker = canvas_pixels * 4 * (2 if jpeg or canvas_pixels > MAX_STATIC_BASE_PIXELS else 1)
     else:
         sheet_pixels = sheet.sheet_w * sheet.sheet_h
         face_count = 2 if duplex else 1
         per_worker = 4 * (canvas_pixels * max(1, capacity) + sheet_pixels * face_count)
+        if max(canvas_pixels, sheet_pixels) > MAX_STATIC_BASE_PIXELS:
+            # Imposição redimensiona um cartão por vez antes de desenhá-lo.
+            # A rotação do verso pode manter uma segunda cópia temporária.
+            scaled_pixels = getattr(sheet, 'card_w_px', sheet.sheet_w) * getattr(sheet, 'card_h_px', sheet.sheet_h)
+            per_worker += scaled_pixels * 4 * face_count
         if jpeg:
             per_worker += sheet_pixels * 4
-    available = max(per_worker, RENDER_MEMORY_BUDGET - shared_bases)
+    if shared_bases + per_worker > memory_budget:
+        raise MemoryError(generation_memory_message(shared_bases + per_worker, memory_budget))
+    available = memory_budget - shared_bases
     return max(1, min(requested, available // max(1, per_worker)))
 
 class RenderManager(QObject):
@@ -44,7 +58,7 @@ class RenderManager(QObject):
     finished_process = Signal()
     error_occurred = Signal(str)
 
-    def __init__(self, renderers, rows_plain, rows_rich, output_dir, filename_pattern, imposition_settings=None, export_format="PNG", single_pdf=False, target_w_mm=100.0, target_h_mm=150.0, source_rows=None, authorized_snapshot=None, protected_content=False):
+    def __init__(self, renderers, rows_plain, rows_rich, output_dir, filename_pattern, imposition_settings=None, export_format="PNG", single_pdf=False, target_w_mm=100.0, target_h_mm=150.0, source_rows=None, authorized_snapshot=None, protected_content=False, performance=None):
         super().__init__()
         if not isinstance(renderers, (list, tuple)):
             renderers = [renderers]
@@ -63,8 +77,10 @@ class RenderManager(QObject):
         self.target_h_mm = target_h_mm
         self.authorized_snapshot = authorized_snapshot
         self.protected_content = bool(protected_content)
+        self.performance = performance
+        self.memory_budget = performance.buffer_budget() if performance else RENDER_MEMORY_BUDGET
         
-        self.imposition_settings = imposition_settings or {"enabled": False}
+        self.imposition_settings = dict(imposition_settings or {"enabled": False})
         self.is_imposition = self.imposition_settings.get("enabled", False)
         
         self.workers = []
@@ -85,6 +101,8 @@ class RenderManager(QObject):
             self._on_worker_error(str(error))
 
     def _start(self):
+        if self.performance:
+            self.memory_budget = self.performance.buffer_budget()
         self._is_running = True
         self._finish_emitted = False # Trava de segurança da Etapa Anterior
         self.cards_done = 0
@@ -98,16 +116,46 @@ class RenderManager(QObject):
             return
         
         self.log_updated.emit(tr("📋 Planejando produção…"))
+        if self.performance:
+            settings = self.imposition_settings
+            settings.update(export_dpi=self.performance.dpi, pixel_limit=self.performance.megapixels)
+            width = settings.get('target_w_mm', self.target_w_mm) if self.is_imposition else self.target_w_mm
+            height = settings.get('target_h_mm', self.target_h_mm) if self.is_imposition else self.target_h_mm
+            for renderer in self.page_renderers:
+                renderer.configure_export(self.performance, width, height)
+            self.log_updated.emit(tr('Saída: {dpi} DPI; limite de {mp} MP por imagem.').format(
+                dpi=self.performance.dpi, mp=self.performance.megapixels))
+            if self.is_imposition:
+                assembler = SheetAssembler.from_settings(settings)
+                predicted_width, predicted_height = assembler.sheet_w, assembler.sheet_h
+                physical_size = (assembler.sheet_w_mm, assembler.sheet_h_mm)
+            else:
+                predicted_width, predicted_height = self.renderer.output_dimensions()
+                physical_size = (width, height)
+            self.log_updated.emit(tr('Imagem prevista: {mmw:g} × {mmh:g} mm; {w} × {h} pixels ({mp:.1f} MP), {mb:.0f} MB por buffer.').format(
+                mmw=physical_size[0], mmh=physical_size[1], w=predicted_width, h=predicted_height,
+                mp=predicted_width * predicted_height / 1_000_000, mb=predicted_width * predicted_height * 4 / 1_000_000))
+            if self.export_format == 'PDF':
+                from .workers import physical_page
+                physical_page(*physical_size)
         
         cpu_count = os.cpu_count() or 4
         num_threads = max(1, cpu_count - 2)
         num_threads = _bounded_worker_count(num_threads, self.page_renderers,
-                                          jpeg=self.export_format in JPEG_QUALITY)
+                                          jpeg=self.export_format in JPEG_QUALITY, memory_budget=self.memory_budget)
         
         # --- LÓGICA HÍBRIDA (Fim do castramento de threads) ---
+        large_canvas = any(r.output_dimensions()[0] * r.output_dimensions()[1]
+                           > MAX_STATIC_BASE_PIXELS for r in self.page_renderers)
+        large_sheet = self.is_imposition and (
+            round(self.imposition_settings.get('sheet_w_mm', 210) * (self.performance.dpi if self.performance else 300) / 25.4)
+            * round(self.imposition_settings.get('sheet_h_mm', 297) * (self.performance.dpi if self.performance else 300) / 25.4)
+            > MAX_STATIC_BASE_PIXELS)
+        large_grouped_pdf = self.single_pdf and self.export_format == 'PDF' and (large_canvas or large_sheet)
         self.is_hybrid = (
             self.single_pdf and self.export_format == "PDF"
             and not self.protected_content
+            and not large_grouped_pdf
         )
         if self.is_hybrid:
             self._hybrid_temporary = tempfile.TemporaryDirectory(
@@ -156,7 +204,10 @@ class RenderManager(QObject):
         for page_renderer in self.page_renderers:
             page_renderer.pre_render_static_base()
 
-        if self.protected_content and self.single_pdf and self.export_format == "PDF":
+        if (self.protected_content and self.single_pdf and self.export_format == "PDF") or large_grouped_pdf:
+            # Reutiliza a montagem raster sequencial em memória. Evita reler
+            # PNGs A1 que excedem o limite de decodificação do Qt e não muda
+            # texto/linhas para pintura vetorial no PDF.
             self._start_secure_grouped_pdf(all_tasks_data)
         elif self.is_imposition:
             self._start_imposition_mode(all_tasks_data, num_threads)
@@ -205,7 +256,16 @@ class RenderManager(QObject):
             snapshot.close()
 
     def _start_secure_grouped_pdf(self, all_tasks_data):
-        self.log_updated.emit(tr("🔒 Gerando PDF protegido sem cache intermediário…"))
+        if self.is_imposition:
+            settings = {**self.imposition_settings, 'duplex': len(self.page_renderers) > 1}
+            plan = build_imposition_plan(all_tasks_data, settings)
+            if plan.capacity <= 0:
+                self._on_worker_error(tr("O modelo é grande demais para as margens da folha."))
+                return
+            _bounded_worker_count(1, self.page_renderers, sheet=plan.assembler,
+                                  capacity=plan.capacity, duplex=plan.duplex, memory_budget=self.memory_budget)
+        self.log_updated.emit(tr("🔒 Gerando PDF protegido sem cache intermediário…") if self.protected_content
+                              else tr("📦 Montando o PDF agrupado em segundo plano…"))
         worker = SecureGroupedPdfWorker(
             all_tasks_data, self.page_renderers, self.output_dir,
             self.imposition_settings, self.target_w_mm, self.target_h_mm,
@@ -250,6 +310,7 @@ class RenderManager(QObject):
         num_threads = _bounded_worker_count(
             num_threads, self.page_renderers, sheet=plan.assembler,
             capacity=capacity, duplex=plan.duplex, jpeg=self.export_format in JPEG_QUALITY,
+            memory_budget=self.memory_budget,
         )
             
         total_pages = len(plan.sheets)
@@ -339,7 +400,6 @@ class RenderManager(QObject):
         canvas_w = self.renderer.tpl.get("canvas_size", {}).get("w", 1000)
         canvas_h = self.renderer.tpl.get("canvas_size", {}).get("h", 1000)
         if self.is_imposition:
-            from .imposition import SheetAssembler
             assembler = SheetAssembler.from_settings(self.imposition_settings)
             canvas_w, canvas_h = assembler.sheet_w, assembler.sheet_h
         self.assembler_worker = HybridAssemblerWorker(

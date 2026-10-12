@@ -64,7 +64,7 @@ class ConfigDialog(QDialog):
         self.txt_pattern.setText(current_pattern)
         self.txt_pattern.setMinimumHeight(34)
 
-        lbl_ext = QLabel(".png / .pdf")
+        lbl_ext = QLabel(".png / .jpg / .pdf")
         themed_style(lbl_ext, "font-size: 14px; opacity: 0.7;")
 
         ly_preview.addWidget(self.txt_pattern)

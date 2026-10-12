@@ -17,7 +17,7 @@ DOCS = ('USO_INSTITUCIONAL.md', 'PRIVACIDADE_E_ARMAZENAMENTO.md',
         'THIRD_PARTY_LICENSES.md', 'AVISO-DISTRIBUICAO.txt', 'ASSET_PROVENANCE.md',
         'RELEASE.md', 'GUIA_MODELOS_FORNAX.md', 'MODELOS_FRENTE_VERSO.md',
         'CHECKLIST_DISTRIBUICAO_FORNAX.md', 'REFERENCIAS_LEGADAS_E_REPOSITORIO.md',
-        'MODELOS_INICIAIS.md', 'AJUDA_LOCAL.md')
+        'MODELOS_INICIAIS.md', 'AJUDA_LOCAL.md', 'DESEMPENHO_E_QUALIDADE.md')
 ASSETS = {'icons': {'.svg', '.png', '.ico', '.icns'}, 'fonts': {'.ttf'},
           'themes': {'.json'}, 'translations': {'.qm'}, 'linux': {'.xml'},
           'templates': {'.json', '.fornax', '.png', '.jpg', '.jpeg', '.svg'},

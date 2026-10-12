@@ -3024,6 +3024,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             self._doc_aspect_ratio = self.spin_phys_w.value() / h if h > 0 else 1.0
 
     def _on_doc_w_changed(self, val):
+        if hasattr(self, 'document_size_controls'):
+            self.document_size_controls.manual_change()
         if self.chk_doc_proporcao.isChecked() and self._doc_aspect_ratio > 0:
             new_h = val / self._doc_aspect_ratio
             self.spin_phys_h.blockSignals(True)
@@ -3032,6 +3034,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self._on_physical_size_changed()
 
     def _on_doc_h_changed(self, val):
+        if hasattr(self, 'document_size_controls'):
+            self.document_size_controls.manual_change()
         if self.chk_doc_proporcao.isChecked() and self._doc_aspect_ratio > 0:
             new_w = val * self._doc_aspect_ratio
             self.spin_phys_w.blockSignals(True)
@@ -3069,6 +3073,9 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
     def _on_physical_size_changed(self, _=None, *, document_rect=None):
         """Redimensiona APENAS a prancheta (papel branco). A imagem de fundo agora é livre."""
         if not hasattr(self, 'scene'): return
+        if document_rect is None and hasattr(self, 'document_size_controls'):
+            if self.document_size_controls.reject_invalid_dimensions():
+                return
         
         w_px = mm_to_px(self.spin_phys_w.value())
         h_px = mm_to_px(self.spin_phys_h.value())
@@ -3090,6 +3097,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         for item in self.scene.items():
             if getattr(item, 'is_document_background', False):
                 item.bind_document(rect)
+        if hasattr(self, 'document_size_controls'):
+            self.document_size_controls.refresh()
 
     def _on_click_load_bg(self):
         path, _ = QFileDialog.getOpenFileName(self, tr("Selecionar fundo"), "", tr("Imagens (*.png *.jpg *.jpeg)"))
@@ -4145,6 +4154,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             "doc_proportion_locked": self.chk_doc_proporcao.isChecked(),
             "doc_aspect_ratio": self._doc_aspect_ratio
         }
+        data['document_size_preset'] = getattr(self, '_document_size_preset', 'custom')
         if tables_data:
             data['tables'] = tables_data
         
@@ -4463,7 +4473,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self.spin_phys_w.blockSignals(True)
         self.spin_phys_h.blockSignals(True)
         for control in (self.spin_phys_w, self.spin_phys_h):
-            control.setRange(0.1, 50000) if self._active_page_id == "organogram" else control.setRange(10, 1000)
+            control.setRange(0.1, 50000) if self._active_page_id == "organogram" else control.setRange(10, 10000)
         self.spin_phys_w.setValue(data.get("target_w_mm", 100.0))
         self.spin_phys_h.setValue(data.get("target_h_mm", 150.0))
         self.spin_phys_w.blockSignals(False)
@@ -4477,6 +4487,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self._refresh_doc_proportion_button()
 
         self.fallback_bg = create_canvas_paper(self.scene, QRectF(0, 0, canvas_w, canvas_h))
+        self.document_size_controls.restore(data)
 
         # Atualiza as labels informativas e o rect de fundo
         self._on_physical_size_changed(document_rect=QRectF(0, 0, canvas_w, canvas_h))
@@ -4780,6 +4791,9 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             return
         self.scene.setSceneRect(workspace_rect)
         self.view.setSceneRect(workspace_rect)
+        for item in self.scene.items():
+            if isinstance(item, Guideline):
+                item.update_workspace_extent(workspace_rect)
 
     def _zoom_to_fit(self):
         total_rect = self._get_content_rect(for_fit=True)

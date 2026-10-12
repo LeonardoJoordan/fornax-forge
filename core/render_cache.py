@@ -281,7 +281,16 @@ def _ensure_background_proxy(model_dir: Path | None, template_data: dict) -> Pat
     canvas = spec["canvas_size"]
     props = spec["bg_props"]
 
+    # Este cache é uma aceleração opcional de pintura em resolução nativa.
+    # Não materializa o canvas inteiro de documentos grandes. Seus objetos e
+    # a imagem original continuam sendo pintados em previews/saídas reduzidos.
+    from core.model_document import MAX_STATIC_BASE_PIXELS
+    if max(canvas['w'], canvas['h']) > 16384 or canvas['w'] * canvas['h'] > MAX_STATIC_BASE_PIXELS:
+        return None
+
     image = QImage(canvas["w"], canvas["h"], QImage.Format_ARGB32)
+    if image.isNull():
+        return None
     image.fill(Qt.GlobalColor.transparent)
 
     target_w = max(1, int(round(abs(props["w"]))))
@@ -289,7 +298,12 @@ def _ensure_background_proxy(model_dir: Path | None, template_data: dict) -> Pat
 
     reader = QImageReader(str(source_path))
     reader.setAutoTransform(True)
-    reader.setScaledSize(QSize(target_w, target_h))
+    # Um fundo muito maior que a área útil não precisa ser ampliado na leitura.
+    raw_size = reader.size()
+    if raw_size.isValid():
+        ratio = min(1.0, target_w / raw_size.width(), target_h / raw_size.height())
+        reader.setScaledSize(QSize(max(1, round(raw_size.width() * ratio)),
+                                  max(1, round(raw_size.height() * ratio))))
     bg = reader.read()
 
     if bg.isNull():

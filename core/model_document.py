@@ -27,11 +27,13 @@ PAGE_IDS = ("front", "back")
 DEFAULT_NEW_MODEL_SIZE_MM = (148.0, 105.0)
 
 # O Qt armazena imagens ARGB em aproximadamente quatro bytes por pixel. O
-# canvas usa um teto menor que assets isolados porque geração paralela mantém
-# bases e imagens de saída simultaneamente.
+# buffers raster legados continuam limitados. A cena lógica é validada
+# separadamente; saídas configuradas usam os perfis em core.performance.
 MAX_CANVAS_DIMENSION = 16_384
-MAX_CANVAS_PIXELS = 32_000_000
-MAX_PHYSICAL_DIMENSION_MM = 5_000.0
+MAX_CANVAS_PIXELS = 80_000_000
+MAX_STATIC_BASE_PIXELS = 32_000_000
+MAX_PHYSICAL_DIMENSION_MM = 10_000.0
+MAX_LOGICAL_DIMENSION = math.ceil(MAX_PHYSICAL_DIMENSION_MM * 300 / 25.4)
 MAX_OBJECT_COORDINATE = MAX_CANVAS_DIMENSION * 16
 
 PAGE_COLLECTIONS = ("boxes", "images", "signatures", "shapes", "tables")
@@ -155,12 +157,20 @@ def validate_raster_dimensions(width: Any, height: Any, *, label: str = "imagem"
     return pixel_width, pixel_height
 
 
+def validate_canvas_dimensions(width: Any, height: Any) -> tuple[int, int]:
+    """Cena lógica a 300 unidades/polegada; não representa uma alocação raster."""
+    if any(not _positive_number(v) or not float(v).is_integer()
+           or v > MAX_LOGICAL_DIMENSION for v in (width, height)):
+        raise ModelValidationError('As dimensões do documento excedem o limite de 10 metros por lado ou são inválidas.')
+    return int(width), int(height)
+
+
 def _validate_dimensions(document: dict) -> None:
     canvas = document.get("canvas_size")
     if not isinstance(canvas, dict) or not _positive_number(canvas.get("w")) or not _positive_number(canvas.get("h")):
         raise ModelValidationError("canvas_size deve conter largura e altura positivas.")
 
-    validate_raster_dimensions(canvas["w"], canvas["h"], label="canvas")
+    validate_canvas_dimensions(canvas["w"], canvas["h"])
 
     width = document.get("target_w_mm")
     height = document.get("target_h_mm")

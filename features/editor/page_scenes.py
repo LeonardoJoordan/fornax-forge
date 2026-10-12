@@ -226,11 +226,14 @@ class PageScenesMixin:
         for control, value in ((self.spin_phys_w,state['target_w_mm']),
                                (self.spin_phys_h,state['target_h_mm'])):
             with QSignalBlocker(control):
-                control.setRange(.1,50000) if self._active_page_id=='organogram' else control.setRange(10,1000)
+                control.setRange(.1,50000) if self._active_page_id=='organogram' else control.setRange(10,10000)
                 control.setValue(value)
         with QSignalBlocker(self.chk_doc_proporcao):
             self.chk_doc_proporcao.setChecked(state['doc_proportion_locked'])
+        self._doc_aspect_ratio = state.get('doc_aspect_ratio',
+                                         self.spin_phys_w.value() / self.spin_phys_h.value())
         self._refresh_doc_proportion_button()
+        self.document_size_controls.restore(state)
         visible, locked = state['guidelines_visible'], state['guidelines_locked']
         with QSignalBlocker(self.btn_toggle_guides):
             self.btn_toggle_guides.setChecked(visible); self.btn_toggle_guides.setIcon(_visibility_icon(visible))

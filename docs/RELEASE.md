@@ -14,8 +14,9 @@ artefato. O processo abaixo não acrescenta rede ao aplicativo.
    O lock `requirements/linux-py313-runtime.lock` foi validado apenas em Linux
    x86_64/Python 3.13; não presume validação em Windows/macOS ou outras arquiteturas.
 3. Instalar em outro venv com `pip install --require-hashes -r <lock>`.
-4. Validar os fluxos do aplicativo e a instalação no SO alvo. Esta árvore não
-   inclui a suíte de testes nem o workflow do repositório de desenvolvimento anterior.
+4. Executar os testes do repositório e validar os fluxos do aplicativo e a
+   instalação no SO alvo. A seleção de recursos do pacote exclui a suíte de testes
+   e as evidências locais de desenvolvimento.
 5. `python script_nuitka.py` prepara uma árvore permitida em `build/`, compila e
    gera relatório Nuitka, relatório de licenças e inventário dos arquivos reais.
    Testes, caches, planos e README.pdf não entram nessa árvore.

@@ -12,13 +12,14 @@ import xml.etree.ElementTree as ET
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
 from PySide6.QtCore import QSettings, QTranslator
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QDialogButtonBox
 
 from core.i18n import initialize_i18n, tr
 from core.resources import PROJECT_ROOT
 from features.generator.image_output import export_choices
 from features.help.help_dialog import HelpDialog
 from features.editor.properties import CaixaDeTextoPanel, EditorDeTextoPanel
+from features.workspace.settings_dialogs import PerformanceDialog
 
 
 def interface_sources():
@@ -86,7 +87,16 @@ class InterfaceCatalogTest(unittest.TestCase):
                     dialog = HelpDialog()
                     text_panel = EditorDeTextoPanel()
                     properties = CaixaDeTextoPanel()
+                    limits = PerformanceDialog(settings)
                     try:
+                        limits.show()
+                        app.processEvents()
+                        self.assertEqual(limits.findChild(QDialogButtonBox).button(
+                            QDialogButtonBox.StandardButton.Apply).text(), tr('Aplicar'))
+                        self.assertEqual(limits.windowTitle(), tr('Limite de exportação'))
+                        self.assertNotEqual(limits.windowTitle(), 'Limite de exportação')
+                        self.assertEqual(limits.pixels.itemText(limits.pixels.findData(150)),
+                                         tr('{value} MP (padrão)').format(value=150))
                         self.assertEqual(dialog.windowTitle(), heading + ' — FORNAX Forge')
                         self.assertEqual(dialog.category_filter.itemText(0), tr('Todas as categorias'))
                         self.assertNotEqual(dialog.search.placeholderText(),
@@ -114,6 +124,8 @@ class InterfaceCatalogTest(unittest.TestCase):
                         dialog.deleteLater()
                         text_panel.deleteLater()
                         properties.deleteLater()
+                        limits.close()
+                        limits.deleteLater()
                         app.processEvents()
             finally:
                 settings.setValue('language/locale', 'pt_BR')
