@@ -1,4 +1,5 @@
 """A abertura enquadra o desenho na área final do canvas, sem alterar o modelo."""
+import gc
 import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -66,6 +67,27 @@ class EditorOpeningFitTest(unittest.TestCase):
     def test_hidden_auxiliary_background_and_handles_do_not_enlarge_content(self):
         window = self.editor()
         self.assertEqual(window._get_content_rect(for_fit=True), window._get_document_rect())
+
+    def test_fit_preserves_guides_without_external_python_references(self):
+        from features.editor.canvas_items import Guideline
+        window = self.editor()
+        window.add_guide(True, position=200)
+        window.add_guide(False, position=300)
+        window.show()
+        self.settle()
+        gc.collect()
+        self.assertEqual(sum(isinstance(item, Guideline) for item in window.scene.items()), 2)
+        self.assertEqual(len(window.get_current_scene_state()["guidelines"]), 2)
+
+    def test_fit_does_not_take_python_ownership_of_scene_items(self):
+        from shiboken6 import ownedByPython
+        from features.editor.canvas_items import Guideline
+        window = self.editor()
+        window.add_guide(True, position=200)
+        guide = next(item for item in window.scene.items() if isinstance(item, Guideline))
+        self.assertFalse(ownedByPython(guide))
+        window._get_content_rect(for_fit=True)
+        self.assertFalse(ownedByPython(guide))
 
     def test_blank_editor_opening_fits_default_page(self):
         window = self.editor(blank=True)

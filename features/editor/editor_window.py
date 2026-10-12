@@ -4740,10 +4740,15 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
 
     def _get_content_rect(self, *, for_fit=False):
         total_rect = self._get_document_rect()
-        for item in self.scene.items():
+        items = self.scene.items()
+        # PySide6 6.11 pode devolver a posse Python de um item sem pai ao
+        # consultar parentItem(), mesmo estando numa cena. Identifique os
+        # filhos pelo sentido inverso para não apagar guias/imagens no fit.
+        children = {child for item in items for child in item.childItems()} if for_fit else set()
+        for item in items:
             # O enquadramento considera os objetos visíveis, sem os limites
             # auxiliares dos filhos. A área de navegação mantém seus limites.
-            if (for_fit and (not item.isVisible() or item.parentItem() is not None)):
+            if (for_fit and (not item.isVisible() or item in children)):
                 continue
             if (isinstance(item, Guideline)
                     or item == getattr(self, 'fallback_bg', None)
