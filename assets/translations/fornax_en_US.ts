@@ -5493,6 +5493,12 @@ Available blocks: {nomes}</translation>
     <message><source>Posicione a luz no círculo. A sombra aparece no lado oposto. Use as setas para ajustar o ângulo.</source><translation>Position the light on the circle. The shadow appears on the opposite side. Use the arrow keys to adjust the angle.</translation></message>
     <message><source>Ângulo da luz</source><translation>Light angle</translation></message>
     <message><source>Ângulo da luz. 0°: direita; 90°: acima; 180°: esquerda; 270°: abaixo.</source><translation>Light angle. 0°: right; 90°: above; 180°: left; 270°: below.</translation></message>
+    <message>
+        <source>Não foi possível reservar memória para a sombra do objeto.</source>
+        <translation>Could not allocate memory for the object shadow.</translation>
+    </message>
+    <message><source>Expansão</source><translation>Spread</translation></message>
+    <message><source>Expansão da sombra</source><translation>Shadow spread</translation></message>
   </context>
   <context>
     <name>EditorProtection</name>

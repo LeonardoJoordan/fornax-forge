@@ -5493,6 +5493,12 @@ Bloques disponibles: {nomes}</translation>
     <message><source>Posicione a luz no círculo. A sombra aparece no lado oposto. Use as setas para ajustar o ângulo.</source><translation>Coloque la luz en el círculo. La sombra aparece en el lado opuesto. Use las flechas para ajustar el ángulo.</translation></message>
     <message><source>Ângulo da luz</source><translation>Ángulo de la luz</translation></message>
     <message><source>Ângulo da luz. 0°: direita; 90°: acima; 180°: esquerda; 270°: abaixo.</source><translation>Ángulo de la luz. 0°: derecha; 90°: arriba; 180°: izquierda; 270°: abajo.</translation></message>
+    <message>
+        <source>Não foi possível reservar memória para a sombra do objeto.</source>
+        <translation>No se pudo reservar memoria para la sombra del objeto.</translation>
+    </message>
+    <message><source>Expansão</source><translation>Expansión</translation></message>
+    <message><source>Expansão da sombra</source><translation>Expansión de la sombra</translation></message>
   </context>
   <context>
     <name>EditorProtection</name>

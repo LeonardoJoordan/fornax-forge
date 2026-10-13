@@ -47,12 +47,17 @@ def _bounded_worker_count(requested, renderers, *, sheet=None, capacity=1, duple
             per_worker += scaled_pixels * 4 * face_count
         if jpeg:
             per_worker += sheet_pixels * 4
-    if any(isinstance(box.get('shadow'), dict) and box['shadow'].get('enabled') is True
-           for renderer in renderers for box in getattr(renderer, 'tpl', {}).get('boxes', [])):
+    shadows = [item['shadow'] for renderer in renderers
+               for kind in ('boxes', 'images', 'shapes', 'tables')
+               for item in getattr(renderer, 'tpl', {}).get(kind, [])
+               if isinstance(item.get('shadow'), dict) and item['shadow'].get('enabled') is True]
+    if shadows:
         from core.text_effects import MAX_MASK_PIXELS, SHADOW_CACHE_BYTES
         shared_bases += SHADOW_CACHE_BYTES
         # Máscara, duas passagens do filtro e uma possível cópia do Qt.
-        per_worker += MAX_MASK_PIXELS * 4 * 4
+        # Expansão usa também cobertura RGB e dois discos para raios fracionários.
+        buffers = 8 if any(shadow.get('spread', 0) > 0 for shadow in shadows) else 4
+        per_worker += MAX_MASK_PIXELS * 4 * buffers
     if shared_bases + per_worker > memory_budget:
         raise MemoryError(generation_memory_message(shared_bases + per_worker, memory_budget))
     available = memory_budget - shared_bases

@@ -99,7 +99,47 @@ def normalize_line_body(item):
     return result
 
 
-def draw_shape(painter, item):
+def paint_mask_images(painter, path, images):
+    """Conteúdo local de uma forma usada como máscara, sem overlays de edição."""
+    painter.save()
+    try:
+        painter.setClipPath(path, Qt.ClipOperation.IntersectClip)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        base_opacity = painter.opacity()
+        for image, data in images:
+            painter.save()
+            try:
+                painter.setOpacity(base_opacity * data.get('opacity', 1))
+                w, h = data['width'], data['height']
+                painter.translate(data.get('x', 0)+w/2, data.get('y', 0)+h/2)
+                painter.rotate(data.get('rotation', 0))
+                painter.drawImage(QRectF(-w/2, -h/2, w, h), image,
+                                  data.get('source_rect', QRectF(image.rect())))
+            finally:
+                painter.restore()
+    finally:
+        painter.restore()
+
+
+def paint_shape_shadow(painter, path, item, cache=None, images=()):
+    from core.text_effects import paint_object_shadow
+    margin = outline_margin(item)
+    bounds = path.boundingRect().adjusted(-margin, -margin, margin, margin)
+    keys = ('shape_type', 'line_body', 'fill_color', 'fill_opacity', 'outline_enabled',
+            'outline_color', 'outline_opacity', 'outline_width', 'outline_position',
+            'outline_join', 'corner_radius', 'corner_radii')
+    def draw_source(target):
+        paint_shape_path(target, path, item)
+        if images:
+            paint_mask_images(target, path, images)
+            if item.get('outline_enabled'):
+                paint_shape_path(target, path, {**item, 'fill_opacity': 0})
+    paint_object_shadow(painter, bounds, item, draw_source,
+                        ('shape', tuple((key, item.get(key)) for key in keys),
+                         tuple((image.cacheKey(), data) for image, data in images)), cache)
+
+
+def draw_shape(painter, item, shadow_cache=None):
     item = normalize_line_body(item)
     if not item.get("visible", True):
         return
@@ -124,6 +164,8 @@ def draw_shape(painter, item):
             radii = dict(item.get('corner_radii') or {})
             radii.setdefault('all', fallback)
             path = rounded_rect_path(bounds, radii)
+        if not item.get('is_document_background', False):
+            paint_shape_shadow(painter, path, item, shadow_cache)
         paint_shape_path(painter, path, item)
         return painter.transform().mapRect(bounds)
     finally:

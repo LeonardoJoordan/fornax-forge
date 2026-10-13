@@ -36,13 +36,13 @@ def normalize_text_decoration(html: str) -> str:
 def validate_text_shadow(value):
     """Valida efeitos persistidos antes de alocar qualquer bitmap (sem Qt)."""
     if not isinstance(value, dict):
-        raise ValueError('Sombra do texto inválida.')
+        raise ValueError('Sombra inválida.')
     if 'enabled' in value and type(value['enabled']) is not bool:
         raise ValueError('Ativação da sombra inválida.')
     if 'color' in value and (not isinstance(value['color'], str)
                             or not re.fullmatch(r'#[0-9a-fA-F]{6}', value['color'])):
         raise ValueError('Cor da sombra inválida.')
-    for key, maximum in (('opacity', 1), ('angle', 360), ('distance', 240), ('blur', 120)):
+    for key, maximum in (('opacity', 1), ('angle', 360), ('distance', 240), ('blur', 120), ('spread', 120)):
         if key in value:
             number = value[key]
             if type(number) not in (int, float) or not math.isfinite(number) or not 0 <= number <= maximum:

@@ -37,6 +37,7 @@ class TextShadowControlsTest(unittest.TestCase):
         self.assertEqual(box.state.shadow, {})
         self.assertAlmostEqual(controls.distance.value(), .25)
         self.assertAlmostEqual(controls.blur.value(), .25)
+        self.assertEqual(controls.spread.value(), 0)
         controls.enabled.click()
         for name in ('distance', 'blur'):
             spin = getattr(controls, name)
@@ -48,6 +49,11 @@ class TextShadowControlsTest(unittest.TestCase):
             self.assertAlmostEqual(spin.value(), .25)
             self.assertAlmostEqual(px_to_mm(box.state.shadow[name]), .25)
             QTest.keyClick(spin, Qt.Key.Key_Return)
+        controls.spread.setFocus()
+        QTest.keyClick(controls.spread, Qt.Key.Key_Up)
+        self.assertAlmostEqual(controls.spread.value(), .05)
+        self.assertAlmostEqual(px_to_mm(box.state.shadow['spread']), .05)
+        QTest.keyClick(controls.spread, Qt.Key.Key_Return)
 
     def test_existing_shadow_dimensions_are_preserved_when_opening_controls(self):
         from core.text_effects import normalize_shadow
@@ -199,6 +205,8 @@ class TextShadowControlsTest(unittest.TestCase):
     def test_duplicate_and_save_reopen_preserve_shadow_without_sharing_state(self):
         w, box, controls = self.setup_text()
         controls.enabled.click()
+        controls.spread.setValue(.35)
+        QTest.keyClick(controls.spread, Qt.Key.Key_Return)
         expected = deepcopy(box.state.shadow)
         w.duplicate_selected()
         copies = [item for item in w.scene.items() if isinstance(item, DesignerBox)]

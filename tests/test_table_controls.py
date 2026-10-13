@@ -292,7 +292,7 @@ class TableControlsTest(unittest.TestCase):
         panel = w.table_panel
         headings = [label.text() for label in panel.findChildren(QLabel)
                     if label.objectName() == 'propertySectionHeading']
-        self.assertEqual(headings,['MEDIDAS','CÉLULAS','BORDAS'])
+        self.assertEqual(headings,['MEDIDAS','CÉLULAS','BORDAS','SOMBRA EXTERNA'])
         for removed in ('quantity','edge_target','edge_visible'):
             self.assertFalse(hasattr(panel,removed),removed)
         self.assertFalse(isinstance(panel.actions,dict))

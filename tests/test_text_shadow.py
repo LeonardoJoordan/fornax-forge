@@ -33,10 +33,11 @@ class TextShadowTest(unittest.TestCase):
         install_ui_font(cls.app)
 
     def test_editor_preview_output_match_without_moving_text(self):
-        for angle, blur, rotation in ((45, 0, 0), (225, 6, 13), (90, 30, 0)):
-            with self.subTest(angle=angle, blur=blur):
+        for angle, blur, rotation, spread in ((45, 0, 0, 0), (225, 6, 13, 0), (90, 30, 0, 0),
+                                             (45, 0, 0, 6.25), (225, 6, 13, 6.25), (90, 30, 0, 30)):
+            with self.subTest(angle=angle, blur=blur, spread=spread):
                 box = data(rotation=rotation, align='center', vertical_align='bottom')
-                box['shadow'].update(angle=angle, blur=blur)
+                box['shadow'].update(angle=angle, blur=blur, spread=spread)
                 plain = {**box, 'shadow': {}}
                 self.assertEqual(text_geometry(build_document(box, box['html']), box),
                                  text_geometry(build_document(plain, plain['html']), plain))
@@ -65,6 +66,7 @@ class TextShadowTest(unittest.TestCase):
 
     def test_clipped_tiles_have_no_shadow_seams(self):
         box = data(rotation=9)
+        box['shadow']['spread'] = 6.25
         renderer = NativeRenderer(dict(canvas_size=dict(w=600, h=400), boxes=[box]))
         full = renderer.render_to_qimage({}, {})
         for left in (0, 200, 400):
@@ -97,13 +99,13 @@ class TextShadowTest(unittest.TestCase):
                     doc = build_document(box, box['html'])
                     paint_text_shadow(painter, doc, box, cache)
                 self.assertEqual(blur.call_count, 1)
-                for change in ('color', 'blur', 'html'):
+                for change in ('color', 'blur', 'spread', 'html'):
                     if change == 'html':
                         box['html'] = '<p>Outro texto</p>'
                     else:
                         box['shadow'][change] = '#00ff00' if change == 'color' else 20
                     paint_text_shadow(painter, build_document(box, box['html']), box, cache)
-                self.assertEqual(blur.call_count, 4)
+                self.assertEqual(blur.call_count, 5)
         finally:
             painter.end()
 
@@ -112,6 +114,7 @@ class TextShadowTest(unittest.TestCase):
         box = data()
         box['w'] = 100000
         box['shadow']['blur'] = 120
+        box['shadow']['spread'] = 120
         target = QImage(20, 20, QImage.Format.Format_ARGB32)
         target.fill(Qt.GlobalColor.white)
         painter = QPainter(target)
@@ -120,14 +123,15 @@ class TextShadowTest(unittest.TestCase):
                 paint_text_shadow(painter, build_document(box, box['html']), box)
                 self.assertTrue(allocation.called)
                 self.assertTrue(all(w*h <= MAX_MASK_PIXELS for w, h in
-                                    (call.args for call in allocation.call_args_list)))
+                                    (call.args[:2] for call in allocation.call_args_list)))
         finally:
             painter.end()
 
     def test_invalid_persisted_effect_is_rejected(self):
         from core.model_document import normalize_model_document, ModelValidationError
         for invalid in (None, [], {'enabled': 1}, {'color': 'red'}, {'blur': float('nan')},
-                        {'distance': 10**9}, {'opacity': -1}):
+                        {'distance': 10**9}, {'opacity': -1}, {'spread': -1}, {'spread': float('inf')},
+                        {'spread': True}, {'spread': 121}):
             with self.subTest(invalid=invalid), self.assertRaises(ModelValidationError):
                 box = data()
                 box['shadow'] = invalid

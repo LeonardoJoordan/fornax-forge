@@ -101,6 +101,9 @@ class TablePanel(QWidget):
         self.message.setWordWrap(True)
         themed_style(self.message, 'color: @muted@; font-size: 11px;')
         layout.addWidget(self.message)
+        from .text_shadow import TextShadowControls
+        self.shadow_controls = TextShadowControls(window, kind='table')
+        layout.addWidget(self.shadow_controls)
         self.setEnabled(False)
 
     @property

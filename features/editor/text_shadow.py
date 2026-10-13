@@ -1,23 +1,25 @@
-"""Controles da sombra externa da caixa inteira, com prévia e um undo por gesto."""
+"""Controles compartilhados da sombra externa, com prévia e um undo por gesto."""
 from PySide6.QtCore import Qt, QSignalBlocker
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QDoubleSpinBox, QAbstractSpinBox, QSizePolicy
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLineEdit, QDoubleSpinBox, QAbstractSpinBox, QSizePolicy
 
 from core.color_dialog import get_color
 from core.i18n import tr
 from core.resources import state_icon_path
 from core.themes import themed_style
 from core.text_effects import normalize_shadow
-from .canvas_items import DesignerBox, px_to_mm, mm_to_px
+from .canvas_items import DesignerBox, ImageItem, BackgroundItem, px_to_mm, mm_to_px
 from .live_opacity import connect_live_opacity
 from .shadow_direction import ShadowDirectionDial
 
 
 class TextShadowControls(QWidget):
-    def __init__(self, window):
+    def __init__(self, window, kind='text'):
         super().__init__()
         from .frontend import property_heading, centered_toggle_button, column, row, field, compact, square_control
         self.window = window
+        self.kind = kind
+        self.setObjectName(f'{kind}ShadowControls')
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
@@ -52,14 +54,16 @@ class TextShadowControls(QWidget):
             'QDoubleSpinBox:hover { border-color: @border@; } '
             'QDoubleSpinBox:focus { background: @field@; border-color: @accent@; color: @text@; }')
         light_controls = QWidget()
-        light_layout = QHBoxLayout(light_controls)
+        light_controls.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
+        light_layout = QVBoxLayout(light_controls)
         light_layout.setContentsMargins(0, 0, 0, 0)
         light_layout.setSpacing(4)
-        light_layout.addWidget(self.angle)
-        light_layout.addWidget(self.light_angle, 0, Qt.AlignmentFlag.AlignVCenter)
+        light_layout.addWidget(self.angle, 1, Qt.AlignmentFlag.AlignCenter)
+        light_layout.addWidget(self.light_angle, 0, Qt.AlignmentFlag.AlignHCenter)
         self.distance = self.spin('textShadowDistance', px_to_mm(240), 2, tr('Distância da sombra'))
         self.blur = self.spin('textShadowBlur', px_to_mm(120), 2, tr('Desfoque da sombra'))
-        for spin in (self.distance, self.blur):
+        self.spread = self.spin('textShadowSpread', px_to_mm(120), 2, tr('Expansão da sombra'))
+        for spin in (self.distance, self.blur, self.spread):
             spin.setSuffix(' mm')
             spin.setSingleStep(.05)
         measures, measures_layout = column()
@@ -67,21 +71,26 @@ class TextShadowControls(QWidget):
         measures_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         measures_layout.addWidget(field(tr('Distância'), self.distance))
         measures_layout.addWidget(field(tr('Desfoque'), self.blur))
+        measures_layout.addWidget(field(tr('Expansão'), self.spread))
         light_field = field(tr('Posição da luz'), light_controls)
-        light_field.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
-        light_field.setFixedWidth(self.angle.width()+light_layout.spacing()+self.light_angle.width())
         direction_row = row(body, light_field, measures)
+        direction_row.setStretch(0, 1)
         direction_row.setStretch(1, 1)
         self.enabled.clicked.connect(self.commit)
         self.color.editingFinished.connect(self.commit)
         self.swatch.clicked.connect(self.choose_color)
-        for spin in (self.opacity, self.angle, self.distance, self.blur):
+        for spin in (self.opacity, self.angle, self.distance, self.blur, self.spread):
             connect_live_opacity(window, spin, lambda _: self.apply(), available=lambda: self.isEnabled())
             spin.editingFinished.connect(self.commit)
         self.angle.valueChanged.connect(self.sync_light_angle)
         connect_live_opacity(window, self.light_angle, self.angle.setLightAngle,
                              available=lambda: self.isEnabled())
         self.light_angle.editingFinished.connect(self.commit)
+        if kind != 'text':
+            for control in self.findChildren(QWidget):
+                name = control.objectName()
+                if name.startswith('textShadow'):
+                    control.setObjectName(kind + name[4:])
         self.sync()
 
     def spin(self, name, maximum, decimals, label):
@@ -96,7 +105,23 @@ class TextShadowControls(QWidget):
 
     def selected(self):
         items = self.window.scene.selectedItems()
-        return items[0] if len(items) == 1 and isinstance(items[0], DesignerBox) else None
+        if len(items) != 1:
+            return None
+        item = items[0]
+        if self.kind == 'text':
+            return item if isinstance(item, DesignerBox) else None
+        if self.kind == 'table':
+            from .table_item import TableItem
+            return item if isinstance(item, TableItem) else None
+        if (isinstance(item, ImageItem) and not isinstance(item, BackgroundItem)
+                and not getattr(item, 'is_document_background', False)
+                and not self.window._mask_edit_session):
+            return item
+        return None
+
+    @staticmethod
+    def shadow_of(item):
+        return item.state.shadow if isinstance(item, DesignerBox) else item.shadow
 
     @staticmethod
     def typing_spin(control):
@@ -110,10 +135,10 @@ class TextShadowControls(QWidget):
         self.setEnabled(box is not None)
         if box is None:
             return
-        shadow = normalize_shadow(box.state.shadow)
+        shadow = normalize_shadow(self.shadow_of(box))
         for control, value in ((self.enabled, shadow['enabled']), (self.opacity, shadow['opacity'] * 100),
                                (self.angle, shadow['angle']), (self.distance, px_to_mm(shadow['distance'])),
-                               (self.blur, px_to_mm(shadow['blur']))):
+                               (self.blur, px_to_mm(shadow['blur'])), (self.spread, px_to_mm(shadow['spread']))):
             # A sincronização da cena não pode interromper a digitação no spin.
             if self.typing_spin(control):
                 continue
@@ -144,11 +169,12 @@ class TextShadowControls(QWidget):
             return
         color = QColor(self.color.text())
         if not color.isValid():
-            self.color.setText(normalize_shadow(box.state.shadow)['color'])
+            self.color.setText(normalize_shadow(self.shadow_of(box))['color'])
             return
         shadow = normalize_shadow(dict(enabled=self.enabled.isChecked(), color=color.name(),
             opacity=self.opacity.value()/100, angle=self.angle.value(),
-            distance=mm_to_px(self.distance.value()), blur=mm_to_px(self.blur.value())))
+            distance=mm_to_px(self.distance.value()), blur=mm_to_px(self.blur.value()),
+            spread=mm_to_px(self.spread.value())))
         box.set_shadow(shadow)
         self.presentation(shadow)
 

@@ -1,5 +1,7 @@
 """Um item de cena por tabela; seleção/cursor não pertencem ao documento."""
-from copy import deepcopy
+from copy import copy, deepcopy
+from dataclasses import replace
+from uuid import uuid4
 
 from PySide6.QtCore import Qt, QRectF
 from PySide6.QtGui import QColor, QPen, QPainterPath
@@ -7,11 +9,12 @@ from PySide6.QtWidgets import QApplication, QGraphicsItem, QGraphicsRectItem
 
 from core.table_model import validate_table, cell_at, table_fields, effective_cell_style, resize_table
 from core.table_layout import TableLayout, build_cell_document
-from core.table_paint import paint_table_local
+from core.table_paint import paint_table_local, paint_table_shadow, table_paint_bounds
+from core.text_effects import normalize_shadow, object_shadow_bounds, active_shadow
 from core.themes import theme_color
 from .canvas_items import (_snap_position_to_guides, _invalidate_board_text_cutouts,
     _queue_selection_frame_refresh, _init_resize_handles, _update_resize_handles,
-    _set_resize_handles_visible, _invalidate_resize_handle_areas)
+    _set_resize_handles_visible, _invalidate_resize_handle_areas, _item_shadow_cache)
 
 
 class TableItem(QGraphicsRectItem):
@@ -22,6 +25,7 @@ class TableItem(QGraphicsRectItem):
         self.window = window
         self.layout = TableLayout(self.data)
         self.presentation_revision = 0
+        self._shadow_token = uuid4().hex
         self.selected_range = None
         self._selected_cell_ids = None
         self.selection_anchor = None
@@ -71,14 +75,37 @@ class TableItem(QGraphicsRectItem):
         width = max([self.data['border']['width'], *(e['style'].get('width', self.data['border']['width'])
                                                     for e in self.data['edges'])])
         margin = max(12, width / 2)
-        return self.rect().adjusted(-margin, -margin, margin, margin)
+        return self.rect().adjusted(-margin, -margin, margin, margin).united(
+            object_shadow_bounds(table_paint_bounds(self.layout), self.data.get('shadow', {})))
+
+    @property
+    def shadow(self):
+        return self.data.get('shadow', {})
+
+    def set_shadow(self, value):
+        self.prepareGeometryChange()
+        self.data['shadow'] = normalize_shadow(value)
+        self.layout.table['shadow'] = deepcopy(self.data['shadow'])
+        self.update()
 
     def shape(self):
         path = QPainterPath()
-        path.addRect(self.boundingRect())
+        path.addRect(self.rect().adjusted(-12, -12, 12, 12).united(table_paint_bounds(self.layout)))
         return path
 
     def paint(self, painter, option, widget=None):
+        shadow_layout = self.layout
+        shadow_key = ('table', self._shadow_token, self.presentation_revision)
+        session = getattr(self.window, 'table_edit', None)
+        if active_shadow(self.layout.table) and session is not None and session.item is self:
+            # Só a célula em edição muda: não reconstruir a grade nem publicar
+            # dados/histórico a cada tecla para atualizar a sombra ao vivo.
+            shadow_layout = copy(self.layout)
+            shadow_layout.cells = [replace(entry, document=session.document, offset_y=session.offset_y)
+                                   if entry.cell['id'] == self.editing_cell else entry
+                                   for entry in self.layout.cells]
+            shadow_key += (session.accepted_html, session.offset_y)
+        paint_table_shadow(painter, shadow_layout, _item_shadow_cache(self), shadow_key)
         exposed = option.exposedRect
         if exposed.contains(self.rect()):
             exposed = None  # Pintura completa não precisa testar cada célula.
@@ -426,7 +453,8 @@ class TableItem(QGraphicsRectItem):
             _invalidate_board_text_cutouts(self)
             return
         edges_changed = candidate['border'] != self.data['border'] or candidate['edges'] != self.data['edges']
-        if edges_changed:
+        shadow_changed = candidate.get('shadow') != self.data.get('shadow')
+        if edges_changed or shadow_changed:
             self.prepareGeometryChange()
         self.data = deepcopy(candidate)
         self.layout.table = deepcopy(candidate)
@@ -473,7 +501,10 @@ class TableItem(QGraphicsRectItem):
             cell_id=e.cell['id'],row=e.cell['row']+1,column=e.cell['column']+1,
             overflow_x=e.overflow_x,overflow_y=e.overflow_y)
             for e in self.layout.cells if (e.overflow_x or e.overflow_y) and e.document.toPlainText().strip()]
-        self.update(self.rect() if edges_changed else affected)
+        if shadow_changed or active_shadow(candidate):
+            self.update()
+        else:
+            self.update(self.rect() if edges_changed else affected)
         _invalidate_board_text_cutouts(self)
 
     @staticmethod

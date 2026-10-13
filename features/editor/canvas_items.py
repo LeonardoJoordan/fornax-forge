@@ -14,7 +14,8 @@ from PySide6.QtGui import (QPen, QBrush, QColor, QTextCursor, QGuiApplication,
                            QImageIOHandler)
 from core.text_layout import configure_text_document, text_geometry, variables_in_html
 from core.text_state import TextState
-from core.text_effects import active_shadow, normalize_shadow, shadow_bounds, paint_text_shadow, new_shadow_cache
+from core.text_effects import (active_shadow, normalize_shadow, shadow_bounds, paint_text_shadow,
+    new_shadow_cache, object_shadow_bounds, paint_image_shadow)
 
 DPI = 300
 
@@ -1192,6 +1193,13 @@ class Guideline(QGraphicsLineItem):
                 win.save_snapshot()
 
 
+def _item_shadow_cache(item):
+    owner = item.scene() or item
+    if not hasattr(owner, '_text_shadow_cache'):
+        owner._text_shadow_cache = new_shadow_cache()
+    return owner._text_shadow_cache
+
+
 class ImageItem(QGraphicsPixmapItem):
     SNAP_DISTANCE = 15
 
@@ -1203,6 +1211,7 @@ class ImageItem(QGraphicsPixmapItem):
         )
             
         super().__init__(pixmap)
+        self.shadow = {}
         self._original_path = asset_reference or pixmap_path or ""
         self._logical_w = logical_w
         self._logical_h = logical_h
@@ -1244,13 +1253,28 @@ class ImageItem(QGraphicsPixmapItem):
             return _snap_position_to_guides(self, new_pos, w, h)
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged:
             _queue_selection_frame_refresh(self)
+        if change in (QGraphicsItem.GraphicsItemChange.ItemPositionHasChanged,
+                      QGraphicsItem.GraphicsItemChange.ItemRotationHasChanged,
+                      QGraphicsItem.GraphicsItemChange.ItemOpacityHasChanged,
+                      QGraphicsItem.GraphicsItemChange.ItemVisibleHasChanged):
+            self._update_parent_shadow()
         return super().itemChange(change, value)
+
+    def _update_parent_shadow(self):
+        parent = self.parentItem()
+        if isinstance(parent, RectangleItem) and active_shadow({'shadow': parent.shadow}):
+            parent.update()
 
     def rect(self):
         return QRectF(0, 0, self._current_w, self._current_h)
         
     def boundingRect(self):
-        return self.rect()
+        return object_shadow_bounds(self.rect(), getattr(self, 'shadow', {}))
+
+    def set_shadow(self, value):
+        self.prepareGeometryChange()
+        self.shadow = normalize_shadow(value)
+        self.update()
 
     def shape(self):
         path = QPainterPath()
@@ -1265,6 +1289,10 @@ class ImageItem(QGraphicsPixmapItem):
         
     def paint(self, painter, option, widget=None):
         def draw_content():
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            if active_shadow({'shadow': self.shadow}):
+                paint_image_shadow(painter, self.pixmap().toImage(), self.rect(), self.shadow,
+                                   _item_shadow_cache(self))
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
             painter.drawPixmap(self.rect(), self.pixmap(), QRectF(self.pixmap().rect()))
         parent = self.parentItem()
@@ -1304,6 +1332,7 @@ class ImageItem(QGraphicsPixmapItem):
         if hasattr(self, 'handle_br'):
             _update_resize_handles(self)
         self.update_center()
+        self._update_parent_shadow()
 
     def resize_from_handle(self, w, h):
         self.resize_custom(w, h)
@@ -1406,9 +1435,15 @@ class RectangleItem(ImageItem):
     def paint(self, painter, option, widget=None):
         if getattr(self, 'is_document_background', False):
             painter.setClipRect(self.rect())
-        from core.object_style import paint_shape_path
+        from core.object_style import paint_shape_path, paint_shape_shadow
         def draw_content():
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            if active_shadow({'shadow': self.shadow}) and not getattr(self, 'is_document_background', False):
+                images = [(child.pixmap().toImage(), dict(x=child.x(), y=child.y(),
+                            width=child.rect().width(), height=child.rect().height(),
+                            rotation=child.rotation(), opacity=child.opacity()))
+                          for child in self.masked_images() if child.isVisible()]
+                paint_shape_shadow(painter, self.drawing_path(), self.style_data(), _item_shadow_cache(self), images)
             paint_shape_path(painter, self.drawing_path(), self.style_data())
         if getattr(self, 'is_document_background', False):
             draw_content()
@@ -1421,7 +1456,7 @@ class RectangleItem(ImageItem):
             'outline_color', 'outline_opacity', 'outline_width',
             'outline_position', 'outline_join', 'corner_radius',
             'corner_radii', 'corner_radii_linked', 'dynamic_image_field',
-            'dynamic_image_fit')}
+            'dynamic_image_fit', 'shadow')}
 
     def drawing_path(self):
         path = QPainterPath()
@@ -1455,7 +1490,7 @@ class RectangleItem(ImageItem):
         margin = outline_margin(self.style_data())
         if self.shape_type == 'line':
             margin = max(5, margin)
-        return self.rect().adjusted(-margin, -margin, margin, margin)
+        return object_shadow_bounds(self.rect().adjusted(-margin, -margin, margin, margin), self.shadow)
 
     def resize_custom(self, w, h):
         if getattr(self, 'is_document_background', False) and not getattr(self, '_syncing_document', False):

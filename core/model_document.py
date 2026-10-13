@@ -340,13 +340,16 @@ def _validate_page(page: Any, expected_id: str, *, legacy_source: bool) -> None:
         raise ModelValidationError(f"Há object_id repetido na página {expected_id}.")
 
     shapes = {item['object_id']: item for item in page.get('shapes', [])}
-    for box in page.get("boxes", []):
-        if 'shadow' in box:
+    for collection in ('boxes', 'images', 'shapes', 'tables'):
+        for item in page.get(collection, []):
+            if 'shadow' not in item:
+                continue
             from core.text_safety import validate_text_shadow
             try:
-                validate_text_shadow(box['shadow'])
+                validate_text_shadow(item['shadow'])
             except ValueError as error:
                 raise ModelValidationError(str(error)) from error
+    for box in page.get("boxes", []):
         html = box.get("html", "")
         if not isinstance(html, str):
             raise ModelValidationError(f"HTML de texto inválido na página {expected_id}.")

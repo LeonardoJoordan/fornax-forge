@@ -20,6 +20,14 @@ como preenchimento, contorno, máscara, imagem variável e links.
    os valores mostrados.
 5. Confira o efeito na arte e use **Salvar modelo** para guardar as alterações.
 
+Para uma imagem ou forma selecionada individualmente, use **SOMBRA EXTERNA**
+nessa seção. Ative a sombra e ajuste cor, opacidade, distância, desfoque e expansão.
+Posicione a luz no círculo ou digite seu ângulo no campo abaixo dele; a sombra
+é projetada na direção oposta. Distância, desfoque e expansão usam milímetros, com
+passos de 0,05 mm. Os ajustes aparecem no canvas enquanto você os modifica.
+**Expansão** engrossa a silhueta da sombra antes do desfoque e começa em
+**0 mm**. Ela não altera o tamanho, o contorno ou o conteúdo do objeto.
+
 ## Exemplo de uso
 
 Para transformar um retângulo em uma área de foto de pessoal, selecione a
@@ -31,6 +39,11 @@ escolha o enquadramento para preencher e cortar ou mostrar a imagem inteira.
 Antes de mudar vários valores, confira o objeto selecionado e o título do
 grupo de controles. A cor do contorno é diferente da cor do preenchimento,
 e ambas podem ter opacidade própria.
+
+A sombra acompanha as partes visíveis do objeto: uma imagem com áreas
+transparentes projeta a silhueta do conteúdo, e uma forma sem preenchimento
+projeta seu contorno. A opacidade geral do objeto afeta também sua sombra.
+Para uma tabela, os mesmos controles ficam na seção **Tabela**.
 
 ## Particularidades e limites
 

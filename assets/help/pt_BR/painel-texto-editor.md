@@ -25,19 +25,24 @@ para esses ajustes e para estilos, entrelinha e recuo. Nas tabelas, use os
 controles de células e o painel Texto conforme a seleção interna.
 
 Na caixa de texto individual, a seção **SOMBRA EXTERNA** permite habilitar uma
-sombra para todas as letras, escolher sua cor e opacidade, direção, distância
-e desfoque. No controle circular **Posição da luz**, clique ou arraste o pequeno
+sombra para todas as letras, escolher sua cor e opacidade, direção, distância,
+desfoque e expansão. No controle circular **Posição da luz**, clique ou arraste o pequeno
 sol para indicar de onde vem a luz: a sombra é projetada no lado oposto.
 Por exemplo, luz no canto superior direito projeta a sombra para baixo e à
 esquerda. As setas do teclado ajustam o ângulo em 1°; com Shift, em 15°.
-O número discreto ao lado do círculo mostra o **ângulo da luz** e pode ser
+O número discreto abaixo do círculo mostra o **ângulo da luz** e pode ser
 editado para repetir uma posição exata em outros modelos. Digite o valor e
 confirme com Enter: o sol acompanha o ajuste. Arrastar o sol também atualiza
 esse número. A referência é 0° à direita, 90° acima, 180° à esquerda e 270°
 abaixo; por exemplo, 45° posiciona a luz no alto à direita.
 O movimento mostra a prévia em tempo real e registra uma etapa no histórico
-ao soltar. Distância e desfoque são apresentados em milímetros.
-Em uma nova sombra, ambos começam em **0,25 mm**. As setas dos campos aumentam
+ao soltar. Distância, desfoque e expansão são apresentados em milímetros.
+Em uma nova sombra, distância e desfoque começam em **0,25 mm**; expansão
+começa em **0 mm**, preservando a aparência dos modelos anteriores.
+**Expansão** engrossa a silhueta da sombra antes de aplicar o desfoque,
+sem engrossar as letras. Use um valor pequeno para dar mais presença à sombra
+de uma fonte fina. O desfoque suaviza as bordas; a distância afasta a sombra.
+As setas dos campos aumentam
 ou diminuem **0,05 mm** por vez; sombras já configuradas mantêm seus valores.
 O ajuste acompanha a substituição dos placeholders sem mover as letras nem
 alterar as quebras de linha. A prévia dos controles é imediata e a confirmação

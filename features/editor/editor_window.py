@@ -2330,6 +2330,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                     new_item.setPos(original.x(), original.y())
 
                 new_item.setZValue(original.zValue() + 0.01)
+                if isinstance(new_item, ImageItem) and getattr(original, 'shadow', {}):
+                    new_item.set_shadow(original.shadow)
                 if self._active_page_id == "organogram":
                     new_item.board_behind = getattr(original, 'board_behind', False)
             
@@ -4135,6 +4137,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                         if isinstance(mask_parent, RectangleItem) else None
                     ),
                     "mask_order": int(getattr(item, 'mask_order', 0)),
+                    **({'shadow': copy.deepcopy(item.shadow)} if item.shadow else {}),
                 })
 
         ordered_placeholders = [self.lst_placeholders.item(i).text() for i in range(self.lst_placeholders.count())]
@@ -4185,6 +4188,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 data['images'].remove(entry)
                 entry.pop('path', None)
                 entry.update(item.style_data())
+                if not entry.get('shadow'):
+                    entry.pop('shadow', None)
                 entry['is_document_background'] = getattr(item, 'is_document_background', False)
                 entry['mask_group_id'] = getattr(item, 'mask_group_id', None)
                 shapes.append(entry)
@@ -4302,6 +4307,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                 img.link_key = str(img_data.get("link_key") or "").strip()
                 img.mask_shape_id = img_data.get("mask_shape_id")
                 img.mask_order = int(img_data.get("mask_order", 0))
+                if 'shadow' in img_data:
+                    img.set_shadow(img_data['shadow'])
                 img.setVisible(img_data.get("visible", True))
                 img.setOpacity(img_data.get("opacity", 1.0))
                 if img_data.get("locked", False):
@@ -4377,6 +4384,8 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             for key in item.style_data():
                 if key in entry:
                     setattr(item, key, entry[key])
+            if 'shadow' in entry:
+                item.set_shadow(entry['shadow'])
             item.has_link = entry.get('has_link', False)
             item.link_key = str(entry.get('link_key') or '').strip()
             if 'corner_radii' not in entry:

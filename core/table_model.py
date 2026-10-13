@@ -25,7 +25,7 @@ MIN_TRACK_SIZE = 1.0
 
 TABLE_KEYS = {'object_id', 'custom_name', 'x', 'y', 'rotation', 'z_value', 'opacity',
               'visible', 'locked', 'group_id', 'layer_id', 'board_behind', 'keep_proportion',
-              'rows', 'columns', 'column_widths', 'row_heights', 'style', 'border', 'cells', 'edges'}
+              'rows', 'columns', 'column_widths', 'row_heights', 'style', 'border', 'cells', 'edges', 'shadow'}
 CELL_KEYS = {'id', 'row', 'column', 'row_span', 'column_span', 'html', 'style'}
 STYLE_DEFAULTS = dict(font_family='Inter 18pt', font_size=10.0, font_color='#17242d',
                       fill_color='#ffffff', fill_opacity=1.0, align='left',
@@ -149,6 +149,12 @@ def validate_table(table):
             _fail('Geometria de tabela inválida.')
     if not _number(table.get('opacity', 1), 0, 1):
         _fail('Opacidade de tabela inválida.')
+    if 'shadow' in table:
+        from core.text_safety import validate_text_shadow
+        try:
+            validate_text_shadow(table['shadow'])
+        except ValueError as error:
+            raise TableValidationError(str(error)) from error
     for key in ('visible', 'locked', 'board_behind', 'keep_proportion'):
         if key in table and type(table[key]) is not bool:
             _fail('Estado de tabela inválido.')

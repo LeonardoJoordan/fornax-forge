@@ -1375,6 +1375,10 @@ def install_frontend(w):
     w._shape_quick_controls = {'color': shape_color, 'outline': outline_enabled,
                                'dynamic': dynamic_enabled}
 
+    from .text_shadow import TextShadowControls
+    w.object_shadow_controls = TextShadowControls(w, kind='object')
+    pl.addWidget(w.object_shadow_controls)
+
     prop_section = Section(tr('Propriedades'), props)
     il.addWidget(prop_section)
     t = w.editor_texto_panel
@@ -1838,6 +1842,8 @@ def install_frontend(w):
         text_section.set_available(text_available)
         text_body.setEnabled(t.isEnabled())
         w.text_shadow_controls.sync()
+        w.object_shadow_controls.sync()
+        w.table_panel.shadow_controls.sync()
         selected = w.scene.selectedItems()
         current_kind = inspector_selection_kind(selected, text_available)
         if current_kind != selection_state['kind']:

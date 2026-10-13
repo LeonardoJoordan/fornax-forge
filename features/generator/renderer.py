@@ -11,7 +11,7 @@ from core.performance import allocation_failure_message, set_physical_density
 from core.document_layers import layer_entries
 from core.object_style import draw_shape, outline_margin, rounded_rect_path
 from core.text_layout import PLACEHOLDER_PATTERN, build_document, text_geometry, resolve_rich_text
-from core.text_effects import active_shadow, paint_text_shadow, new_shadow_cache
+from core.text_effects import active_shadow, paint_text_shadow, new_shadow_cache, paint_image_shadow
 from core.dynamic_images import resolve_dynamic_image
 from core.image_memory_cache import ImageMemoryCache
 from core.table_model import table_fields, validate_table
@@ -161,9 +161,12 @@ class NativeRenderer:
         self._image_cache[cache_key] = img
         return img
 
-    def _draw_image_item(self, painter: QPainter, img: QImage, x, y, w, h, rotation=0, opacity=1.0) -> QRectF:
+    def _draw_image_item(self, painter: QPainter, img: QImage, x, y, w, h, rotation=0, opacity=1.0,
+                         *, shadow=None) -> QRectF:
         painter.save()
         try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
             painter.setOpacity(opacity)
             if rotation:
                 center_x = float(x) + (w / 2)
@@ -171,10 +174,12 @@ class NativeRenderer:
                 painter.translate(center_x, center_y)
                 painter.rotate(rotation)
                 target_rect = QRectF(-w / 2, -h / 2, w, h)
+                paint_image_shadow(painter, img, target_rect, shadow, self._text_shadow_cache)
                 painter.drawImage(target_rect, img, QRectF(img.rect()))
                 return painter.transform().mapRect(target_rect)
 
             target_rect = QRectF(float(x), float(y), w, h)
+            paint_image_shadow(painter, img, target_rect, shadow, self._text_shadow_cache)
             painter.drawImage(target_rect, img, QRectF(img.rect()))
             return painter.transform().mapRect(target_rect)
         finally:
@@ -347,7 +352,7 @@ class NativeRenderer:
                     # fork transporta apenas dados/cache raster, nunca texto Qt.
                     values = None if row_rich is None and row_plain is None else {**(row_plain or {}), **(row_rich or {})}
                     layout = TableLayout(item, values)
-                    paint_table(painter, layout)
+                    paint_table(painter, layout, self._text_shadow_cache)
                     self.render_warnings.extend({**warning, "page_id": self.page_id} for warning in layout.warnings)
                 continue
             if kind == "shape":
@@ -361,7 +366,7 @@ class NativeRenderer:
                     self._draw_mask_group(
                         painter, item, children, row_rich, row_plain, out_links
                     )
-                    if children else draw_shape(painter, item)
+                    if children else draw_shape(painter, item, self._text_shadow_cache)
                 )
                 if rect is not None and item.get("has_link") and item.get("link_key") and out_links is not None:
                     url = self._resolve_link_url(item["link_key"], row_rich, row_plain)
@@ -384,25 +389,36 @@ class NativeRenderer:
         """Desenha a forma e, quando disponível, a imagem externa do registro."""
         if not shape.get("visible", True):
             return None
-        rect = draw_shape(painter, shape)
         field = shape.get("dynamic_image_field")
         values = row_plain if row_plain is not None and field in row_plain else row_rich
         result = resolve_dynamic_image(self.dynamic_image_dir, (values or {}).get(field, ""))
         if result.path is None:
-            return rect
+            return draw_shape(painter, shape, self._text_shadow_cache)
         # Imagens dinâmicas vêm da pasta vinculada à planilha, fora do
         # pacote do modelo, e precisam continuar usando o sistema de arquivos.
         source = self._get_image(result.path, external=True)
         if source.isNull():
-            return rect
+            return draw_shape(painter, shape, self._text_shadow_cache)
 
         w = float(shape.get("width", 0))
         h = float(shape.get("height", 0))
         if w <= 0 or h <= 0:
-            return rect
+            return draw_shape(painter, shape, self._text_shadow_cache)
         sw, sh = float(source.width()), float(source.height())
         if sw <= 0 or sh <= 0:
-            return rect
+            return draw_shape(painter, shape, self._text_shadow_cache)
+
+        if shape.get('dynamic_image_fit', 'cover') == 'contain':
+            factor = min(w / sw, h / sh)
+            iw, ih = sw * factor, sh * factor
+            image_data = dict(x=(w-iw)/2, y=(h-ih)/2, width=iw, height=ih)
+        else:
+            factor = max(w / sw, h / sh)
+            iw, ih = w / factor, h / factor
+            image_data = dict(width=w, height=h,
+                              source_rect=QRectF((sw-iw)/2, (sh-ih)/2, iw, ih))
+        body_shape = self._shape_content_shadow(painter, shape, [(source, image_data)])
+        rect = draw_shape(painter, body_shape, self._text_shadow_cache)
 
         painter.save()
         try:
@@ -428,8 +444,9 @@ class NativeRenderer:
             painter.restore()
         if shape.get("outline_enabled"):
             overlay = dict(shape)
+            overlay.pop('shadow', None)
             overlay["fill_opacity"] = 0.0
-            draw_shape(painter, overlay)
+            draw_shape(painter, overlay, self._text_shadow_cache)
         return rect
 
     def _resolve_asset_path(self, raw_path):
@@ -463,10 +480,39 @@ class NativeRenderer:
         radii.setdefault('all', max(0.0, float(shape.get('corner_radius', 0))))
         return rounded_rect_path(bounds, radii)
 
+    def _shape_content_shadow(self, painter, shape, images):
+        if not active_shadow(shape):
+            return shape
+        from core.object_style import paint_shape_shadow
+        w, h = shape['width'], shape['height']
+        painter.save()
+        try:
+            painter.setOpacity(shape.get('opacity', 1))
+            painter.translate(shape.get('x', 0)+w/2, shape.get('y', 0)+h/2)
+            painter.rotate(shape.get('rotation', 0))
+            painter.translate(-w/2, -h/2)
+            paint_shape_shadow(painter, self._mask_local_path(shape), shape, self._text_shadow_cache, images)
+        finally:
+            painter.restore()
+        return {**shape, 'shadow': {}}
+
     def _draw_mask_group(self, painter, shape, images, row_rich, row_plain, out_links):
         if not shape.get('visible', True):
             return None
-        rect = draw_shape(painter, shape)
+        shadow_images = []
+        if active_shadow(shape):
+            for image in images:
+                if not image.get('visible', True) or image.get('width', 0) <= 0 or image.get('height', 0) <= 0:
+                    continue
+                raw_path = image.get('path', '')
+                path = raw_path if self.asset_provider is not None else self._resolve_asset_path(raw_path)
+                if self.asset_provider is None and not path.exists():
+                    continue
+                source = self._get_image(path)
+                if not source.isNull():
+                    shadow_images.append((source, image))
+        body_shape = self._shape_content_shadow(painter, shape, shadow_images)
+        rect = draw_shape(painter, body_shape, self._text_shadow_cache)
         w = float(shape.get('width', 0))
         h = float(shape.get('height', 0))
         painter.save()
@@ -493,11 +539,13 @@ class NativeRenderer:
                     float(image.get('x', 0)), float(image.get('y', 0)),
                     iw, ih, image.get('rotation', 0),
                     float(image.get('opacity', 1.0)) * float(shape.get('opacity', 1.0)),
+                    shadow=image.get('shadow'),
                 )
         finally:
             painter.restore()
         if shape.get('outline_enabled'):
             overlay = dict(shape)
+            overlay.pop('shadow', None)
             overlay['fill_opacity'] = 0.0
             draw_shape(painter, overlay)
         return rect
@@ -606,6 +654,7 @@ class NativeRenderer:
                         h,
                         img.get("rotation", 0),
                         img.get("opacity", 1.0),
+                        shadow=img.get('shadow'),
                     )
 
                     if img.get("has_link") and img.get("link_key"):

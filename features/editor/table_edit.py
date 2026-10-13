@@ -9,6 +9,7 @@ from core.table_model import (cell_at, MAX_CELL_HTML_BYTES,
                               MAX_TABLE_HTML_BYTES, MAX_DOCUMENT_TABLE_HTML_BYTES)
 from core.model_document import _document_tables
 from core.i18n import tr
+from core.text_effects import active_shadow
 from .table_item import TableItem
 
 
@@ -167,7 +168,10 @@ class TableEdit(QObject):
             self.accepted_html = html
             self.dirty = html != self.initial_html
         self._position_text()
-        self.item.update(self.entry.rect)
+        if active_shadow(self.item.data):
+            self.item.update()
+        else:
+            self.item.update(self.entry.rect)
 
     def checkpoint(self):
         if self.item is None:
