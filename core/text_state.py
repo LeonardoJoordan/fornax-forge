@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from core.ui_font import DOCUMENT_FONT_FAMILY
 
@@ -18,3 +18,4 @@ class TextState:
     font_color: str = "#000000"
     has_link: bool = False
     link_key: str = ""
+    shadow: dict = field(default_factory=dict)

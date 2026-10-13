@@ -5476,6 +5476,23 @@ Available blocks: {nomes}</translation>
     <message><source>Cada dimensão do documento deve ser de até 10.000 mm. A exportação permanece em 300 DPI; os limites de pixels são definidos em Limite de exportação.</source><translation>Each document dimension must be at most 10,000 mm. Export remains at 300 DPI; pixel limits are set in Export limit.</translation></message>
     <message><source>Primeiro uso: modelo inicial adicionado à biblioteca.</source><translation>First use: initial template added to the library.</translation></message>
     <message><source>Formato quadrado (1:1)</source><translation>Square format (1:1)</translation></message>
+    <message><source>SOMBRA EXTERNA</source><translation>DROP SHADOW</translation></message>
+    <message><source>Habilitar sombra</source><translation>Enable shadow</translation></message>
+    <message><source>Desabilitar sombra</source><translation>Disable shadow</translation></message>
+    <message><source>Cor da sombra</source><translation>Shadow color</translation></message>
+    <message><source>Opacidade da sombra</source><translation>Shadow opacity</translation></message>
+    <message><source>Direção da sombra</source><translation>Shadow direction</translation></message>
+    <message><source>0°: direita; 90°: abaixo; 180°: esquerda; 270°: acima.</source><translation>0°: right; 90°: down; 180°: left; 270°: up.</translation></message>
+    <message><source>Distância da sombra</source><translation>Shadow distance</translation></message>
+    <message><source>Desfoque da sombra</source><translation>Shadow blur</translation></message>
+    <message><source>Direção</source><translation>Direction</translation></message>
+    <message><source>Distância</source><translation>Distance</translation></message>
+    <message><source>Desfoque</source><translation>Blur</translation></message>
+    <message><source>Não foi possível reservar memória para a sombra do texto.</source><translation>Could not allocate memory for the text shadow.</translation></message>
+    <message><source>Posição da luz</source><translation>Light position</translation></message>
+    <message><source>Posicione a luz no círculo. A sombra aparece no lado oposto. Use as setas para ajustar o ângulo.</source><translation>Position the light on the circle. The shadow appears on the opposite side. Use the arrow keys to adjust the angle.</translation></message>
+    <message><source>Ângulo da luz</source><translation>Light angle</translation></message>
+    <message><source>Ângulo da luz. 0°: direita; 90°: acima; 180°: esquerda; 270°: abaixo.</source><translation>Light angle. 0°: right; 90°: above; 180°: left; 270°: below.</translation></message>
   </context>
   <context>
     <name>EditorProtection</name>

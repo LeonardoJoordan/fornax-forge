@@ -528,6 +528,9 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         self._invalidate_recovery()
         self.scene.blockSignals(True)
         self.scene.clear()
+        if hasattr(self.scene, '_text_shadow_cache'):
+            from core.text_effects import new_shadow_cache
+            self.scene._text_shadow_cache = new_shadow_cache()
         self._clear_visual_cache()
         self.fallback_bg = self.bg_item = self._selection_frame = None
         self._board_card_preview = None
@@ -4068,6 +4071,7 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
                     "vertical_align": item.state.vertical_align,
                     "indent_px": item.state.indent_px,
                     "line_height": item.state.line_height,
+                    **({'shadow': copy.deepcopy(item.state.shadow)} if item.state.shadow else {}),
                     "layer_id": getattr(item, 'layer_id', None),
                     "group_id": getattr(item, 'group_id', None),
                     "keep_proportion": getattr(item, 'keep_proportion', True),
@@ -4337,6 +4341,9 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
             box.state.align = b.get("align", "left")
             box.state.indent_px = b.get("indent_px", 0)
             box.state.line_height = b.get("line_height", 1.15)
+            if 'shadow' in b:
+                from core.text_effects import normalize_shadow
+                box.state.shadow = normalize_shadow(b['shadow'])
             box.state.has_link = b.get("has_link", False)
             box.state.link_key = str(b.get("link_key") or "").strip()
 
@@ -4459,6 +4466,9 @@ class EditorWindow(OrganogramEditorMixin, DocumentSessionMixin, QMainWindow):
         # Libera a referência ao papel antes de substituir a cena.
         self.fallback_bg = None
         self.scene.clear()
+        if hasattr(self.scene, '_text_shadow_cache'):
+            from core.text_effects import new_shadow_cache
+            self.scene._text_shadow_cache = new_shadow_cache()
         self.bg_item = None
         # Guarda referências às subclasses Python até concluir a reconstrução.
         # Ao restaurar máscaras, chamadas do Qt podem liberar wrappers de itens

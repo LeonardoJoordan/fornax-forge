@@ -11,6 +11,7 @@ from core.performance import allocation_failure_message, set_physical_density
 from core.document_layers import layer_entries
 from core.object_style import draw_shape, outline_margin, rounded_rect_path
 from core.text_layout import PLACEHOLDER_PATTERN, build_document, text_geometry, resolve_rich_text
+from core.text_effects import active_shadow, paint_text_shadow, new_shadow_cache
 from core.dynamic_images import resolve_dynamic_image
 from core.image_memory_cache import ImageMemoryCache
 from core.table_model import table_fields, validate_table
@@ -55,8 +56,10 @@ def renderers_for_document(
     ]
     directory = dynamic_image_dir or document.get("__dynamic_image_dir")
     image_cache = ImageMemoryCache()
+    shadow_cache = new_shadow_cache()
     for renderer in renderers:
         renderer._image_cache = image_cache.fork()
+        renderer._text_shadow_cache = shadow_cache.fork()
         renderer.set_dynamic_image_directory(directory)
     return renderers
 
@@ -78,6 +81,7 @@ class NativeRenderer:
         self._image_cache = ImageMemoryCache()
         self._static_base_cache = None
         self._pixmap_cache = {}
+        self._text_shadow_cache = new_shadow_cache()
         self.dynamic_image_dir = self.tpl.get("__dynamic_image_dir")
         self.asset_provider = asset_provider
         self.render_warnings = []
@@ -94,6 +98,7 @@ class NativeRenderer:
         renderer.model_dir = self.model_dir
         renderer.dynamic_image_dir = self.dynamic_image_dir
         renderer._image_cache = self._image_cache.fork()
+        renderer._text_shadow_cache = self._text_shadow_cache.fork()
         renderer._export_performance = self._export_performance
         renderer._output_size = self._output_size
         if self._static_base_cache is not None:
@@ -372,6 +377,7 @@ class NativeRenderer:
             child = NativeRenderer(layer, asset_provider=self.asset_provider)
             child.model_dir = self.model_dir
             child._image_cache = self._image_cache
+            child._text_shadow_cache = self._text_shadow_cache
             child._paint_card_legacy(painter, row_rich, out_links, row_plain=row_plain)
 
     def _draw_dynamic_image_shape(self, painter, shape, row_rich, row_plain):
@@ -684,6 +690,8 @@ class NativeRenderer:
                 painter.setOpacity(box.get("opacity", 1.0))
                 self._draw_html_box(painter, box, html_resolved, row_rich, out_links, row_plain)
                 painter.setOpacity(1.0)
+            except MemoryError:
+                raise
             except Exception as e:
                 print(f"[WARN] Erro ao desenhar caixa de texto: {e}")
                 continue
@@ -757,6 +765,14 @@ class NativeRenderer:
             painter.rotate(rotation)
             painter.translate(-w / 2, -h / 2)
             
+            if active_shadow(box_data):
+                painter.save()
+                try:
+                    painter.translate(0, y_offset)
+                    paint_text_shadow(painter, doc, box_data, self._text_shadow_cache)
+                finally:
+                    painter.restore()
+
             margin = outline_margin(box_data)
             painter.setClipRect(QRectF(-margin, -10000, w+2*margin, 20000), Qt.ClipOperation.IntersectClip)
             painter.translate(0, y_offset)
@@ -780,6 +796,8 @@ class NativeRenderer:
                     mapped_rect = painter.transform().mapRect(local_rect)
                     out_links.append({"url": url, "rect": mapped_rect})
 
+        except MemoryError:
+            raise
         except Exception as e:
             print(f"[WARN] Falha interna no layout do texto: {e}")
         finally:

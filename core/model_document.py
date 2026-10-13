@@ -341,6 +341,12 @@ def _validate_page(page: Any, expected_id: str, *, legacy_source: bool) -> None:
 
     shapes = {item['object_id']: item for item in page.get('shapes', [])}
     for box in page.get("boxes", []):
+        if 'shadow' in box:
+            from core.text_safety import validate_text_shadow
+            try:
+                validate_text_shadow(box['shadow'])
+            except ValueError as error:
+                raise ModelValidationError(str(error)) from error
         html = box.get("html", "")
         if not isinstance(html, str):
             raise ModelValidationError(f"HTML de texto inválido na página {expected_id}.")

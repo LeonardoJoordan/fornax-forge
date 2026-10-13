@@ -14,6 +14,7 @@ from PySide6.QtGui import (QPen, QBrush, QColor, QTextCursor, QGuiApplication,
                            QImageIOHandler)
 from core.text_layout import configure_text_document, text_geometry, variables_in_html
 from core.text_state import TextState
+from core.text_effects import active_shadow, normalize_shadow, shadow_bounds, paint_text_shadow, new_shadow_cache
 
 DPI = 300
 
@@ -1697,16 +1698,25 @@ class BleedTextItem(QGraphicsTextItem):
         # de caracteres desenhados pelo documento de texto.
         clean_option = QStyleOptionGraphicsItem(option)
         clean_option.state &= ~QStyle.StateFlag.State_HasFocus
-        _paint_with_document_fade(
-            self, painter,
-            lambda: super(BleedTextItem, self).paint(painter, clean_option, widget),
-        )
+        def draw_content():
+            parent = self.parentItem()
+            if parent is not None and active_shadow(vars(parent.state)):
+                owner = self.scene() if self.scene() is not None else self
+                if not hasattr(owner, '_text_shadow_cache'):
+                    owner._text_shadow_cache = new_shadow_cache()
+                paint_text_shadow(painter, self.document(), vars(parent.state), owner._text_shadow_cache)
+            super(BleedTextItem, self).paint(painter, clean_option, widget)
+        _paint_with_document_fade(self, painter, draw_content)
 
     def boundingRect(self):
         rect = super().boundingRect()
         # Expande a área de repintura em 200px para cima e para baixo. 
         # Isso afeta apenas o motor de vídeo da tela, não altera posições ou exportações.
         rect.adjust(0, -200, 0, 200)
+        parent = self.parentItem()
+        if parent is not None and active_shadow(vars(parent.state)):
+            bounds, _, _ = shadow_bounds(self.document(), normalize_shadow(parent.state.shadow))
+            rect = rect.united(bounds)
         return rect
 
     def mouseDoubleClickEvent(self, event):
@@ -1879,6 +1889,11 @@ class DesignerBox(QGraphicsRectItem):
     def set_vertical_alignment(self, align_str):
         self.state.vertical_align = align_str
         self.apply_state()
+
+    def set_shadow(self, value):
+        self.text_item.prepareGeometryChange()
+        self.state.shadow = normalize_shadow(value)
+        self.text_item.update()
 
     def set_block_format(self, indent=None, line_height=None):
         if indent is not None: self.state.indent_px = indent

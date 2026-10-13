@@ -5476,6 +5476,23 @@ Bloques disponibles: {nomes}</translation>
     <message><source>Cada dimensão do documento deve ser de até 10.000 mm. A exportação permanece em 300 DPI; os limites de pixels são definidos em Limite de exportação.</source><translation>Cada dimensión del documento debe ser de hasta 10.000 mm. La exportación se mantiene en 300 DPI; los límites de píxeles se definen en Límite de exportación.</translation></message>
     <message><source>Primeiro uso: modelo inicial adicionado à biblioteca.</source><translation>Primer uso: plantilla inicial añadida a la biblioteca.</translation></message>
     <message><source>Formato quadrado (1:1)</source><translation>Formato cuadrado (1:1)</translation></message>
+    <message><source>SOMBRA EXTERNA</source><translation>SOMBRA EXTERIOR</translation></message>
+    <message><source>Habilitar sombra</source><translation>Activar sombra</translation></message>
+    <message><source>Desabilitar sombra</source><translation>Desactivar sombra</translation></message>
+    <message><source>Cor da sombra</source><translation>Color de la sombra</translation></message>
+    <message><source>Opacidade da sombra</source><translation>Opacidad de la sombra</translation></message>
+    <message><source>Direção da sombra</source><translation>Dirección de la sombra</translation></message>
+    <message><source>0°: direita; 90°: abaixo; 180°: esquerda; 270°: acima.</source><translation>0°: derecha; 90°: abajo; 180°: izquierda; 270°: arriba.</translation></message>
+    <message><source>Distância da sombra</source><translation>Distancia de la sombra</translation></message>
+    <message><source>Desfoque da sombra</source><translation>Desenfoque de la sombra</translation></message>
+    <message><source>Direção</source><translation>Dirección</translation></message>
+    <message><source>Distância</source><translation>Distancia</translation></message>
+    <message><source>Desfoque</source><translation>Desenfoque</translation></message>
+    <message><source>Não foi possível reservar memória para a sombra do texto.</source><translation>No se pudo reservar memoria para la sombra del texto.</translation></message>
+    <message><source>Posição da luz</source><translation>Posición de la luz</translation></message>
+    <message><source>Posicione a luz no círculo. A sombra aparece no lado oposto. Use as setas para ajustar o ângulo.</source><translation>Coloque la luz en el círculo. La sombra aparece en el lado opuesto. Use las flechas para ajustar el ángulo.</translation></message>
+    <message><source>Ângulo da luz</source><translation>Ángulo de la luz</translation></message>
+    <message><source>Ângulo da luz. 0°: direita; 90°: acima; 180°: esquerda; 270°: abaixo.</source><translation>Ángulo de la luz. 0°: derecha; 90°: arriba; 180°: izquierda; 270°: abajo.</translation></message>
   </context>
   <context>
     <name>EditorProtection</name>

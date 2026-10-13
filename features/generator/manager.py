@@ -47,6 +47,12 @@ def _bounded_worker_count(requested, renderers, *, sheet=None, capacity=1, duple
             per_worker += scaled_pixels * 4 * face_count
         if jpeg:
             per_worker += sheet_pixels * 4
+    if any(isinstance(box.get('shadow'), dict) and box['shadow'].get('enabled') is True
+           for renderer in renderers for box in getattr(renderer, 'tpl', {}).get('boxes', [])):
+        from core.text_effects import MAX_MASK_PIXELS, SHADOW_CACHE_BYTES
+        shared_bases += SHADOW_CACHE_BYTES
+        # Máscara, duas passagens do filtro e uma possível cópia do Qt.
+        per_worker += MAX_MASK_PIXELS * 4 * 4
     if shared_bases + per_worker > memory_budget:
         raise MemoryError(generation_memory_message(shared_bases + per_worker, memory_budget))
     available = memory_budget - shared_bases

@@ -359,7 +359,7 @@ class ConnectorSides(QWidget):
         self.key = key
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
+        layout.setSpacing(10)
         property_heading(layout, title)
         grid = QGridLayout()
         layout.addLayout(grid)
