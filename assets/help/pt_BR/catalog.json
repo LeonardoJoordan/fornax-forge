@@ -396,7 +396,14 @@
         "propriedades",
         "máscara",
         "contorno",
-        "preenchimento"
+        "preenchimento",
+        "sombra externa",
+        "sombreamento",
+        "expansão",
+        "espessura da sombra",
+        "desfoque",
+        "posição da luz",
+        "sombra imagem formas"
       ],
       "file": "painel-propriedades-editor.md",
       "status": "published"
@@ -409,7 +416,14 @@
         "tipografia",
         "formatação",
         "fonte",
-        "entrelinha"
+        "entrelinha",
+        "sombra externa",
+        "sombreamento",
+        "expansão",
+        "espessura da sombra",
+        "desfoque",
+        "posição da luz",
+        "sombra texto letras"
       ],
       "file": "painel-texto-editor.md",
       "status": "published"
@@ -5938,7 +5952,14 @@
         "agrupar",
         "rotação",
         "legenda",
-        "cartão"
+        "cartão",
+        "sombra externa",
+        "sombreamento",
+        "expansão",
+        "espessura da sombra",
+        "desfoque",
+        "posição da luz",
+        "sombra tabela"
       ],
       "file": "tabela-objeto-organograma.md",
       "status": "published"

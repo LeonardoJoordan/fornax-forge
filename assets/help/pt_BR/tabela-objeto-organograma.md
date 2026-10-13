@@ -16,6 +16,13 @@ Organizar uma ficha com cabeçalho e tabela ou acrescentar uma legenda a um orga
    e escolha cor, opacidade, distância, desfoque e expansão. Ajuste a posição da luz no
    círculo ou informe um ângulo exato no campo abaixo dele.
 
+Em novas sombras, distância e desfoque começam em **0,25 mm** e expansão
+em **0 mm**, com passos de **0,05 mm** nesses três campos. A expansão ajusta
+a espessura da sombra, o desfoque suaviza suas bordas e a distância muda seu
+afastamento. Os ajustes têm prévia em tempo real. O círculo e o campo de
+graus permanecem sincronizados; uma luz a **45°** fica no alto à direita e
+projeta a sombra para baixo e à esquerda.
+
 ## Exemplo de uso
 
 Use uma pequena tabela de contatos como legenda do quadro institucional, sem repetir essa legenda dentro de cada cartão.
@@ -44,3 +51,5 @@ A localização muda o propósito: na **Página 1**, a tabela faz parte do cart�
 - [Medidas da tabela](help:TBL-05).
 - [Preenchimento e transparência](help:TBL-07).
 - [Reordenar a camada Organograma](help:CAM-16).
+- [Direção da luz e demais controles da sombra](help:UI-09).
+- [Sombra de imagens e formas](help:UI-08).

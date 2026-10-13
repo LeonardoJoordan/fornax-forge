@@ -26,8 +26,8 @@ controles de células e o painel Texto conforme a seleção interna.
 
 Na caixa de texto individual, a seção **SOMBRA EXTERNA** permite habilitar uma
 sombra para todas as letras, escolher sua cor e opacidade, direção, distância,
-desfoque e expansão. No controle circular **Posição da luz**, clique ou arraste o pequeno
-sol para indicar de onde vem a luz: a sombra é projetada no lado oposto.
+desfoque e expansão. No controle circular **Posição da luz**, clique ou arraste
+o pequeno sol para indicar de onde vem a luz: a sombra é projetada no lado oposto.
 Por exemplo, luz no canto superior direito projeta a sombra para baixo e à
 esquerda. As setas do teclado ajustam o ângulo em 1°; com Shift, em 15°.
 O número discreto abaixo do círculo mostra o **ângulo da luz** e pode ser
@@ -39,11 +39,11 @@ O movimento mostra a prévia em tempo real e registra uma etapa no histórico
 ao soltar. Distância, desfoque e expansão são apresentados em milímetros.
 Em uma nova sombra, distância e desfoque começam em **0,25 mm**; expansão
 começa em **0 mm**, preservando a aparência dos modelos anteriores.
-**Expansão** engrossa a silhueta da sombra antes de aplicar o desfoque,
+**Expansão** ajusta a espessura da sombra, engrossando sua silhueta antes do desfoque,
 sem engrossar as letras. Use um valor pequeno para dar mais presença à sombra
 de uma fonte fina. O desfoque suaviza as bordas; a distância afasta a sombra.
-As setas dos campos aumentam
-ou diminuem **0,05 mm** por vez; sombras já configuradas mantêm seus valores.
+As setas dos campos aumentam ou diminuem **0,05 mm** por vez;
+sombras já configuradas mantêm seus valores.
 O ajuste acompanha a substituição dos placeholders sem mover as letras nem
 alterar as quebras de linha. A prévia dos controles é imediata e a confirmação
 do campo registra uma etapa no histórico. A opacidade geral do objeto também
@@ -75,6 +75,8 @@ Para afastar uma caixa de outra, mova as caixas: são ajustes diferentes.
 - O alinhamento vertical posiciona o texto dentro da caixa; não move a caixa
   na página.
 - A opacidade do texto é diferente da opacidade geral do objeto, na barra superior.
+- A sombra é preservada ao salvar, duplicar e desfazer/refazer; alterar a
+  sombra de uma cópia não altera o objeto original.
 
 ## Veja também
 
@@ -82,3 +84,5 @@ Para afastar uma caixa de outra, mova as caixas: são ajustes diferentes.
 - [Formatação de trecho e de caixa](help:TXT-11).
 - [Entrelinha](help:TXT-22).
 - [Alinhar ao meio da caixa](help:TXT-20).
+- [Sombra de imagens e formas no painel Propriedades](help:UI-08).
+- [Sombra da tabela inteira](help:TBL-12).

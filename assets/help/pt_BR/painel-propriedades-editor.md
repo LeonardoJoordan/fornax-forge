@@ -27,6 +27,10 @@ Posicione a luz no círculo ou digite seu ângulo no campo abaixo dele; a sombra
 passos de 0,05 mm. Os ajustes aparecem no canvas enquanto você os modifica.
 **Expansão** engrossa a silhueta da sombra antes do desfoque e começa em
 **0 mm**. Ela não altera o tamanho, o contorno ou o conteúdo do objeto.
+Em novas sombras, distância e desfoque começam em **0,25 mm**. O campo de
+graus abaixo do círculo permite repetir um ângulo exato em outros objetos;
+por exemplo, **45°** coloca a luz no alto à direita e projeta a sombra para
+baixo e à esquerda. O círculo e o valor numérico acompanham um ao outro.
 
 ## Exemplo de uso
 
@@ -44,6 +48,9 @@ A sombra acompanha as partes visíveis do objeto: uma imagem com áreas
 transparentes projeta a silhueta do conteúdo, e uma forma sem preenchimento
 projeta seu contorno. A opacidade geral do objeto afeta também sua sombra.
 Para uma tabela, os mesmos controles ficam na seção **Tabela**.
+Para reforçar a sombra de uma forma com contorno fino, aumente um pouco a
+expansão: ela funciona como um ajuste da espessura da sombra, enquanto o
+desfoque suaviza suas bordas e a distância muda seu afastamento.
 
 ## Particularidades e limites
 
@@ -51,6 +58,8 @@ Para uma tabela, os mesmos controles ficam na seção **Tabela**.
   Uma linha, por exemplo, não oferece os mesmos recursos de máscara de um retângulo.
 - Sem uma seleção compatível, a seção fica indisponível. Selecione um objeto
   individual para acessar suas configurações específicas.
+- Os ajustes da sombra permitem prévia em tempo real e desfazer/refazer;
+  salvar o modelo preserva o efeito, e duplicar cria uma cópia independente.
 - Posição, tamanho, rotação e opacidade geral ficam na barra superior.
   Formatação de letras e parágrafos fica na seção **Texto**.
 - No organograma, Propriedades também reúne controles de blocos, contornos
@@ -62,3 +71,5 @@ Para uma tabela, os mesmos controles ficam na seção **Tabela**.
 - [Usar como máscara](help:MAS-01).
 - [Habilitar link](help:LNK-01).
 - [Controles conforme a seleção](help:UI-12).
+- [Controles de sombra e ângulo da luz no painel Texto](help:UI-09).
+- [Sombra e transformação da tabela inteira](help:TBL-12).
