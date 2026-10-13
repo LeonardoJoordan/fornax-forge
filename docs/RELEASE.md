@@ -50,7 +50,7 @@ em Linux não substituem essa validação.
 
 ## Versão e atualização
 
-A versão do produto é `1.1.0`, definida em `core/version.py`. Manter o
+A versão do produto é `1.2.0`, definida em `core/version.py`. Manter o
 `AppVersion` de `instalador.iss` sincronizado; a tela Sobre, os pontos de entrada
 Qt e os metadados Nuitka usam a constante Python. Essa versão não é a versão do
 formato dos documentos: não alterar o schema apenas por lançar uma release.
