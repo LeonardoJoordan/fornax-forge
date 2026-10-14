@@ -362,14 +362,8 @@ class RichTableWidget(QTableWidget):
         md = QApplication.clipboard().mimeData()
         if not md: return
 
-        grid_struct = []
-
-        # Chama diretamente o nosso Porteiro (router), passando HTML e Texto
-        html_raw = md.html() if md.hasHtml() else ""
-        text_raw = md.text() if md.hasText() else ""
-        
-        from .clipboard import router
-        grid_struct = router(html_raw, text_raw)
+        from .clipboard import parse_clipboard_mime_data
+        grid_struct = parse_clipboard_mime_data(md)
 
         if not grid_struct: return
 
@@ -400,7 +394,7 @@ class RichTableWidget(QTableWidget):
         
         if is_single_cell and len(selected_indexes) > 1:
             val_plain = grid_struct[0][0].plain
-            val_rich = grid_struct[0][0].rich_html
+            val_rich = grid_struct[0][0].html_for_document()
             
             affected_cols_logical = set()
             for idx in selected_indexes:
@@ -453,15 +447,17 @@ class RichTableWidget(QTableWidget):
 
         affected_cols_logical = set()
         row_end = start_row + len(grid_struct) - 1
+        paste_columns = min(max(map(len, grid_struct), default=0), self.columnCount() - start_visual_col)
+        from .clipboard import CellValue
+        blank_cell = CellValue('', '')
 
         for r, row_data in enumerate(grid_struct):
             dest_row = start_row + r
             self._initialize_functional_cells(dest_row)
 
-            for c, cell_data in enumerate(row_data):
+            for c in range(paste_columns):
+                cell_data = row_data[c] if c < len(row_data) else blank_cell
                 target_visual_col = start_visual_col + c
-                if target_visual_col >= self.columnCount():
-                    break
                 dest_col_logical = header.logicalIndex(target_visual_col)
                 if dest_col_logical in signature_columns:
                     continue
@@ -471,7 +467,7 @@ class RichTableWidget(QTableWidget):
                     self.setItem(dest_row, dest_col_logical, item)
 
                 item.setText(cell_data.plain)
-                item.setData(self.RICH_ROLE, cell_data.rich_html)
+                item.setData(self.RICH_ROLE, cell_data.html_for_document())
                 self._force_qty_alignment(item)
                 self._paste_changed_cells.add((dest_row, dest_col_logical))
 

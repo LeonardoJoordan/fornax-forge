@@ -1,5 +1,7 @@
 import re
+import csv
 import html as _html_mod
+from io import StringIO
 from html.parser import HTMLParser
 from dataclasses import dataclass
 from typing import List, Optional
@@ -8,6 +10,13 @@ from typing import List, Optional
 class CellValue:
     plain: str
     rich_html: str
+
+    def html_for_document(self) -> str:
+        # The model distinguishes text from HTML by actual tags. Entity-only
+        # fragments also need decoding, without interpreting literal user tags.
+        if '&' in self.rich_html and '<' not in self.rich_html:
+            return '<span>' + self.rich_html + '</span>'
+        return self.rich_html
 
 # ---------------------------------------------------------------------------
 # Helpers Gerais de CSS e Limpeza de Texto
@@ -96,6 +105,99 @@ def _remove_empty_style_tags(rich: str) -> str:
         rich = re.sub(r"<([biu])></\1>", "", rich)
     return rich
 
+
+def _plain_from_rich(rich: str) -> str:
+    # Remove markup before decoding entities: literal "<b>" is cell content.
+    text = re.sub(r"<br\s*/?>", "\n", rich, flags=re.IGNORECASE)
+    text = re.sub(r"<[^>]+>", "", text)
+    return _clean_spaces(_html_mod.unescape(text))
+
+
+class _UnsupportedHTMLTable(ValueError):
+    """Use the text representation when HTML geometry cannot be read safely."""
+
+
+class _TableHTMLParser(HTMLParser):
+    """Shared grid geometry for the existing HTML formatting readers."""
+    MAX_EXPANDED_CELLS = 100_000
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self._spans = []
+        self._row_spans = []
+        self._cell_span = (1, 1)
+        self._row_open = False
+
+    def close(self):
+        super().close()
+        if self.in_td or self._row_open or self.current_row:
+            raise _UnsupportedHTMLTable('Tabela HTML incompleta')
+
+    def _begin_row(self):
+        if self.in_td or self._row_open:
+            raise _UnsupportedHTMLTable('Tabela HTML aninhada ou incompleta')
+        self.current_row = []
+        self._row_spans = []
+        self._row_open = True
+
+    def _begin_cell(self, attrs):
+        if self.in_td:
+            raise _UnsupportedHTMLTable('Célula HTML incompleta')
+        attrs = dict(attrs)
+        spans = []
+        for name in ('colspan', 'rowspan'):
+            value = (attrs.get(name) or '1').strip()
+            if value.isascii() and value.isdigit():
+                if len(value) > 6 or int(value) > self.MAX_EXPANDED_CELLS:
+                    raise _UnsupportedHTMLTable('Mesclagem HTML excessiva')
+                spans.append(max(1, int(value)))
+            else:
+                spans.append(1)
+        self._cell_span = tuple(spans)
+
+    def _append_cell(self, cell):
+        self.current_row.append(cell)
+        self._row_spans.append(self._cell_span)
+
+    def _append_row(self):
+        if self.in_td:
+            raise _UnsupportedHTMLTable('Célula HTML incompleta')
+        if self._row_open:
+            self.grid.append(self.current_row)
+            self._spans.append(self._row_spans)
+        self.current_row = []
+        self._row_spans = []
+        self._row_open = False
+
+    def expanded_grid(self):
+        if all(span == (1, 1) for row in self._spans for span in row):
+            width = max((len(row) for row in self.grid), default=1)
+            if width * len(self.grid) > self.MAX_EXPANDED_CELLS:
+                width = 1  # the destination fills gaps only up to its visible columns
+            return [row if row else [CellValue('', '') for _ in range(max(1, width))] for row in self.grid]
+        # A merged cell's text belongs only to its upper-left position. Reserve
+        # the covered positions so subsequent values stay in their columns.
+        rows = [{} for _ in self.grid]
+        width = 0
+        blank = CellValue('', '')
+        for r, values in enumerate(self.grid):
+            column = 0
+            for cell, (colspan, rowspan) in zip(values, self._spans[r]):
+                while column in rows[r]:
+                    column += 1
+                end = column + colspan
+                width = max(width, end)
+                if width * len(rows) > self.MAX_EXPANDED_CELLS:
+                    raise _UnsupportedHTMLTable('Mesclagem HTML excessiva')
+                for rr in range(r, min(r + rowspan, len(rows))):
+                    for cc in range(column, end):
+                        if cc in rows[rr]:
+                            raise _UnsupportedHTMLTable('Mesclagens HTML sobrepostas')
+                        rows[rr][cc] = blank
+                rows[r][column] = cell
+                column = end
+        return [[row.get(c, blank) for c in range(width)] for row in rows]
+
 # ---------------------------------------------------------------------------
 # Trabalhadores Especializados
 # ---------------------------------------------------------------------------
@@ -161,13 +263,11 @@ class GoogleSheets:
             return ordered
 
         def plain_from_rich(rich: str) -> str:
-            text = re.sub(r"<br\s*/?>", "\n", rich, flags=re.IGNORECASE)
-            text = re.sub(r"<[^>]+>", "", text)
-            return _clean_spaces(text)
+            return _plain_from_rich(rich)
 
-        class SheetsParser(HTMLParser):
+        class SheetsParser(_TableHTMLParser):
             def __init__(self):
-                super().__init__(convert_charrefs=True)
+                super().__init__()
                 self.grid: List[List[CellValue]] = []
                 self.current_row: List[CellValue] = []
                 self.in_td = False
@@ -249,7 +349,7 @@ class GoogleSheets:
                 rich = "".join(self.cell_chunks)
                 rich = _remove_empty_style_tags(re.sub(r"\s*<br>\s*", "<br>", rich)).strip()
                 plain = plain_from_rich(rich)
-                self.current_row.append(CellValue(plain=plain, rich_html=rich))
+                self._append_cell(CellValue(plain=plain, rich_html=rich))
 
                 self.in_td = False
                 self.cell_chunks = []
@@ -264,10 +364,11 @@ class GoogleSheets:
                     return
 
                 if tag == "tr":
-                    self.current_row = []
+                    self._begin_row()
                     return
 
                 if tag in ("td", "th"):
+                    self._begin_cell(attrs)
                     self.in_td = True
                     self.seen_table_cell = True
                     self.cell_chunks = []
@@ -298,8 +399,7 @@ class GoogleSheets:
                     return
 
                 if tag == "tr":
-                    if self.current_row:
-                        self.grid.append(self.current_row)
+                    self._append_row()
                     return
 
                 if tag in ("td", "th") and self.in_td:
@@ -324,6 +424,7 @@ class GoogleSheets:
 
         parser = SheetsParser()
         parser.feed(html or "")
+        parser.close()
         
         if not parser.grid and parser.fragment_chunks:
             while parser.fragment_frames:
@@ -336,7 +437,7 @@ class GoogleSheets:
             if plain:
                 return [[CellValue(plain=plain, rich_html=rich)]]
                 
-        return parser.grid
+        return parser.expanded_grid()
 
 
 class Excel:
@@ -367,13 +468,11 @@ class Excel:
             return attrs_dict
 
         def plain_from_rich(rich: str) -> str:
-            text = re.sub(r"<br\s*/?>", "\n", rich, flags=re.IGNORECASE)
-            text = re.sub(r"<[^>]+>", "", text)
-            return _clean_spaces(text)
+            return _plain_from_rich(rich)
 
-        class ExcelParser(HTMLParser):
+        class ExcelParser(_TableHTMLParser):
             def __init__(self):
-                super().__init__(convert_charrefs=True)
+                super().__init__()
                 self.grid: List[List[CellValue]] = []
                 self.current_row: List[CellValue] = []
                 self.in_td = False
@@ -517,7 +616,7 @@ class Excel:
                 rich = "".join(self.cell_chunks)
                 rich = _remove_empty_style_tags(re.sub(r"\s*<br>\s*", "<br>", rich)).strip()
                 plain = plain_from_rich(rich)
-                self.current_row.append(CellValue(plain=plain, rich_html=rich))
+                self._append_cell(CellValue(plain=plain, rich_html=rich))
 
                 self.in_td = False
                 self.cell_chunks = []
@@ -533,10 +632,11 @@ class Excel:
                     return
 
                 if tag == "tr":
-                    self.current_row = []
+                    self._begin_row()
                     return
 
                 if tag in ("td", "th"):
+                    self._begin_cell(attrs)
                     self.in_td = True
                     self.seen_table_cell = True
                     self.cell_chunks = []
@@ -576,8 +676,7 @@ class Excel:
                     return
 
                 if tag == "tr":
-                    if self.current_row:
-                        self.grid.append(self.current_row)
+                    self._append_row()
                     return
 
                 if tag in ("td", "th") and self.in_td:
@@ -601,6 +700,7 @@ class Excel:
 
         parser = ExcelParser()
         parser.feed(html or "")
+        parser.close()
 
         if not parser.grid and parser.fragment_chunks:
             parser.fragment_state = parser._transition_state(
@@ -616,7 +716,7 @@ class Excel:
             if plain:
                 return [[CellValue(plain=plain, rich_html=rich)]]
 
-        return parser.grid
+        return parser.expanded_grid()
 
 
 class LibreOffice:
@@ -647,13 +747,11 @@ class LibreOffice:
             return attrs_dict
 
         def plain_from_rich(rich: str) -> str:
-            text = re.sub(r"<br\s*/?>", "\n", rich, flags=re.IGNORECASE)
-            text = re.sub(r"<[^>]+>", "", text)
-            return _clean_spaces(text)
+            return _plain_from_rich(rich)
 
-        class LibreParser(HTMLParser):
+        class LibreParser(_TableHTMLParser):
             def __init__(self):
-                super().__init__(convert_charrefs=True)
+                super().__init__()
                 self.grid: List[List[CellValue]] = []
                 self.current_row: List[CellValue] = []
                 self.in_td = False
@@ -797,7 +895,7 @@ class LibreOffice:
                 rich = "".join(self.cell_chunks)
                 rich = _remove_empty_style_tags(re.sub(r"\s*<br>\s*", "<br>", rich)).strip()
                 plain = plain_from_rich(rich)
-                self.current_row.append(CellValue(plain=plain, rich_html=rich))
+                self._append_cell(CellValue(plain=plain, rich_html=rich))
 
                 self.in_td = False
                 self.cell_chunks = []
@@ -813,10 +911,11 @@ class LibreOffice:
                     return
 
                 if tag == "tr":
-                    self.current_row = []
+                    self._begin_row()
                     return
 
                 if tag in ("td", "th"):
+                    self._begin_cell(attrs)
                     self.in_td = True
                     self.seen_table_cell = True
                     self.cell_chunks = []
@@ -857,8 +956,7 @@ class LibreOffice:
                     return
 
                 if tag == "tr":
-                    if self.current_row:
-                        self.grid.append(self.current_row)
+                    self._append_row()
                     return
 
                 if tag in ("td", "th") and self.in_td:
@@ -882,6 +980,7 @@ class LibreOffice:
 
         parser = LibreParser()
         parser.feed(html or "")
+        parser.close()
 
         if not parser.grid and parser.fragment_chunks:
             parser.fragment_state = parser._transition_state(
@@ -897,26 +996,70 @@ class LibreOffice:
             if plain:
                 return [[CellValue(plain=plain, rich_html=rich)]]
 
-        return parser.grid
+        return parser.expanded_grid()
 
 
 class FallbackTSV:
     @staticmethod
     def processar(text: str) -> List[List[CellValue]]:
-        rows = (text or "").splitlines()
-        grid: List[List[CellValue]] = []
-        for r in rows:
-            if not r.strip() and len(rows) > 1: 
-                continue  # Pula linhas puramente vazias de quebra de bloco externa
-            cols = r.split("\t")
-            row: List[CellValue] = []
-            for c in cols:
-                plain = _clean_spaces(c)
-                # No texto puro não há tags, tratamos entidades básicas por segurança
-                rich = _html_mod.escape(plain, quote=False)
-                row.append(CellValue(plain=plain, rich_html=rich))
-            grid.append(row)
-        return grid
+        if not text:
+            return []
+        text = text.replace('\r\n', '\n').replace('\r', '\n')
+        try:
+            rows = [row or [''] for row in csv.reader(StringIO(text, newline=''), delimiter='\t', strict=True)]
+        except csv.Error:
+            # Arbitrary text may contain unmatched quotes. Preserve it literally
+            # instead of swallowing subsequent records or failing Ctrl+V.
+            lines = text.split('\n')
+            if lines[-1] == '':
+                lines.pop()  # one final record terminator, not internal blank rows
+            rows = [line.split('\t') for line in lines]
+        width = max(map(len, rows), default=0)
+        if width * len(rows) > _TableHTMLParser.MAX_EXPANDED_CELLS:
+            width = 0  # avoid multiplying a sparse text selection into a huge grid
+        return [[CellValue(value, _html_mod.escape(value, quote=False).replace('\n', '<br>'))
+                 for value in row + [''] * max(0, width - len(row))] for row in rows]
+
+
+class _HTMLOrigin(HTMLParser):
+    """Read provenance from markup, never from the user's cell text/comments."""
+    def __init__(self, html):
+        super().__init__(convert_charrefs=True)
+        self.generators = []
+        self.excel = False
+        self.sheets_origin = False
+        self.sheets_attributes = False
+        self.feed(html)
+        self.close()
+
+    def handle_starttag(self, tag, attrs):
+        attributes = dict(attrs)
+        if tag == 'meta':
+            name = (attributes.get('name') or '').strip().lower()
+            content = (attributes.get('content') or '').strip().lower()
+            if name == 'generator' and content:
+                self.generators.append(content)
+            elif name == 'progid' and content.startswith('excel.sheet'):
+                self.excel = True
+        if any(key.startswith('xmlns:') and (value or '').lower() == 'urn:schemas-microsoft-com:office:excel'
+               for key, value in attrs):
+            self.excel = True
+        if tag == 'google-sheets-html-origin':
+            self.sheets_origin = True
+        if tag in ('table', 'tr', 'td', 'th', 'span'):
+            self.sheets_attributes |= any(key.startswith('data-sheets-') for key, _ in attrs)
+
+    def processor(self):
+        if any(re.search(r'\b(?:libreoffice|openoffice)\b', name) for name in self.generators):
+            return LibreOffice
+        if self.excel or any('microsoft excel' in name for name in self.generators):
+            return Excel
+        if (self.sheets_origin or any('google sheets' in name for name in self.generators)
+                or (self.sheets_attributes and not self.generators)):
+            return GoogleSheets
+        # Other generators can also emit compatibility attributes. Use the
+        # shared HTML/CSS capabilities rather than guessing a brand from them.
+        return Excel
 
 
 # ---------------------------------------------------------------------------
@@ -930,31 +1073,29 @@ def router(html: str, texto: str) -> List[List[CellValue]]:
     if not html or not html.strip():
         return FallbackTSV.processar(texto)
 
-    html_low = html.lower()
-
-    # 1. Triagem Google Sheets
-    if "data-sheets-" in html_low or "google-sheets-html-origin" in html_low:
-        return GoogleSheets.processar(html)
-
-    # 2. Triagem Microsoft Excel
-    if (
-        "excel.sheet" in html_low
-        or "progid content=excel" in html_low
-        or "class=xl" in html_low
-        or "microsoft excel" in html_low
-    ):
-        return Excel.processar(html)
-
-    # 3. Triagem LibreOffice Calc
-    if "libreoffice" in html_low or "openoffice" in html_low:
-        return LibreOffice.processar(html)
-
-    # 4. Fallback de Segurança: Se possui tags de tabela genéricas, usa o parser do Excel
-    if "<table" in html_low or "<tr" in html_low:
-        return Excel.processar(html)
-
-    # Se nada acima corresponder, trata como texto separado por tabulações (TSV)
+    try:
+        grid = _HTMLOrigin(html).processor().processar(html)
+        if grid:
+            return grid
+    except (ValueError, AssertionError):
+        # HTMLParser can reject malformed declarations; no input error should
+        # discard a valid text representation supplied by the source.
+        pass
+    # An empty/incomplete HTML representation must not discard available text.
     return FallbackTSV.processar(texto)
+
+
+def parse_clipboard_mime_data(mime) -> List[List[CellValue]]:
+    """Prefer the Calc native selection, which preserves partial formatting."""
+    from .calc_clipboard import is_calc_format, parse_calc_package, MAX_PACKAGE_BYTES
+    for name in mime.formats():
+        if is_calc_format(name):
+            raw = mime.data(name)
+            if raw.size() <= MAX_PACKAGE_BYTES:
+                grid = parse_calc_package(bytes(raw))
+                if grid is not None:
+                    return grid
+    return router(mime.html() if mime.hasHtml() else '', mime.text() if mime.hasText() else '')
 
 
 # ---------------------------------------------------------------------------
