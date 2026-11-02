@@ -9,6 +9,10 @@ os.environ.setdefault('GTK_IM_MODULE', 'ibus')
 os.environ.setdefault('XMODIFIERS', '@im=ibus')
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from core.qt_bootstrap import configure_qt_environment
+
+configure_qt_environment()
+
 from PySide6.QtCore import QEvent, QTimer, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox

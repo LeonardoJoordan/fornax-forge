@@ -29,6 +29,20 @@ sem sua dependência QtPdf; o FORNAX não usa esse handler e continua gerando PD
 com pypdf. O inventário final registra a saída após essa remoção.
 A redução do conjunto Qt não equivale a uma auditoria completa de suas licenças.
 
+## Renderização de fontes no Windows
+
+As entradas `main.py`, `features/workspace/main.py` e `features/editor/main.py`
+configuram o Qt por `core/qt_bootstrap.py`, antes de importar PySide6. No Windows,
+o padrão é `QT_QPA_PLATFORM=windows:fontengine=freetype`. Uma variável já definida
+pelo usuário ou pelo ambiente é preservada, incluindo `offscreen` nos testes.
+Linux e macOS mantêm suas configurações de plataforma.
+
+O FreeType vale para todo o processo, incluindo editor, prévia e geração.
+Validar texto, quebras de linha, PNG/PDF e escalas 100%, 125% e 150% no Windows.
+A configuração acompanha o executável Nuitka após recompilá-lo; conferir o
+standalone e o instalador finais. Para comparação com o motor padrão do Windows,
+iniciar um processo com `QT_QPA_PLATFORM=windows` explicitamente definido.
+
 ## Ícone e apresentação do aplicativo
 
 Os arquivos em `assets/icons/fornax-forge*` são a revisão fornecida pelo autor
